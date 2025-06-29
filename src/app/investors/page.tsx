@@ -1,0 +1,382 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { 
+  FiTrendingUp, 
+  FiBarChart2, 
+  FiPieChart, 
+  FiDollarSign,
+  FiMapPin,
+  FiArrowRight,
+  FiMessageCircle,
+  FiActivity,
+  FiChevronDown
+} from 'react-icons/fi';
+
+interface Property {
+  id: number;
+  title: string;
+  location: string;
+  price: string;
+  roi: string;
+  monthlyRent: string;
+  occupancy: string;
+  image: string;
+}
+
+const InvestorsPage = () => {
+  const { theme } = useTheme();
+  const { language, t } = useLanguage();
+  const [propertyType, setPropertyType] = useState('Residential');
+  const [purchasePrice, setPurchasePrice] = useState('');
+  const [monthlyRent, setMonthlyRent] = useState('');
+
+  const properties: Property[] = [
+    {
+      id: 1,
+      title: 'Luxury Apartment Complex',
+      location: 'Downtown Financial District',
+      price: '$2,450,000',
+      roi: '8.5%',
+      monthlyRent: '$12,500',
+      occupancy: '95%',
+      image: '/images/properties/property-1.jpg'
+    },
+    {
+      id: 2,
+      title: 'Modern Office Building',
+      location: 'Tech Hub Area',
+      price: '$3,750,000',
+      roi: '9.2%',
+      monthlyRent: '$18,000',
+      occupancy: '95%',
+      image: '/images/properties/property-2.jpg'
+    },
+    {
+      id: 3,
+      title: 'Retail Plaza',
+      location: 'Shopping District',
+      price: '$1,950,000',
+      roi: '7.8%',
+      monthlyRent: '$9,500',
+      occupancy: '95%',
+      image: '/images/properties/property-3.jpg'
+    }
+  ];
+
+  const aiQuestions = [
+    'What is the typical ROI in the downtown area?',
+    'What are the main investment risks?',
+    'When is the best time to sell?'
+  ];
+
+  return (
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-dark-bg' : 'bg-white'}`}>
+      {/* Hero Section */}
+      <div 
+        className="relative h-[440px] bg-gradient-to-r from-blue-800 to-blue-400 flex items-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/photos/hero-background.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="max-w-4xl">
+            <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
+              Unlock Smart Real Estate Investments
+            </h1>
+            <p className="text-xl text-white/90 mb-8 max-w-2xl leading-relaxed">
+              Make informed decisions with data-driven insights and expert analysis for maximum returns on your real estate investments.
+            </p>
+            <button className="bg-orange-500/70 hover:bg-orange-500 text-white font-semibold px-8 py-4 rounded-lg flex items-center gap-2 transition-colors">
+              See Investment Opportunities
+              <FiArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Market Analytics & Insights */}
+      <div className="bg-gray-50 py-16">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Market Analytics & Insights
+          </h2>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Neighborhood Price Growth */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <FiTrendingUp className="w-5 h-5 text-blue-500" />
+                <h3 className="text-xl font-semibold text-black">Neighborhood Price Growth</h3>
+              </div>
+              <div className="relative h-40 bg-gray-50 rounded-lg flex items-end justify-center p-4">
+                <div className="flex items-end gap-2 h-full">
+                  <div className="bg-blue-500 w-8 rounded-t" style={{height: '60%'}}></div>
+                  <div className="bg-yellow-400 w-8 rounded-t" style={{height: '40%'}}></div>
+                  <div className="bg-blue-500 w-8 rounded-t" style={{height: '80%'}}></div>
+                  <div className="bg-yellow-400 w-8 rounded-t" style={{height: '65%'}}></div>
+                  <div className="bg-blue-500 w-8 rounded-t" style={{height: '30%'}}></div>
+                </div>
+                <div className="absolute left-2 top-2 text-xs text-gray-600">
+                  <div className="mb-2">220</div>
+                  <div className="mb-2">165</div>
+                  <div className="mb-2">110</div>
+                  <div>55</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Investment Potential */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-6">
+                                 <FiBarChart2 className="w-5 h-5 text-blue-500" />
+                <h3 className="text-xl font-semibold text-black">Investment Potential</h3>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">District 1</span>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">High</span>
+                    <span className="font-semibold text-gray-900">12% ROI</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">District 2</span>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Medium</span>
+                    <span className="font-semibold text-gray-900">10% ROI</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">District 3</span>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">Moderate</span>
+                    <span className="font-semibold text-gray-900">8% ROI</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Area Comparison */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <FiPieChart className="w-5 h-5 text-blue-500" />
+                <h3 className="text-xl font-semibold text-black">Area Comparison</h3>
+              </div>
+              <div className="relative h-40 bg-gray-50 rounded-lg flex items-end justify-center p-4">
+                <div className="flex items-end gap-1 h-full">
+                  <div className="bg-blue-500 w-6 rounded-t" style={{height: '70%'}}></div>
+                  <div className="bg-orange-400 w-6 rounded-t" style={{height: '50%'}}></div>
+                  <div className="bg-blue-500 w-6 rounded-t" style={{height: '90%'}}></div>
+                  <div className="bg-orange-400 w-6 rounded-t" style={{height: '65%'}}></div>
+                  <div className="bg-blue-500 w-6 rounded-t" style={{height: '40%'}}></div>
+                  <div className="bg-orange-400 w-6 rounded-t" style={{height: '25%'}}></div>
+                </div>
+                <div className="absolute left-2 top-2 text-xs text-gray-600">
+                  <div className="mb-3">12</div>
+                  <div className="mb-3">9</div>
+                  <div className="mb-3">6</div>
+                  <div className="mb-3">3</div>
+                  <div>0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Premium Investment Properties */}
+      <div className="py-16">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Premium Investment Properties
+          </h2>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {properties.map((property) => (
+              <div key={property.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div 
+                  className="h-48 bg-gray-200"
+                  style={{
+                    backgroundImage: `url('${property.image}')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+                ></div>
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-black mb-3">{property.title}</h3>
+                  <div className="flex items-center gap-1 mb-4 text-gray-600">
+                    <FiMapPin className="w-4 h-4" />
+                    <span>{property.location}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 mb-1">Price</div>
+                      <div className="text-lg font-semibold text-black">{property.price}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 mb-1">Expected ROI</div>
+                      <div className="text-lg font-semibold text-green-600">{property.roi}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 mb-1">Monthly Rent</div>
+                      <div className="text-lg font-semibold text-black">{property.monthlyRent}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 mb-1">Occupancy</div>
+                      <div className="text-lg font-semibold text-black">{property.occupancy}</div>
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-lg transition-colors">
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Evaluate Your Investment */}
+      <div className="bg-gray-50 py-16">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Evaluate Your Investment
+          </h2>
+          
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* Investment Calculator */}
+            <div className="bg-white rounded-xl shadow-sm p-8">
+              <div className="flex items-center gap-2 mb-6">
+                                 <FiActivity className="w-5 h-5 text-blue-500" />
+                <h3 className="text-xl font-semibold text-black">Investment Calculator</h3>
+              </div>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
+                  <div className="relative">
+                    <select 
+                      value={propertyType}
+                      onChange={(e) => setPropertyType(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option>Residential</option>
+                      <option>Commercial</option>
+                      <option>Mixed Use</option>
+                    </select>
+                    <FiChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Price</label>
+                  <div className="relative">
+                    <FiDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={purchasePrice}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
+                      placeholder="Enter amount"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Expected Monthly Rent</label>
+                  <div className="relative">
+                    <FiDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={monthlyRent}
+                      onChange={(e) => setMonthlyRent(e.target.value)}
+                      placeholder="Enter amount"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+                
+                <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-lg transition-colors">
+                  Calculate ROI
+                </button>
+              </div>
+            </div>
+
+            {/* Investment Summary */}
+            <div className="bg-white rounded-xl shadow-sm p-8">
+              <h3 className="text-xl font-semibold text-black mb-6">Investment Summary</h3>
+              
+              <div className="space-y-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-600 mb-2">Estimated Annual Return</div>
+                  <div className="text-3xl font-bold text-orange-500">$48,000</div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 mb-2">ROI</div>
+                    <div className="text-xl font-semibold text-green-600">8.5%</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-600 mb-2">Break-even</div>
+                    <div className="text-xl font-semibold text-black">4.2 Years</div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-600 mb-3">Investment Grade</div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">A+</span>
+                    <span className="text-gray-600">Excellent Investment Opportunity</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Assistant Section */}
+      <div className="py-16">
+        <div className="container mx-auto px-6 max-w-4xl text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Have Questions? Ask Our AI Assistant
+          </h2>
+          <p className="text-gray-600 mb-12">
+            Get instant answers about investment opportunities, ROI calculations, and market trends
+          </p>
+          
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden max-w-2xl mx-auto">
+            <div className="p-6 border-b border-gray-100">
+              <div className="space-y-4">
+                {aiQuestions.map((question, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 text-left text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
+                    {question}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-6">
+              <button className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-8 py-3 rounded-lg flex items-center gap-2 mx-auto transition-colors">
+                Start Chat
+                <FiMessageCircle className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InvestorsPage;
