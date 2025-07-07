@@ -157,6 +157,16 @@ const translations: Translations = {
     en: 'Commercial',
     ru: 'Коммерческая'
   },
+  studio: {
+    ka: 'სტუდიო',
+    en: 'Studio',
+    ru: 'Студия'
+  },
+  penthouse: {
+    ka: 'პენთჰაუსი',
+    en: 'Penthouse',
+    ru: 'Пентхаус'
+  },
   anyPropertyType: {
     ka: 'ნებისმიერი ტიპი',
     en: 'Any Type',
@@ -501,6 +511,16 @@ const translations: Translations = {
   },
 
   // Transaction types
+  forSale: {
+    ka: 'იყიდება',
+    en: 'For Sale',
+    ru: 'Продается'
+  },
+  forRent: {
+    ka: 'ქირავდება',
+    en: 'For Rent',
+    ru: 'Сдается'
+  },
   forLease: {
     ka: 'გირავდება',
     en: 'For Lease',
@@ -508,6 +528,11 @@ const translations: Translations = {
   },
 
   // Construction status
+  newProperty: {
+    ka: 'ახალი',
+    en: 'New',
+    ru: 'Новый'
+  },
   newConstruction: {
     ka: 'ახალი აშენებული',
     en: 'New Construction',

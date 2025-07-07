@@ -110,7 +110,7 @@ export default function PropertyCard({
         
         {/* Property Type and Status Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-          {/* Status Badge */}
+          {/* Status Badge - Only show one */}
           {status && (
             <span className={`px-2 py-1 rounded-full text-xs font-medium shadow-sm border
               ${status === 'for-sale' 
@@ -122,14 +122,14 @@ export default function PropertyCard({
             </span>
           )}
           
-          {/* Property Type Badge */}
-          {type && (
+          {/* Property Type Badge - Only show for certain types */}
+          {type && type !== 'apartment' && (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-200 shadow-sm border border-gray-200/50 dark:border-gray-600/50">
-              {type === 'apartment' && t('apartment')}
               {type === 'house' && t('house')}
               {type === 'villa' && t('villa')}
               {type === 'studio' && t('studio')}
               {type === 'penthouse' && t('penthouse')}
+              {type === 'commercial' && t('commercial')}
             </span>
           )}
           

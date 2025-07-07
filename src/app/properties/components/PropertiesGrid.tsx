@@ -49,6 +49,18 @@ const mockProperties = Array.from({ length: 100 }, (_, i) => {
   const districtKeys = ['vake', 'mtatsminda', 'saburtalo', 'isani', 'gldani'];
   const districtKey = districtKeys[i % 5];
   
+  // More realistic property type distribution
+  const propertyTypes = ['apartment', 'house', 'villa', 'studio', 'penthouse'];
+  const propertyType = propertyTypes[i % propertyTypes.length];
+  
+  // Status based on property type - more realistic
+  let status = 'for-sale';
+  if (propertyType === 'apartment' || propertyType === 'studio') {
+    status = i % 3 === 0 ? 'for-rent' : 'for-sale';
+  } else if (propertyType === 'house' || propertyType === 'villa') {
+    status = i % 4 === 0 ? 'for-rent' : 'for-sale';
+  }
+  
   return {
     id: i + 1,
     image: `/images/properties/property-${(i % 15) + 1}.jpg`,
@@ -59,8 +71,8 @@ const mockProperties = Array.from({ length: 100 }, (_, i) => {
     sqft: sqftValue,
     floor: floorValue,
     isFavorite: i % 5 === 0,
-    type: ['apartment', 'house', 'villa', 'commercial'][i % 4],
-    status: ['for-sale', 'for-rent'][i % 2],
+    type: propertyType,
+    status: status,
     isNew: i % 7 === 0,
     amenities: [
       i % 2 === 0 ? 'parking' : null,
