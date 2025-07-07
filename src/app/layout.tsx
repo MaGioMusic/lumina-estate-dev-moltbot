@@ -48,12 +48,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ka" className="" suppressHydrationWarning>
+    <html lang="ka" suppressHydrationWarning>
       <head>
-        {/* Disable system color scheme */}
-        <meta name="color-scheme" content="light" />
-        <meta name="supported-color-schemes" content="light" />
-        
         {/* Performance optimizations */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
