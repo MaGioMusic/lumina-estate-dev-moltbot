@@ -126,7 +126,7 @@ export default function AgentDashboard() {
               <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-lg shadow-sm p-6 mb-6 animate-fade-in-up`} style={{animationDelay: '0.5s'}}>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'}`}>Recent Properties</h2>
-                  <button className="text-[#F08336] hover:text-[#E07429] font-medium transition-colors duration-300 hover:scale-105 transform">View All</button>
+                  <button className="text-orange-500 hover:text-orange-600 font-medium transition-colors duration-300 hover:scale-105 transform">View All</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Modern Villa */}
@@ -145,15 +145,15 @@ export default function AgentDashboard() {
                       <p className={`text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} mb-2`}>123 Luxury Lane, Beverly Hills</p>
                       <p className="text-lg font-bold text-[#F08336] mb-3 animate-pulse-gentle">$2,850,000</p>
                       <div className={`flex items-center gap-4 text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} mb-3`}>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaBed className="w-4 h-4" />
                           5 beds
                         </div>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaBath className="w-4 h-4" />
                           4 baths
                         </div>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaRulerCombined className="w-4 h-4" />
                           4,250 sqft
                         </div>
@@ -180,15 +180,15 @@ export default function AgentDashboard() {
                       <p className={`text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} mb-2`}>456 Ocean Drive, Malibu</p>
                       <p className="text-lg font-bold text-[#F08336] mb-3 animate-pulse-gentle">$3,975,000</p>
                       <div className={`flex items-center gap-4 text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} mb-3`}>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaBed className="w-4 h-4" />
                           6 beds
                         </div>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaBath className="w-4 h-4" />
                           5 baths
                         </div>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaRulerCombined className="w-4 h-4" />
                           5,100 sqft
                         </div>
@@ -215,15 +215,15 @@ export default function AgentDashboard() {
                       <p className={`text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} mb-2`}>789 Downtown Ave, Los Angeles</p>
                       <p className="text-lg font-bold text-[#F08336] mb-3 animate-pulse-gentle">$1,950,000</p>
                       <div className={`flex items-center gap-4 text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} mb-3`}>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaBed className="w-4 h-4" />
                           3 beds
                         </div>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaBath className="w-4 h-4" />
                           3 baths
                         </div>
-                        <div className="flex items-center gap-1 hover:text-[#F08336] transition-colors duration-300">
+                        <div className="flex items-center gap-1 hover:text-orange-500 transition-colors duration-300">
                           <FaRulerCombined className="w-4 h-4" />
                           2,800 sqft
                         </div>
@@ -240,7 +240,7 @@ export default function AgentDashboard() {
               <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-lg shadow-sm p-6`}>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className={`text-xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'}`}>Recent Client Activity</h2>
-                  <button className="text-[#F08336] hover:text-[#E07429] font-medium">View All</button>
+                  <button className="text-orange-500 hover:text-orange-600 font-medium">View All</button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -276,7 +276,7 @@ export default function AgentDashboard() {
                           </span>
                         </td>
                         <td className="py-4 px-1">
-                          <button className="text-[#F08336] hover:text-[#E07429] font-medium">Follow Up</button>
+                          <button className="text-orange-500 hover:text-orange-600 font-medium">Follow Up</button>
                         </td>
                       </tr>
 
@@ -302,7 +302,7 @@ export default function AgentDashboard() {
                           </span>
                         </td>
                         <td className="py-4 px-1">
-                          <button className="text-[#F08336] hover:text-[#E07429] font-medium">Review Offer</button>
+                          <button className="text-orange-500 hover:text-orange-600 font-medium">Review Offer</button>
                         </td>
                       </tr>
 
@@ -328,7 +328,7 @@ export default function AgentDashboard() {
                           </span>
                         </td>
                         <td className="py-4 px-1">
-                          <button className="text-[#F08336] hover:text-[#E07429] font-medium">Call</button>
+                          <button className="text-orange-500 hover:text-orange-600 font-medium">Call</button>
                         </td>
                       </tr>
                     </tbody>
@@ -371,7 +371,7 @@ export default function AgentDashboard() {
                         className={`text-sm leading-6 transition-all duration-300 ${
                           task.completed 
                             ? `${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-400'} line-through opacity-60` 
-                            : `${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} group-hover:text-[#F08336]`
+                            : `${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'} group-hover:text-orange-500`
                         }`}
                       >
                         {task.text}
@@ -387,7 +387,7 @@ export default function AgentDashboard() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <FaClock className="w-5 h-5 text-[#F08336]" />
+                      <FaClock className="w-5 h-5 text-orange-500" />
                       <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'}`}>10:00 AM</span>
                     </div>
                     <div className="ml-8">
@@ -397,7 +397,7 @@ export default function AgentDashboard() {
                   </div>
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <FaClock className="w-5 h-5 text-[#F08336]" />
+                      <FaClock className="w-5 h-5 text-orange-500" />
                       <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'}`}>2:00 PM</span>
                     </div>
                     <div className="ml-8">
@@ -407,7 +407,7 @@ export default function AgentDashboard() {
                   </div>
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <FaClock className="w-5 h-5 text-[#F08336]" />
+                      <FaClock className="w-5 h-5 text-orange-500" />
                       <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'}`}>4:30 PM</span>
                     </div>
                     <div className="ml-8">
@@ -435,7 +435,7 @@ export default function AgentDashboard() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'} text-sm transition-colors duration-300 hover:text-[#F08336]`}>Michael Brown</span>
+                        <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'} text-sm transition-colors duration-300 hover:text-orange-500`}>Michael Brown</span>
                         <span className={`text-xs ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-500'}`}>2h ago</span>
                       </div>
                       <p className={`text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'}`}>Looking forward to the viewing tomorrow!</p>
@@ -454,7 +454,7 @@ export default function AgentDashboard() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'} text-sm transition-colors duration-300 hover:text-[#F08336]`}>Emma Wilson</span>
+                        <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'} text-sm transition-colors duration-300 hover:text-orange-500`}>Emma Wilson</span>
                         <span className={`text-xs ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-500'}`}>5h ago</span>
                       </div>
                       <p className={`text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'}`}>When can we discuss the offer?</p>
@@ -473,7 +473,7 @@ export default function AgentDashboard() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'} text-sm transition-colors duration-300 hover:text-[#F08336]`}>James Chen</span>
+                        <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'} text-sm transition-colors duration-300 hover:text-orange-500`}>James Chen</span>
                         <span className={`text-xs ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-500'}`}>1d ago</span>
                       </div>
                       <p className={`text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'}`}>Thanks for the property details</p>
@@ -496,7 +496,7 @@ export default function AgentDashboard() {
 
         {activeTab === 'analytics' && (
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-lg shadow-sm p-8 text-center`}>
-            <FaChartBar className="w-16 h-16 text-[#F08336] mx-auto mb-4" />
+            <FaChartBar className="w-16 h-16 text-orange-500 mx-auto mb-4" />
             <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-gray-900'} mb-2`}>Analytics & Reports</h2>
             <p className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-gray-600'}`}>View detailed analytics and performance reports</p>
           </div>

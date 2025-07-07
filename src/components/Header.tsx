@@ -1,152 +1,134 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getLocalImagePath } from '@/lib/imageUrls';
+import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-// Phosphor Icons
 import { 
-  List, X, House, Buildings, Users, UserCircle, Phone, User,
-  MagnifyingGlass, Heart, Moon, Sun, SignIn, Globe, Gear
+  List, X, House, Buildings, Users, AddressBook, Info,
+  MagnifyingGlass, Heart, Moon, Sun, SignIn, Globe, Gear,
+  Bell, EnvelopeSimple
 } from '@phosphor-icons/react';
+import IOSToggle from '@/app/properties/components/IOSToggle';
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [currentView, setCurrentView] = useState<'grid' | 'map'>('grid');
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { theme, toggleTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage: updateLanguage, t } = useLanguage();
 
-  // Check if we're on the agents page
-  const isAgentsPage = pathname.startsWith('/agents');
+  // Check if we're on properties page
+  const isPropertiesPage = pathname === '/properties';
+  
+  // Debug log
+  console.log('Current pathname:', pathname);
+  console.log('Is Properties Page:', isPropertiesPage);
+  
+  // Check if we're on a dashboard page
+  const isDashboardPage = pathname.includes('/dashboard');
+
+  // Check if we're on agents page
+  const isAgentsPage = pathname === '/agents' || pathname === '/agents/chat';
 
   // Base navigation items
-  const baseNavItems = [
+  const navItems = [
     { name: t('home'), href: '/', icon: House },
     { name: t('properties'), href: '/properties', icon: Buildings },
-    { name: t('investors'), href: '/investors', icon: Users },
-    { name: t('agents'), href: '/agents', icon: UserCircle },
+    { name: t('investors'), href: '/investors', icon: Buildings },
+    { name: t('agents'), href: '/agents', icon: Users },
+    { name: t('about'), href: '/about', icon: Info },
+    { name: t('contact'), href: '/contact', icon: AddressBook }
   ];
 
-  // Navigation items that come after agent tabs
-  const endNavItems = [
-    { name: t('about'), href: '/about', icon: User },
-    { name: t('contact'), href: '/contact', icon: Phone },
-  ];
+  // Mobile navigation items
+  const mobileNavItems = navItems;
 
-  // Agent-specific tabs 
-  const agentTabs = [
-    { name: 'Dashboard', href: '/agents?tab=dashboard', icon: House },
-    { name: 'Clients', href: '/agents?tab=clients', icon: Users },
-    { name: 'Analytics', href: '/agents?tab=analytics', icon: UserCircle },
-  ];
-
-  // Settings tab (only for mobile menu)
-  const settingsTab = { name: 'Settings', href: '/agents?tab=settings', icon: Gear };
-
-  // Desktop navigation items (includes main agent tabs but not Settings)
-  const navItems = isAgentsPage 
-    ? [...baseNavItems, ...agentTabs, ...endNavItems] 
-    : [...baseNavItems, ...endNavItems];
-
-  // Mobile navigation items (includes all agent tabs including Settings)
-  const mobileNavItems = isAgentsPage 
-    ? [...baseNavItems, ...agentTabs, settingsTab, ...endNavItems] 
-    : [...baseNavItems, ...endNavItems];
-
+  // Menu sections
   const menuItems = [
     {
-      id: 'main',
+      id: 'account',
       items: [
-        { name: t('login'), icon: SignIn, action: 'login' },
-        { name: t('quickSearch'), icon: MagnifyingGlass, action: 'search' },
+        { name: t('search'), icon: MagnifyingGlass, action: 'search' },
         { name: t('favorites'), icon: Heart, action: 'favorites' },
-        { 
-          name: theme === 'dark' ? t('lightMode') : t('darkMode'), 
-          icon: theme === 'dark' ? Sun : Moon, 
-          action: 'theme' 
-        },
         { name: t('settings'), icon: Gear, action: 'settings' },
-        { name: t('language'), icon: Globe, action: 'language' }
+        { name: t('language'), icon: Globe, action: 'language' },
+        { name: theme === 'dark' ? t('lightMode') : t('darkMode'), icon: theme === 'dark' ? Sun : Moon, action: 'theme' },
+        { name: t('login'), icon: SignIn, action: 'login' }
       ]
     }
   ];
 
   const languages = [
     { code: 'ka', name: t('georgian'), flag: '🇬🇪' },
-    { code: 'en', name: t('english'), flag: '🇺🇸' },
+    { code: 'en', name: t('english'), flag: '🇬🇧' },
     { code: 'ru', name: t('russian'), flag: '🇷🇺' }
   ];
 
+  const handleLanguageChange = (lang: 'ka' | 'en' | 'ru') => {
+    updateLanguage(lang);
+    setIsMobileMenuOpen(false);
+  };
+
   const handleMenuAction = (action: string) => {
     switch (action) {
-      case 'login':
-        // TODO: Implement login functionality
-        break;
-      case 'signup':
-        // TODO: Implement signup functionality
-        break;
       case 'search':
-        // TODO: Implement search functionality
+        // Handle search
         break;
       case 'favorites':
-        // TODO: Implement favorites functionality
-        break;
-      case 'theme':
-        toggleTheme();
-        break;
-      case 'notifications':
-        // TODO: Implement notifications functionality
-        break;
-      case 'privacy':
-        // TODO: Implement privacy functionality
-        break;
-      case 'accountSettings':
-        // TODO: Implement account settings functionality
+        // Handle favorites
         break;
       case 'settings':
         router.push('/settings');
         break;
-      case 'language':
-        // Language switcher is handled separately
+      case 'theme':
+        toggleTheme();
+        break;
+      case 'login':
+        // Handle login
         break;
     }
     setIsMobileMenuOpen(false);
   };
 
-  const handleLanguageChange = (langCode: 'ka' | 'en' | 'ru') => {
-    setLanguage(langCode);
-    setIsMobileMenuOpen(false);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Searching for:', searchQuery);
   };
 
-  // Close menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+  const handleViewChange = (view: 'grid' | 'map') => {
+    setCurrentView(view);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('viewChange', { detail: view }));
+    }
+  };
 
-  // Close menu on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (isMobileMenuOpen && !target.closest('.mobile-menu-container')) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.header-menu-container')) {
         setIsMobileMenuOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobileMenuOpen]);
 
   return (
-    <header className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-16 relative">
-          {/* Logo - Conditional based on page */}
-          <div className="flex-shrink-0">
+    <header className="bg-white dark:bg-gray-900 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
+      <div className="w-full px-8 lg:px-12">
+        <div className="flex items-center justify-between h-16">
+          {/* Left side - Logo and Properties Title */}
+          <div className="flex items-center gap-4">
             {isAgentsPage ? (
               // Sarah Wilson Profile for Agents Page
               <div className="flex items-center space-x-3">
@@ -163,33 +145,30 @@ export default function Header() {
                 </div>
               </div>
             ) : (
-              // Default Lumina Estate Logo for all other pages
+              // Default Lumina Estate Logo
               <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
                 <div className="w-8 h-8 bg-[#F08336] rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">L</span>
                 </div>
-                <span className="text-xl font-bold text-gray-900">Lumina Estate</span>
+                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">Lumina Estate</span>
               </Link>
+            )}
+
+            {/* Properties Page Title */}
+            {isPropertiesPage && (
+              <div className="ml-6 border-l border-gray-200 pl-6">
+                <h1 className="text-sm font-medium text-gray-900 dark:text-gray-100 animate-slow-shimmer">{t('allProperties')}</h1>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Discover your perfect property</p>
+              </div>
             )}
           </div>
 
-          {/* Desktop Navigation - Center */}
-          <nav className="hidden lg:flex items-center gap-x-4 absolute left-1/2 transform -translate-x-1/2 z-20 top-1/2 -translate-y-1/2">
+          {/* Center - Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-x-6 flex-1 justify-center">
             {navItems.map((item) => {
-              // Special logic for agents page tabs
-              let isActive = false;
-              if (item.href.includes('/agents?tab=')) {
-                const currentTab = searchParams.get('tab') || 'dashboard';
-                const itemTab = new URL(item.href, 'http://localhost').searchParams.get('tab');
-                isActive = currentTab === itemTab;
-              } else if (item.href === '/agents') {
-                // Agents tab is active only when on dashboard or no tab specified
-                const currentTab = searchParams.get('tab') || 'dashboard';
-                isActive = pathname === '/agents' && currentTab === 'dashboard';
-              } else {
-                isActive = pathname === item.href;
-              }
-              
+              const isActive = pathname === item.href || 
+                (isAgentsPage && item.href === '/agents');
+
               return (
                 <Link
                   key={item.href}
@@ -197,7 +176,7 @@ export default function Header() {
                   className={`text-sm font-medium transition-colors duration-200 hover:text-[#F08336] whitespace-nowrap ${
                     isActive
                       ? 'text-[#F08336] border-b-2 border-[#F08336] pb-1'
-                      : 'text-gray-700'
+                      : 'text-gray-700 dark:text-gray-300'
                   }`}
                 >
                   {item.name}
@@ -206,8 +185,61 @@ export default function Header() {
             })}
           </nav>
 
-          {/* Mobile Menu Button - Absolute Right */}
-          <div className="mobile-menu-container absolute right-0">
+          {/* Right side controls */}
+          <div className="flex items-center gap-3 header-menu-container">
+            {/* Properties page specific controls */}
+            {isPropertiesPage && (
+              <>
+                {/* Compact Search Bar */}
+                <div className={`relative transition-all duration-300 ${
+                  isSearchFocused ? 'w-64' : 'w-48'
+                }`}>
+                  <form onSubmit={handleSearch}>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setIsSearchFocused(false)}
+                      placeholder={t('searchPlaceholder')}
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MagnifyingGlass size={16} className="text-gray-400" />
+                    </div>
+                  </form>
+                </div>
+
+                {/* iOS Toggle */}
+                <IOSToggle 
+                  isGrid={currentView === 'grid'} 
+                  onToggle={handleViewChange}
+                />
+              </>
+            )}
+
+            {/* User Profile - Only show on dashboard pages */}
+            {isDashboardPage && (
+              <>
+                <div className="hidden lg:flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-cover bg-center border-2 border-gray-200" 
+                       style={{backgroundImage: "url('https://static.motiffcontent.com/private/resource/image/1968daba13331c3-7417598c-7a87-4402-a019-272363db3103.jpeg')"}}></div>
+                  <span className="text-sm font-medium text-gray-700">John Cooper</span>
+                </div>
+                
+                {/* Notification Bell */}
+                <button className="p-2 rounded-lg text-gray-700 hover:text-[#F08336] hover:bg-gray-50 transition-all duration-200">
+                  <Bell size={20} weight="regular" />
+                </button>
+                
+                {/* Mail Envelope */}
+                <button className="p-2 rounded-lg text-gray-700 hover:text-[#F08336] hover:bg-gray-50 transition-all duration-200">
+                  <EnvelopeSimple size={20} weight="regular" />
+                </button>
+              </>
+            )}
+
+            {/* Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 rounded-lg text-gray-700 hover:text-[#F08336] hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#F08336]/20"
@@ -222,27 +254,15 @@ export default function Header() {
 
             {/* Mobile Menu Dropdown */}
             {isMobileMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50">
+                              <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
                 {/* Navigation Links - Mobile Only */}
-                <div className="p-3 border-b border-gray-100 lg:hidden">
+                                  <div className="p-3 border-b border-gray-100 dark:border-gray-700 lg:hidden">
                   <div className="space-y-1">
                     {mobileNavItems.map((item) => {
                       const Icon = item.icon;
-                      
-                      // Special logic for agents page tabs
-                      let isActive = false;
-                      if (item.href.includes('/agents?tab=')) {
-                        const currentTab = searchParams.get('tab') || 'dashboard';
-                        const itemTab = new URL(item.href, 'http://localhost').searchParams.get('tab');
-                        isActive = currentTab === itemTab;
-                      } else if (item.href === '/agents') {
-                        // Agents tab is active only when on dashboard or no tab specified
-                        const currentTab = searchParams.get('tab') || 'dashboard';
-                        isActive = pathname === '/agents' && currentTab === 'dashboard';
-                      } else {
-                        isActive = pathname === item.href;
-                      }
-                      
+                      const isActive = pathname === item.href || 
+                        (isAgentsPage && item.href === '/agents');
+
                       return (
                         <Link
                           key={item.href}
@@ -250,7 +270,7 @@ export default function Header() {
                           className={`flex items-center space-x-2 p-2 rounded-lg transition-colors text-sm ${
                             isActive
                               ? 'bg-[#F08336]/10 text-[#F08336]'
-                              : 'text-gray-700 hover:bg-gray-50 hover:text-[#F08336]'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#F08336]'
                           }`}
                         >
                           <Icon size={16} weight="regular" />
@@ -271,7 +291,7 @@ export default function Header() {
                         if (item.action === 'language') {
                           return (
                             <div key={item.action} className="space-y-1">
-                              <div className="flex items-center space-x-2 p-2 text-gray-700 text-sm">
+                                                              <div className="flex items-center space-x-2 p-2 text-gray-700 dark:text-gray-300 text-sm">
                                 <Icon size={16} weight="regular" />
                                 <span className="font-medium">{item.name}</span>
                               </div>
@@ -283,7 +303,7 @@ export default function Header() {
                                     className={`flex items-center space-x-2 w-full p-1.5 rounded-md text-left transition-colors text-sm ${
                                       language === lang.code
                                         ? 'bg-[#F08336]/10 text-[#F08336]'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#F08336]'
+                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#F08336]'
                                     }`}
                                   >
                                     <span className="text-sm">{lang.flag}</span>
@@ -302,7 +322,7 @@ export default function Header() {
                           <button
                             key={item.action}
                             onClick={() => handleMenuAction(item.action)}
-                            className="flex items-center space-x-2 w-full p-2 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-50 hover:text-[#F08336] text-sm"
+                            className="flex items-center space-x-2 w-full p-2 rounded-lg text-left transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#F08336] text-sm"
                           >
                             <Icon size={16} weight="regular" />
                             <span className="font-medium">{item.name}</span>

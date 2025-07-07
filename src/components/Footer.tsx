@@ -93,7 +93,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[#111827] dark:bg-dark-bg text-white dark:text-dark-text py-16 transition-colors duration-300">
+    <footer className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 py-16 transition-colors duration-300 border-t border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-fade-in">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
@@ -107,22 +107,22 @@ export default function Footer() {
                 height={32}
                 className="object-cover transition-transform duration-200 hover:scale-110"
               />
-              <span className="text-[#FFFFFF] dark:text-dark-text font-archivo-black text-subtitle leading-7 transition-colors duration-300">Lumina Estate</span>
+              <span className="text-gray-900 dark:text-gray-100 font-archivo-black text-subtitle leading-7 transition-colors duration-300">Lumina Estate</span>
             </div>
-            <p className="text-[#9CA3AF] dark:text-dark-text-secondary font-inter leading-6 transition-colors duration-300">
+            <p className="text-gray-600 dark:text-gray-400 font-inter leading-6 transition-colors duration-300">
               {t('footerDescription')}
             </p>
           </div>
 
           {/* Quick Links */}
           <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <h3 className="text-[#FFFFFF] dark:text-dark-text font-archivo-black text-subtitle leading-7 mb-4 transition-colors duration-300">{t('quickLinks')}</h3>
+            <h3 className="text-gray-900 dark:text-gray-100 font-archivo-black text-subtitle leading-7 mb-4 transition-colors duration-300">{t('quickLinks')}</h3>
             <div className="space-y-3">
               {quickLinks.map((link) => (
                 <button
                   key={link.key}
                   onClick={() => handleQuickLinkClick(link.key)}
-                  className="block text-[#9CA3AF] dark:text-dark-text-secondary font-inter leading-6 text-left hover:text-[#F08336] transition-all duration-300 hover:translate-x-1"
+                  className="block text-gray-600 dark:text-gray-400 font-inter leading-6 text-left hover:text-[#F08336] transition-all duration-300 hover:translate-x-1"
                 >
                   {t(link.key)}
                 </button>
@@ -132,14 +132,14 @@ export default function Footer() {
 
           {/* Contact Info */}
           <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <h3 className="text-[#FFFFFF] dark:text-dark-text font-archivo-black text-subtitle leading-7 mb-4 transition-colors duration-300">Contact</h3>
+            <h3 className="text-gray-900 dark:text-gray-100 font-archivo-black text-subtitle leading-7 mb-4 transition-colors duration-300">Contact</h3>
             <div className="space-y-4">
               {/* Call Us */}
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-orange-500 mt-1 stroke-2" />
                 <div className="space-y-1">
-                  <div className="text-[#FFFFFF] dark:text-dark-text font-inter text-caption transition-colors duration-300">Call Us</div>
-                  <div className="text-[#9CA3AF] dark:text-dark-text-secondary font-inter text-caption transition-colors duration-300">+1 (555) 123-4567</div>
+                  <div className="text-gray-900 dark:text-gray-100 font-inter text-caption transition-colors duration-300">Call Us</div>
+                  <div className="text-gray-600 dark:text-gray-400 font-inter text-caption transition-colors duration-300">+1 (555) 123-4567</div>
                 </div>
               </div>
               
@@ -147,8 +147,8 @@ export default function Footer() {
               <div className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-orange-500 mt-1 stroke-2" />
                 <div className="space-y-1">
-                  <div className="text-[#FFFFFF] dark:text-dark-text font-inter text-caption transition-colors duration-300">Email Us</div>
-                  <div className="text-[#9CA3AF] dark:text-dark-text-secondary font-inter text-caption transition-colors duration-300">contact@luminaestate.com</div>
+                  <div className="text-gray-900 dark:text-gray-100 font-inter text-caption transition-colors duration-300">Email Us</div>
+                  <div className="text-gray-600 dark:text-gray-400 font-inter text-caption transition-colors duration-300">contact@luminaestate.com</div>
                 </div>
               </div>
             </div>
@@ -156,26 +156,26 @@ export default function Footer() {
 
           {/* Newsletter Section */}
           <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <h3 className="text-[#FFFFFF] dark:text-dark-text font-archivo-black text-subtitle leading-7 mb-4 transition-colors duration-300">Newsletter</h3>
-            <p className="text-[#9CA3AF] dark:text-dark-text-secondary font-inter text-caption mb-4 transition-colors duration-300">
+            <h3 className="text-gray-900 dark:text-gray-100 font-archivo-black text-subtitle leading-7 mb-4 transition-colors duration-300">Newsletter</h3>
+            <p className="text-gray-600 dark:text-gray-400 font-inter text-caption mb-4 transition-colors duration-300">
               Subscribe to get the latest investment opportunities
             </p>
             
             <div className="space-y-4">
-              <div className="bg-[#1F2937] dark:bg-dark-bg-tertiary border border-[#374151] dark:border-dark-border rounded-lg p-4 transition-all duration-300 focus-within:border-[#F08336]">
+              <div className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-4 transition-all duration-300 focus-within:border-[#F08336] dark:focus-within:border-orange-500">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email"
-                  className="w-full text-[#9CA3AF] dark:text-dark-text font-inter text-caption bg-transparent outline-none placeholder:text-[#9CA3AF] dark:placeholder:text-dark-text-muted transition-colors duration-300"
+                  className="w-full text-gray-900 dark:text-gray-100 font-inter text-caption bg-transparent outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400 transition-colors duration-300"
                 />
               </div>
               
               <button
                 onClick={handleNewsletterSubmit}
                 disabled={isSubscribing}
-                className="w-full bg-[rgba(240,131,54,0.66)] rounded-lg px-4 py-2 text-[#FFFFFF] dark:text-white font-inter text-caption hover:bg-[#F08336] transition-all duration-300 disabled:opacity-50 hover:scale-105 hover:shadow-lg"
+                className="w-full bg-orange-500 hover:bg-orange-600 rounded-lg px-4 py-2 text-white font-inter text-caption transition-all duration-300 disabled:opacity-50 hover:scale-105 hover:shadow-lg"
               >
                 {isSubscribing ? 'Subscribing...' : 'Subscribe'}
               </button>
@@ -184,9 +184,9 @@ export default function Footer() {
         </div>
 
         {/* Bottom Section */}
-        <div className="border-t border-[#1F2937] dark:border-dark-border pt-8 transition-colors duration-300">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-8 transition-colors duration-300">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 animate-fade-in" style={{ animationDelay: '1s' }}>
-            <div className="text-[#9CA3AF] dark:text-dark-text-secondary font-inter text-caption transition-colors duration-300">
+            <div className="text-gray-600 dark:text-gray-400 font-inter text-caption transition-colors duration-300">
               © 2024 Lumina Estate. {t('allRightsReserved')}.
             </div>
             
@@ -196,7 +196,7 @@ export default function Footer() {
                 <button
                   key={social.name}
                   onClick={() => handleSocialClick(social.name.toLowerCase())}
-                  className="bg-[#1F2937] dark:bg-dark-bg-tertiary rounded-full p-2 w-10 h-10 flex items-center justify-center hover:bg-[#3B82F6] transition-all duration-300 hover:scale-110 hover:shadow-lg"
+                  className="bg-gray-100 dark:bg-gray-800 dark:border dark:border-gray-700 rounded-full p-2 w-10 h-10 flex items-center justify-center hover:bg-orange-500 dark:hover:bg-orange-600 hover:text-white transition-all duration-300 hover:scale-110 hover:shadow-lg group"
                 >
                   {social.icon}
                 </button>

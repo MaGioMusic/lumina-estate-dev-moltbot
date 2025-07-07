@@ -137,7 +137,7 @@ const MapView: React.FC = () => {
       {/* Static Map Container with Background Image */}
       <div className="relative h-96 bg-gray-200 overflow-hidden">
         {/* Beautiful CSS Map Background - Tbilisi Style */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-green-50 to-yellow-50">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-green-50 to-yellow-50 dark:from-blue-900 dark:via-green-900 dark:to-yellow-900">
           {/* Map Districts as colored areas */}
           
           {/* Vake District - Green */}
@@ -150,7 +150,7 @@ const MapView: React.FC = () => {
               height: '25%'
             }}
           >
-            <span className="text-xs font-bold text-green-800">Vake</span>
+            <span className="text-xs font-bold text-green-800">{t('vake')}</span>
           </div>
 
           {/* Mtatsminda District - Blue */}
@@ -163,7 +163,7 @@ const MapView: React.FC = () => {
               height: '20%'
             }}
           >
-            <span className="text-xs font-bold text-blue-800">Mtatsminda</span>
+            <span className="text-xs font-bold text-blue-800">{t('mtatsminda')}</span>
           </div>
 
           {/* Old Town District - Amber */}
@@ -176,7 +176,7 @@ const MapView: React.FC = () => {
               height: '18%'
             }}
           >
-            <span className="text-xs font-bold text-amber-800">Old Town</span>
+            <span className="text-xs font-bold text-amber-800">{t('oldTown')}</span>
           </div>
 
           {/* Saburtalo District - Purple */}
@@ -189,7 +189,7 @@ const MapView: React.FC = () => {
               height: '25%'
             }}
           >
-            <span className="text-xs font-bold text-purple-800">Saburtalo</span>
+            <span className="text-xs font-bold text-purple-800">{t('saburtalo')}</span>
           </div>
 
           {/* Vera District - Pink */}
@@ -202,7 +202,7 @@ const MapView: React.FC = () => {
               height: '20%'
             }}
           >
-            <span className="text-xs font-bold text-pink-800">Vera</span>
+            <span className="text-xs font-bold text-pink-800">{t('vera')}</span>
           </div>
 
           {/* Isani District - Cyan */}
@@ -215,7 +215,7 @@ const MapView: React.FC = () => {
               height: '22%'
             }}
           >
-            <span className="text-xs font-bold text-cyan-800">Isani</span>
+            <span className="text-xs font-bold text-cyan-800">{t('isani')}</span>
           </div>
 
           {/* Rike District - Teal */}
@@ -228,7 +228,7 @@ const MapView: React.FC = () => {
               height: '18%'
             }}
           >
-            <span className="text-xs font-bold text-teal-800">Rike</span>
+            <span className="text-xs font-bold text-teal-800">{t('rike')}</span>
           </div>
 
           {/* Mtkvari River - Blue curved line */}
@@ -243,7 +243,7 @@ const MapView: React.FC = () => {
             }}
           >
             <div className="flex items-center justify-center h-full">
-              <span className="text-xs font-semibold text-white">Mtkvari River</span>
+              <span className="text-xs font-semibold text-white">{t('mtkvariRiver')}</span>
             </div>
           </div>
 
@@ -321,8 +321,8 @@ const MapView: React.FC = () => {
 
         {/* Map Legend Badge */}
         <div className="absolute top-4 left-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 shadow-lg z-20">
-          <div className="text-xs font-semibold text-gray-700">🗺️ თბილისის რუქა</div>
-          <div className="text-xs text-gray-600">{tbilisiProperties.length} ნივთი</div>
+          <div className="text-xs font-semibold text-gray-700">🗺️ {t('tbilisiMap')}</div>
+          <div className="text-xs text-gray-600">{tbilisiProperties.length} {t('items')}</div>
         </div>
 
         {/* Property Details Popup */}
@@ -392,7 +392,7 @@ const MapView: React.FC = () => {
         
         <div className="mt-3 text-center">
           <span className="text-xs text-blue-600 font-medium">
-            📍 სტატიკური რუქა ინტერაქტიული pin-ებით
+            📍 {t('staticMapWithInteractivePins')}
           </span>
         </div>
       </div>

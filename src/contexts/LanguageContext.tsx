@@ -136,6 +136,38 @@ const translations: Translations = {
     ru: 'Поиск'
   },
 
+  // Property Types
+  apartment: {
+    ka: 'ბინა',
+    en: 'Apartment',
+    ru: 'Квартира'
+  },
+  house: {
+    ka: 'სახლი',
+    en: 'House',
+    ru: 'Дом'
+  },
+  villa: {
+    ka: 'ვილა',
+    en: 'Villa',
+    ru: 'Вилла'
+  },
+  commercial: {
+    ka: 'კომერციული',
+    en: 'Commercial',
+    ru: 'Коммерческая'
+  },
+  anyPropertyType: {
+    ka: 'ნებისმიერი ტიპი',
+    en: 'Any Type',
+    ru: 'Любой тип'
+  },
+  anyPriceRange: {
+    ka: 'ნებისმიერი ფასი',
+    en: 'Any Price',
+    ru: 'Любая цена'
+  },
+
   // Features Section
   featuresTitle: {
     ka: 'რატომ ლუმინა ესტეითი?',
@@ -413,54 +445,17 @@ const translations: Translations = {
     en: 'Search Properties',
     ru: 'Поиск недвижимости'
   },
-  anyPropertyType: {
-    ka: 'ნებისმიერი ტიპი',
-    en: 'Any Type',
-    ru: 'Любой тип'
-  },
-  anyPriceRange: {
-    ka: 'ნებისმიერი ფასი',
-    en: 'Any Price',
-    ru: 'Любая цена'
-  },
-
-  // Property types
-  apartment: {
-    ka: 'ბინა',
-    en: 'Apartment',
-    ru: 'Квартира'
-  },
-  house: {
-    ka: 'სახლი',
-    en: 'House',
-    ru: 'Дом'
-  },
-  villa: {
-    ka: 'ვილა',
-    en: 'Villa',
-    ru: 'Вилла'
-  },
-  commercial: {
-    ka: 'კომერციული',
-    en: 'Commercial',
-    ru: 'Коммерческая'
-  },
-  studio: {
-    ka: 'სტუდია',
-    en: 'Studio',
-    ru: 'Студия'
-  },
-  penthouse: {
-    ka: 'პენტჰაუსი',
-    en: 'Penthouse',
-    ru: 'Пентхаус'
-  },
 
   // Common phrases
   discoverYourPerfectProperty: {
     ka: 'აღმოაცენით თქვენი სრულყოფილი ქონება',
     en: 'Discover your perfect property',
     ru: 'Откройте для себя идеальную недвижимость'
+  },
+  propertyCount: {
+    ka: 'ქონება',
+    en: 'properties',
+    ru: 'объектов'
   },
   propertiesFound: {
     ka: 'ქონება ნაპოვნია',
@@ -503,6 +498,101 @@ const translations: Translations = {
     ka: 'ნახვის განულება',
     en: 'Reset view',
     ru: 'Сбросить вид'
+  },
+
+  // Transaction types
+  forLease: {
+    ka: 'გირავდება',
+    en: 'For Lease',
+    ru: 'В аренду'
+  },
+
+  // Construction status
+  newConstruction: {
+    ka: 'ახალი აშენებული',
+    en: 'New Construction',
+    ru: 'Новостройка'
+  },
+  underConstruction: {
+    ka: 'მშენებარე',
+    en: 'Under Construction',
+    ru: 'Строится'
+  },
+  oldConstruction: {
+    ka: 'ძველი აშენებული',
+    en: 'Old Construction',
+    ru: 'Старая постройка'
+  },
+  renovated: {
+    ka: 'რემონტირებული',
+    en: 'Renovated',
+    ru: 'С ремонтом'
+  },
+
+  // Floor options
+  firstFloor: {
+    ka: 'პირველი სართული',
+    en: 'First Floor',
+    ru: 'Первый этаж'
+  },
+  lastFloor: {
+    ka: 'ბოლო სართული',
+    en: 'Last Floor',
+    ru: 'Последний этаж'
+  },
+  middleFloors: {
+    ka: 'შუა სართულები',
+    en: 'Middle Floors',
+    ru: 'Средние этажи'
+  },
+  floor15: {
+    ka: '1-5 სართული',
+    en: '1-5 Floor',
+    ru: '1-5 этаж'
+  },
+  floor610: {
+    ka: '6-10 სართული',
+    en: '6-10 Floor',
+    ru: '6-10 этаж'
+  },
+  floor1115: {
+    ka: '11-15 სართული',
+    en: '11-15 Floor',
+    ru: '11-15 этаж'
+  },
+  floor16plus: {
+    ka: '16+ სართული',
+    en: '16+ Floor',
+    ru: '16+ этаж'
+  },
+
+  // Furniture status
+  furnished: {
+    ka: 'ავეჯით',
+    en: 'Furnished',
+    ru: 'С мебелью'
+  },
+  partiallyFurnished: {
+    ka: 'ნაწილობრივ ავეჯით',
+    en: 'Partially Furnished',
+    ru: 'Частично меблированная'
+  },
+  unfurnished: {
+    ka: 'ავეჯის გარეშე',
+    en: 'Unfurnished',
+    ru: 'Без мебели'
+  },
+
+  // Filter labels
+  transactionType: {
+    ka: 'გარიგების ტიპი',
+    en: 'Transaction Type',
+    ru: 'Тип сделки'
+  },
+  constructionStatus: {
+    ka: 'მშენებლობის სტატუსი',
+    en: 'Construction Status',
+    ru: 'Статус строительства'
   },
   myLocation: {
     ka: 'ჩემი მდებარეობა',
@@ -662,11 +752,6 @@ const translations: Translations = {
     en: 'Appearance',
     ru: 'Внешний вид'
   },
-  notifications: {
-    ka: 'შეტყობინებები',
-    en: 'Notifications',
-    ru: 'Уведомления'
-  },
   privacySecurity: {
     ka: 'კონფიდენციალურობა და უსაფრთხოება',
     en: 'Privacy & Security',
@@ -696,11 +781,6 @@ const translations: Translations = {
     ka: 'თემის პარამეტრები',
     en: 'Theme Preferences',
     ru: 'Настройки темы'
-  },
-  theme: {
-    ka: 'თემა',
-    en: 'Theme',
-    ru: 'Тема'
   },
   light: {
     ka: 'ღია',
@@ -1008,6 +1088,220 @@ const translations: Translations = {
     ka: 'მადლობა ქონების დეტალებისთვის',
     en: 'Thanks for the property details',
     ru: 'Спасибо за детали недвижимости'
+  },
+  resultsUpdateAutomatically: {
+    ka: 'შედეგები განახლდება ავტომატურად',
+    en: 'Results update automatically',
+    ru: 'Результаты обновляются автоматически'
+  },
+  min: {
+    ka: 'მინ',
+    en: 'Min',
+    ru: 'Мин'
+  },
+  max: {
+    ka: 'მაქს',
+    en: 'Max',
+    ru: 'Макс'
+  },
+  clearSelection: {
+    ka: 'არჩევანის გასუფთავება',
+    en: 'Clear selection',
+    ru: 'Очистить выбор'
+  },
+  selected: {
+    ka: 'არჩეული',
+    en: 'selected',
+    ru: 'выбрано'
+  },
+  
+  // Districts
+  tbilisi: {
+    ka: 'თბილისი',
+    en: 'Tbilisi',
+    ru: 'Тбилиси'
+  },
+  vake: {
+    ka: 'ვაკე',
+    en: 'Vake',
+    ru: 'Ваке'
+  },
+  mtatsminda: {
+    ka: 'მთაწმინდა',
+    en: 'Mtatsminda',
+    ru: 'Мтацминда'
+  },
+  saburtalo: {
+    ka: 'საბურთალო',
+    en: 'Saburtalo',
+    ru: 'Сабуртало'
+  },
+  isani: {
+    ka: 'ისანი',
+    en: 'Isani',
+    ru: 'Исани'
+  },
+  gldani: {
+    ka: 'გლდანი',
+    en: 'Gldani',
+    ru: 'Глдани'
+  },
+  didube: {
+    ka: 'დიდუბე',
+    en: 'Didube',
+    ru: 'Дидубе'
+  },
+  vera: {
+    ka: 'ვერა',
+    en: 'Vera',
+    ru: 'Вера'
+  },
+  ortachala: {
+    ka: 'ორთაჭალა',
+    en: 'Ortachala',
+    ru: 'Ортачала'
+  },
+  samgori: {
+    ka: 'სამგორი',
+    en: 'Samgori',
+    ru: 'Самгори'
+  },
+  varketili: {
+    ka: 'ვარკეთილი',
+    en: 'Varketili',
+    ru: 'Варкетили'
+  },
+  oldTown: {
+    ka: 'ძველი ქალაქი',
+    en: 'Old Town',
+    ru: 'Старый город'
+  },
+  rike: {
+    ka: 'რიყე',
+    en: 'Rike',
+    ru: 'Рике'
+  },
+  mtkvariRiver: {
+    ka: 'მტკვარი',
+    en: 'Mtkvari River',
+    ru: 'Река Мтквари'
+  },
+  tbilisiMap: {
+    ka: 'თბილისის რუქა',
+    en: 'Tbilisi Map',
+    ru: 'Карта Тбилиси'
+  },
+  items: {
+    ka: 'ნივთი',
+    en: 'items',
+    ru: 'объектов'
+  },
+  staticMapWithInteractivePins: {
+    ka: 'სტატიკური რუქა ინტერაქტიული pin-ებით',
+    en: 'Static map with interactive pins',
+    ru: 'Статическая карта с интерактивными маркерами'
+  },
+  
+  // Property types
+  penthouse: {
+    ka: 'პენტჰაუსი',
+    en: 'Penthouse',
+    ru: 'Пентхаус'
+  },
+  
+  // Property titles
+  luxuryVillaInVake: {
+    ka: 'ვაკეში ძვირადღირებული ვილა',
+    en: 'Luxury Villa in Vake',
+    ru: 'Роскошная вилла в Ваке'
+  },
+  modernPenthouseInCenter: {
+    ka: 'თანამედროვე პენტჰაუსი ცენტრში',
+    en: 'Modern Penthouse in Center',
+    ru: 'Современный пентхаус в центре'
+  },
+  propertyDetails: {
+    ka: 'ქონების დეტალები',
+    en: 'Property Details',
+    ru: 'Детали недвижимости'
+  },
+  
+  // Street names
+  rustaveliAvenue: {
+    ka: 'რუსთაველის გამზირი',
+    en: 'Rustaveli Avenue',
+    ru: 'Проспект Руставели'
+  },
+  
+  // Country
+  georgia: {
+    ka: 'საქართველო',
+    en: 'Georgia',
+    ru: 'Грузия'
+  },
+  
+  // Business districts
+  downtownFinancialDistrict: {
+    ka: 'ცენტრალური ფინანსური უბანი',
+    en: 'Downtown Financial District',
+    ru: 'Центральный финансовый район'
+  },
+  techHubArea: {
+    ka: 'ტექნოლოგიური ცენტრი',
+    en: 'Tech Hub Area',
+    ru: 'Технологический центр'
+  },
+  shoppingDistrict: {
+    ka: 'სავაჭრო უბანი',
+    en: 'Shopping District',
+    ru: 'Торговый район'
+  },
+  
+  // Georgian cities
+  batumi: {
+    ka: 'ბათუმი',
+    en: 'Batumi',
+    ru: 'Батуми'
+  },
+  kutaisi: {
+    ka: 'ქუთაისი',
+    en: 'Kutaisi',
+    ru: 'Кутаиси'
+  },
+  rustavi: {
+    ka: 'რუსთავი',
+    en: 'Rustavi',
+    ru: 'Рустави'
+  },
+  zugdidi: {
+    ka: 'ზუგდიდი',
+    en: 'Zugdidi',
+    ru: 'Зугдиди'
+  },
+  telavi: {
+    ka: 'თელავი',
+    en: 'Telavi',
+    ru: 'Телави'
+  },
+  gori: {
+    ka: 'გორი',
+    en: 'Gori',
+    ru: 'Гори'
+  },
+  poti: {
+    ka: 'ფოთი',
+    en: 'Poti',
+    ru: 'Поти'
+  },
+  samtredia: {
+    ka: 'სამტრედია',
+    en: 'Samtredia',
+    ru: 'Самтредиа'
+  },
+  kobuleti: {
+    ka: 'ქობულეთი',
+    en: 'Kobuleti',
+    ru: 'Кобулети'
   }
 };
 

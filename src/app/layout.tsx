@@ -40,14 +40,6 @@ export const metadata: Metadata = {
     title: 'Lumina Estate - Premium Real Estate in Georgia',
     description: 'Discover luxury properties in Tbilisi and throughout Georgia.'
   },
-  // Security meta tags
-  other: {
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
-  }
 };
 
 export default function RootLayout({
@@ -56,25 +48,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ka" suppressHydrationWarning>
+    <html lang="ka" className="" suppressHydrationWarning>
       <head>
-        {/* Security headers */}
-        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:;" />
-        <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-        <meta httpEquiv="X-Frame-Options" content="DENY" />
-        <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
-        <meta name="referrer" content="strict-origin-when-cross-origin" />
+        {/* Disable system color scheme */}
+        <meta name="color-scheme" content="light" />
+        <meta name="supported-color-schemes" content="light" />
         
         {/* Performance optimizations */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        
-        {/* Auto-improvement indicators */}
-        <meta name="auto-improvements" content="enabled" />
-        <meta name="auto-monitoring" content="active" />
-        <meta name="security-enhanced" content="true" />
-        <meta name="performance-optimized" content="true" />
-        <meta name="accessibility-enhanced" content="true" />
       </head>
       <body
         className={`${inter.variable} ${archivoBlack.variable} antialiased`}

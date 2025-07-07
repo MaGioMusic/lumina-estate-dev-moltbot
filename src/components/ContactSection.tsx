@@ -153,10 +153,13 @@ export default function ContactSection() {
           {teamMembers.map((member, index) => (
             <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-2">
               <div className="relative w-24 h-24 mx-auto mb-4">
-                <img
+                <Image
                   src={member.image}
                   alt={member.name}
+                  width={96}
+                  height={96}
                   className="w-full h-full rounded-full object-cover"
+                  priority={index < 2} // Load first 2 images with priority
                 />
               </div>
               <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">

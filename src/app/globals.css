@@ -1,5 +1,106 @@
 @import "tailwindcss";
 
+/* Force light color scheme */
+:root {
+  color-scheme: light;
+}
+
+/* Prevent browser from applying dark mode based on system preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light;
+  }
+}
+
+/* Dark mode when .dark class is present */
+.dark {
+  color-scheme: dark;
+}
+
+/* Leaflet Map Fix */
+.leaflet-container {
+  z-index: 1;
+}
+
+/* Custom Slider Styles */
+.slider-track {
+  position: relative;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  margin: 20px 0;
+  cursor: pointer;
+}
+
+.dark .slider-track {
+  background: #4b5563;
+}
+
+.slider-fill {
+  position: absolute;
+  height: 100%;
+  background: #f08336;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  background: white;
+  border: 2px solid #f08336;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.slider-thumb:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.slider-thumb:active {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+
+
 /* Leaflet Map Fix */
 .leaflet-container {
   height: 100% !important;
@@ -22,6 +123,12 @@
   --dark-bg-secondary: #1e293b;
   --dark-text: #f1f5f9;
   --dark-text-secondary: #94a3b8;
+}
+
+/* Dark mode variables */
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
 }
 
 @theme {
@@ -63,6 +170,34 @@ body {
   font-family: var(--font-libre-baskerville), serif;
   font-size: 16px;
   line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode specific styles - Only for special cases */
+.dark {
+  /* Map specific styles */
+  & .leaflet-container {
+    background-color: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  
+  & .leaflet-popup-content-wrapper {
+    @apply bg-gray-800/95 text-gray-100 border border-gray-700/50;
+  }
+  
+  & .leaflet-popup-tip {
+    @apply bg-gray-800/95 border-t border-l border-gray-700/50;
+  }
+  
+  /* Charts and data visualization */
+  & .recharts-text {
+    @apply fill-gray-200;
+  }
+  
+  & .recharts-cartesian-grid-horizontal line,
+  & .recharts-cartesian-grid-vertical line {
+    @apply stroke-gray-700/50;
+  }
 }
 
 /* Optimized Font System for 14" Laptop */
@@ -322,3 +457,5 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+

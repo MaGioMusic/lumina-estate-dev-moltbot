@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Simple theme types
 type Theme = 'light' | 'dark';
@@ -8,40 +8,19 @@ type Theme = 'light' | 'dark';
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  isHydrated: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
-
-  // Simple localStorage helper functions
-  const setItem = (key: string, value: string) => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(key, value);
-      }
-    } catch {
-      // Silently fail if localStorage is not available
-    }
-  };
-
-  const getItem = (key: string): string | null => {
-    try {
-      if (typeof window !== 'undefined') {
-        return localStorage.getItem(key);
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  };
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    // Get saved theme or detect system preference
-    const savedTheme = getItem('theme') as Theme;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    const initialTheme = savedTheme || systemTheme;
+    // Always default to light mode, ignore system preferences completely
+    const savedTheme = localStorage.getItem('theme') as Theme | null;
+    const initialTheme = savedTheme || 'light';
     
     setTheme(initialTheme);
     
@@ -51,25 +30,29 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    
+    // Force light color scheme to prevent browser interference
+    document.documentElement.style.colorScheme = 'light';
+    
+    setIsHydrated(true);
   }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
     
-    // Save to localStorage
-    setItem('theme', newTheme);
-    
-    // Update document class
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
     }
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, isHydrated }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { FiSearch, FiPhone, FiVideo, FiPaperclip, FiImage, FiSend, FiUser, FiClock, FiMapPin, FiMail, FiShoppingBag, FiHelpCircle } from 'react-icons/fi';
+import { motion } from 'framer-motion';
 
 interface ChatUser {
   id: string;
@@ -39,6 +40,7 @@ export default function ChatPage() {
   const contact = searchParams.get('contact');
   const [selectedChat, setSelectedChat] = useState<string>('giorgi-mamaladze');
   const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Mock data for chat users
   const chatUsers: ChatUser[] = [
@@ -98,8 +100,8 @@ export default function ChatPage() {
     }
   ];
 
-  // Mock messages for selected chat
-  const messages: Message[] = [
+  // Messages state
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       text: 'გამარჯობა, მაინტერესებს თქვენი პროდუქტის შესახებ დამატებითი ინფორმაცია',
@@ -135,7 +137,7 @@ export default function ChatPage() {
       isOwn: false,
       avatar: '/images/photos/contact-1.jpg'
     }
-  ];
+  ]);
 
   // Mock transactions
   const transactions: Transaction[] = [
@@ -148,8 +150,16 @@ export default function ChatPage() {
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
-      // Here you would typically send the message to your backend
-      console.log('Sending message:', newMessage);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          text: newMessage,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isOwn: true,
+          avatar: '/images/photos/contact-4.jpg'
+        }
+      ]);
       setNewMessage('');
     }
   };
@@ -166,6 +176,12 @@ export default function ChatPage() {
       setSelectedChat(contact);
     }
   }, [contact]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   return (
     <div className={`h-screen flex ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} pt-16`}>
@@ -186,13 +202,17 @@ export default function ChatPage() {
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto">
-          {chatUsers.map((user) => (
-            <div
+          {chatUsers.map((user, idx) => (
+            <motion.div
               key={user.id}
               onClick={() => setSelectedChat(user.id)}
               className={`p-4 border-b ${theme === 'dark' ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-100'} cursor-pointer transition-colors ${
                 selectedChat === user.id ? (theme === 'dark' ? 'bg-gray-700' : 'bg-white') : ''
               }`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05, duration: 0.4 }}
+              whileHover={{ scale: 1.03 }}
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -226,7 +246,7 @@ export default function ChatPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -267,8 +287,14 @@ export default function ChatPage() {
 
         {/* Messages */}
         <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-          {messages.map((message) => (
-            <div key={message.id} className={`flex gap-2 ${message.isOwn ? 'justify-end' : 'justify-start'}`}>
+          {messages.map((message, idx) => (
+            <motion.div
+              key={message.id}
+              className={`flex gap-2 ${message.isOwn ? 'justify-end' : 'justify-start'}`}
+              initial={{ opacity: 0, x: message.isOwn ? 40 : -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.07, duration: 0.35 }}
+            >
               {!message.isOwn && (
                 <img
                   src={message.avatar}
@@ -297,8 +323,9 @@ export default function ChatPage() {
                   className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                 />
               )}
-            </div>
+            </motion.div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input */}
@@ -321,18 +348,24 @@ export default function ChatPage() {
             <button className={`p-2 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}>
               <FiImage className="w-5 h-5" />
             </button>
-            <button
+            <motion.button
               onClick={handleSendMessage}
               className="bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
+              whileTap={{ scale: 0.9 }}
             >
               <FiSend className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
 
       {/* Right Sidebar - User Profile */}
-      <div className={`w-[350px] flex-shrink-0 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} border-l ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} overflow-y-auto`}>
+      <motion.div
+        className={`w-[350px] flex-shrink-0 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} border-l ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} overflow-y-auto`}
+        initial={{ opacity: 0, x: 40 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         {/* User Profile */}
         <div className={`p-6 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} text-center`}>
           <img
@@ -435,7 +468,7 @@ export default function ChatPage() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 } 

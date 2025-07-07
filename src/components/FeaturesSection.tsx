@@ -40,7 +40,7 @@ export default function FeaturesSection() {
 
 
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-900">
+    <section id="features-section" className="py-20 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
@@ -70,8 +70,8 @@ export default function FeaturesSection() {
         <div className="text-center mt-16">
           <button 
             onClick={() => alert('Redirecting to all features page...')}
-                            className="bg-[#1A365D] text-white px-8 py-4 rounded-lg font-semibold text-subtitle 
-              hover:bg-[#2c5282] transition-all duration-200 transform hover:scale-105 
+                            className="bg-orange-500 dark:bg-orange-600 text-white px-8 py-4 rounded-lg font-semibold text-subtitle 
+              hover:bg-orange-600 dark:hover:bg-orange-700 transition-all duration-200 transform hover:scale-105 
               active:scale-95 shadow-lg hover:shadow-xl"
           >
             Explore All Features
@@ -94,7 +94,7 @@ export default function FeaturesSection() {
               <div className="text-section-title font-bold text-[#F08336] mb-2 group-hover:scale-110 transition-transform duration-300">
                 {stat.number}
               </div>
-              <div className="text-gray-600 group-hover:text-[#1A365D] transition-colors duration-300">
+              <div className="text-gray-600 dark:text-gray-400 group-hover:text-orange-500 transition-colors duration-300">
                 {stat.label}
               </div>
             </div>

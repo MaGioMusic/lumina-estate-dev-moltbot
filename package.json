@@ -6,11 +6,16 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "mcp-server": "node -r ts-node/register src/lib/mcpServer.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
+    "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^5.1.1",
+    "@modelcontextprotocol/sdk": "^1.15.0",
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.50.3",
     "@types/dompurify": "^3.0.5",
     "@types/leaflet": "^1.9.19",
     "@vis.gl/react-google-maps": "^1.5.3",
@@ -23,6 +28,7 @@
     "next": "15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.59.0",
     "react-icons": "^5.5.0",
     "recharts": "^3.0.2",
     "zod": "^3.25.67"
@@ -36,6 +42,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

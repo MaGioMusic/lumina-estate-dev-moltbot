@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { z } from 'zod';
+import { MCPClient } from '@/lib/mcpClient';
 // DOMPurify will be loaded dynamically on client-side
 
 // Input validation schema
@@ -39,7 +40,7 @@ export default function AIChatComponent() {
     {
       id: '1',
       type: 'ai',
-      content: 'Hello! I\'m your AI assistant. How can I help you find the perfect property today?',
+      content: 'გამარჯობა! მე ვარ თქვენი AI ასისტენტი. როგორ შემიძლია დაგეხმაროთ იდეალური ქონების მოძებნაში? შეგიძლიათ მკითხოთ ქონების ძებნის, იპოთეკის გაანგარიშების ან ბაზრის ინფორმაციის შესახებ.',
       timestamp: new Date(),
     },
   ]);
@@ -54,6 +55,7 @@ export default function AIChatComponent() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mcpClient = useRef<MCPClient>(new MCPClient());
 
   // Rate limiting check
   const checkRateLimit = (): boolean => {
@@ -152,20 +154,30 @@ export default function AIChatComponent() {
     setIsLoading(true);
 
     try {
-      // Simulate AI response with additional security checks
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+      // Process the query using MCP client
+      const response = await mcpClient.current.processAIChatQuery(sanitizedInput);
       
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: `I understand you're looking for "${sanitizedInput}". Let me help you find properties that match your criteria. Based on your requirements, I can suggest several options in different neighborhoods with varying price ranges.`,
+        content: response,
         timestamp: new Date(),
       };
       
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error sending message:', error);
-      setError('Failed to send message. Please try again.');
+      setError('შეცდომა მოხდა. გთხოვთ სცადოთ მოგვიანებით.');
+      
+      // Fallback response
+      const fallbackResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: 'ვიღაცა შეცდომა მოხდა. გთხოვთ კონკრეტულად მითხრათ რა გინდათ: ქონების ძებნა, იპოთეკის გაანგარიშება, თუ ბაზრის ინფორმაცია?',
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, fallbackResponse]);
     } finally {
       setIsLoading(false);
     }
@@ -211,9 +223,9 @@ export default function AIChatComponent() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="bg-white rounded-lg shadow-2xl w-80 h-96 flex flex-col border border-gray-200 animate-in slide-in-from-bottom-2 duration-300">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-80 h-96 flex flex-col border border-gray-200 dark:border-gray-700 animate-in slide-in-from-bottom-2 duration-300">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-orange-500 text-white rounded-t-lg">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-orange-500 text-white rounded-t-lg">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
               <h3 className="font-semibold">AI Assistant</h3>
@@ -240,7 +252,7 @@ export default function AIChatComponent() {
                   className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
                     message.type === 'user'
                       ? 'bg-orange-500 text-white rounded-br-none'
-                      : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{message.content}</p>
@@ -255,12 +267,12 @@ export default function AIChatComponent() {
             
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-800 px-3 py-2 rounded-lg rounded-bl-none">
+                <div className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded-lg rounded-bl-none">
                   <div className="flex items-center space-x-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                     <span className="text-sm">Typing...</span>
                   </div>
@@ -273,14 +285,14 @@ export default function AIChatComponent() {
           
           {/* Error Messages */}
           {error && (
-            <div className="mx-4 mb-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-xs">
+            <div className="mx-4 mb-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-red-700 dark:text-red-300 text-xs">
               {error}
             </div>
           )}
           
           {/* Validation Errors */}
           {validationErrors.message && (
-            <div className="mx-4 mb-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-700 text-xs">
+            <div className="mx-4 mb-2 p-2 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded text-yellow-700 dark:text-yellow-300 text-xs">
               {validationErrors.message.map((error, index) => (
                 <div key={index}>{error}</div>
               ))}
@@ -288,7 +300,7 @@ export default function AIChatComponent() {
           )}
           
           {/* Input */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <form onSubmit={handleSubmit} className="flex space-x-2">
               <div className="flex-1 relative">
                 <input
@@ -297,12 +309,12 @@ export default function AIChatComponent() {
                   onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask about properties..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm placeholder-gray-500 dark:placeholder-gray-400"
                   disabled={isLoading}
                   maxLength={500}
                   aria-label="Chat message input"
                 />
-                <div className="absolute bottom-1 right-2 text-xs text-gray-400">
+                <div className="absolute bottom-1 right-2 text-xs text-gray-400 dark:text-gray-500">
                   {input.length}/500
                 </div>
               </div>
@@ -327,7 +339,7 @@ export default function AIChatComponent() {
             
             {/* Rate Limit Info */}
             {rateLimitCount > 5 && (
-              <div className="mt-2 text-xs text-gray-500 text-center">
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
                 {RATE_LIMIT.maxRequests - rateLimitCount} messages remaining
               </div>
             )}

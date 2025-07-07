@@ -181,23 +181,23 @@ export default function AgentsPage() {
 
   if (activeTab === 'analytics') {
     return (
-      <div className={`min-h-screen ${theme === 'dark' ? 'bg-dark-bg' : 'bg-[#FFF8F6]'}`}>
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
         {/* Header with Controls */}
         <div className="flex items-center justify-between p-6">
-          <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>
+          <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
             Analytics Dashboard
           </h1>
           <div className="flex items-center gap-4">
-            <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary border-dark-border' : 'bg-white border-gray-200'} border rounded-lg px-4 py-2 flex items-center gap-2`}>
-              <FiCalendar className="w-4 h-4 text-[#F08336]" />
-              <span className={`${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>Last 12 Months</span>
-              <FiChevronDown className="w-4 h-4 text-[#F08336]" />
+            <div className="flex items-center gap-2">
+              <FiCalendar className="w-4 h-4 text-orange-500" />
+              <span className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Last 12 Months</span>
+              <FiChevronDown className="w-4 h-4 text-orange-500" />
             </div>
-            <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary border-dark-border' : 'bg-white border-gray-200'} border rounded-lg px-4 py-2 flex items-center gap-2`}>
-              <FiFilter className="w-4 h-4 text-[#F08336]" />
-              <span className="text-[#F08336]">Filter</span>
+            <div className="flex items-center gap-2 cursor-pointer">
+              <FiFilter className="w-4 h-4 text-orange-500" />
+              <span className="text-orange-500">Filter</span>
             </div>
-            <button className="bg-[#F08336] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#E67E22] transition-colors">
+            <button className="bg-orange-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors">
               <FiDownload className="w-4 h-4" />
               Export Report
             </button>
@@ -208,61 +208,59 @@ export default function AgentsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 mb-6">
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'} text-sm font-medium`}>Total Sales</h3>
-              <div className="w-10 h-10 bg-[#FFE8D6] rounded-full flex items-center justify-center">
-                <FiTrendingUp className="w-5 h-5 text-[#F08336]" />
+              <h3 className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-sm font-medium`}>Total Sales</h3>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <FiTrendingUp className="w-5 h-5 text-orange-500" />
               </div>
             </div>
-            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'} mb-2`}>$24.5M</div>
-            <div className="flex items-center gap-1 text-sm">
-              <FiArrowUp className="w-4 h-4 text-[#F08336]" />
-              <span className="text-[#F08336] font-medium">+12.5%</span>
-              <span className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'}`}>vs last year</span>
+            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} mb-2`}>$24.5M</div>
+            <div className="flex items-center gap-2">
+              <FiArrowUp className="w-4 h-4 text-orange-500" />
+              <span className="text-orange-500 font-medium">+12.5%</span>
+              <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>vs last year</span>
             </div>
           </div>
 
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'} text-sm font-medium`}>Active Clients</h3>
-              <div className="w-10 h-10 bg-[#FFE8D6] rounded-full flex items-center justify-center">
-                <FiUsers className="w-5 h-5 text-[#F08336]" />
+              <h3 className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-sm font-medium`}>Active Clients</h3>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <FiUsers className="w-5 h-5 text-orange-500" />
               </div>
             </div>
-            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'} mb-2`}>1,248</div>
-            <div className="flex items-center gap-1 text-sm">
-              <FiArrowUp className="w-4 h-4 text-[#F08336]" />
-              <span className="text-[#F08336] font-medium">+8.2%</span>
-              <span className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'}`}>vs last month</span>
+            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} mb-2`}>1,248</div>
+            <div className="flex items-center gap-2">
+              <FiArrowUp className="w-4 h-4 text-orange-500" />
+              <span className="text-orange-500 font-medium">+8.2%</span>
+              <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>vs last month</span>
             </div>
           </div>
 
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'} text-sm font-medium`}>Conversion Rate</h3>
-              <div className="w-10 h-10 bg-[#FFE8D6] rounded-full flex items-center justify-center">
-                <FiTarget className="w-5 h-5 text-[#F08336]" />
+              <h3 className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-sm font-medium`}>Conversion Rate</h3>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <FiTarget className="w-5 h-5 text-orange-500" />
               </div>
             </div>
-            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'} mb-2`}>18.6%</div>
-            <div className="flex items-center gap-1 text-sm">
-              <FiArrowUp className="w-4 h-4 text-[#F08336]" />
-              <span className="text-[#F08336] font-medium">+2.4%</span>
-              <span className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'}`}>vs last quarter</span>
+            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} mb-2`}>18.6%</div>
+            <div className="flex items-center gap-2">
+              <FiArrowUp className="w-4 h-4 text-orange-500" />
+              <span className="text-orange-500 font-medium">+2.4%</span>
+              <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>vs last quarter</span>
             </div>
           </div>
 
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'} text-sm font-medium`}>Avg. Property Value</h3>
-              <div className="w-10 h-10 bg-[#FFE8D6] rounded-full flex items-center justify-center">
-                <FiHome className="w-5 h-5 text-[#F08336]" />
+              <h3 className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-sm font-medium`}>Avg. Property Value</h3>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <FiHome className="w-5 h-5 text-orange-500" />
               </div>
             </div>
-            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'} mb-2`}>$1.8M</div>
-            <div className="flex items-center gap-1 text-sm">
-              <FiArrowDown className="w-4 h-4 text-red-500" />
-              <span className="text-red-500 font-medium">-3.1%</span>
-              <span className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'}`}>vs last month</span>
+            <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} mb-2`}>$1.8M</div>
+            <div className="flex items-center gap-2">
+              <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>vs last month</span>
             </div>
           </div>
         </div>
@@ -272,8 +270,8 @@ export default function AgentsPage() {
           {/* Sales Trend Chart */}
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>Sales Trend</h3>
-              <FiMoreHorizontal className="w-4 h-4 text-[#F08336]" />
+              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Sales Trend</h3>
+              <FiMoreHorizontal className="w-4 h-4 text-orange-500" />
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={salesTrendData}>
@@ -301,8 +299,8 @@ export default function AgentsPage() {
           {/* Client Activity Chart */}
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>Client Activity</h3>
-              <FiMoreHorizontal className="w-4 h-4 text-[#F08336]" />
+              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Client Activity</h3>
+              <FiMoreHorizontal className="w-4 h-4 text-orange-500" />
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={clientActivityData}>
@@ -321,18 +319,18 @@ export default function AgentsPage() {
                 <Bar dataKey="offers" fill="#77574E" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            <div className="flex items-center justify-center gap-6 text-sm mt-4">
+            <div className="flex items-center gap-4 mt-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#F08336] rounded-full"></div>
-                <span className="text-[#F08336]">New Leads</span>
+                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                <span className="text-orange-500">New Leads</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#FFDBD1] rounded-full"></div>
-                <span className="text-[#FFDBD1]">Property Viewings</span>
+                <div className="w-3 h-3 bg-orange-200 rounded-full"></div>
+                <span className="text-orange-200">Property Viewings</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#77574E] rounded-full"></div>
-                <span className="text-[#77574E]">Offers Made</span>
+                <div className="w-3 h-3 bg-gray-600 rounded-full"></div>
+                <span className="text-gray-600">Offers Made</span>
               </div>
             </div>
           </div>
@@ -342,7 +340,7 @@ export default function AgentsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6 mb-6">
           {/* Property Type Distribution */}
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
-            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'} mb-6`}>Property Type Distribution</h3>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} mb-6`}>Property Type Distribution</h3>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
@@ -365,7 +363,7 @@ export default function AgentsPage() {
               {propertyTypeData.map((item, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                  <span className={`text-sm ${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'}`}>
+                  <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                     {item.name} ({item.value}%)
                   </span>
                 </div>
@@ -375,18 +373,18 @@ export default function AgentsPage() {
 
           {/* Property Location */}
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
-            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'} mb-6`}>Property Location</h3>
-            <div className="h-[250px] flex items-center justify-center bg-gradient-to-br from-[#F08336]/10 to-[#FFE8D6]/20 rounded-lg">
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} mb-6`}>Property Location</h3>
+            <div className="h-[250px] flex items-center justify-center bg-gradient-to-br from-orange-500/10 to-orange-200/20 rounded-lg">
               <div className="text-center">
-                <FiMapPin className="w-12 h-12 text-[#F08336] mx-auto mb-2" />
-                <p className={`${theme === 'dark' ? 'text-dark-text-secondary' : 'text-[#53433F]'}`}>Location map visualization</p>
+                <FiMapPin className="w-12 h-12 text-orange-500 mx-auto mb-2" />
+                <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Location map visualization</p>
               </div>
             </div>
           </div>
 
           {/* Top Performing Agents */}
           <div className={`${theme === 'dark' ? 'bg-dark-bg-secondary' : 'bg-white'} rounded-xl p-6 shadow-sm`}>
-            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'} mb-6`}>Top Performing Agents</h3>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} mb-6`}>Top Performing Agents</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -395,9 +393,9 @@ export default function AgentsPage() {
                     alt="Sarah Wilson"
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>Sarah Wilson</span>
+                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Sarah Wilson</span>
                 </div>
-                <span className="text-[#F08336] font-medium">$4.2M</span>
+                <span className="text-orange-500 font-medium">$4.2M</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -406,9 +404,9 @@ export default function AgentsPage() {
                     alt="Michael Brown"
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>Michael Brown</span>
+                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Michael Brown</span>
                 </div>
-                <span className="text-[#F08336] font-medium">$3.8M</span>
+                <span className="text-orange-500 font-medium">$3.8M</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -417,9 +415,9 @@ export default function AgentsPage() {
                     alt="Emma Johnson"
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>Emma Johnson</span>
+                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>Emma Johnson</span>
                 </div>
-                <span className="text-[#F08336] font-medium">$3.5M</span>
+                <span className="text-orange-500 font-medium">$3.5M</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -428,9 +426,9 @@ export default function AgentsPage() {
                     alt="James Chen"
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <span className={`font-medium ${theme === 'dark' ? 'text-dark-text' : 'text-[#231917]'}`}>James Chen</span>
+                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>James Chen</span>
                 </div>
-                <span className="text-[#F08336] font-medium">$3.1M</span>
+                <span className="text-orange-500 font-medium">$3.1M</span>
               </div>
             </div>
           </div>

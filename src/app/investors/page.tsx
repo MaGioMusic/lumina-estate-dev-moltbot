@@ -37,7 +37,7 @@ const InvestorsPage = () => {
     {
       id: 1,
       title: 'Luxury Apartment Complex',
-      location: 'Downtown Financial District',
+      location: t('downtownFinancialDistrict'),
       price: '$2,450,000',
       roi: '8.5%',
       monthlyRent: '$12,500',
@@ -47,7 +47,7 @@ const InvestorsPage = () => {
     {
       id: 2,
       title: 'Modern Office Building',
-      location: 'Tech Hub Area',
+      location: t('techHubArea'),
       price: '$3,750,000',
       roi: '9.2%',
       monthlyRent: '$18,000',
@@ -57,7 +57,7 @@ const InvestorsPage = () => {
     {
       id: 3,
       title: 'Retail Plaza',
-      location: 'Shopping District',
+      location: t('shoppingDistrict'),
       price: '$1,950,000',
       roi: '7.8%',
       monthlyRent: '$9,500',
@@ -73,7 +73,7 @@ const InvestorsPage = () => {
   ];
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-dark-bg' : 'bg-white'}`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Hero Section */}
       <div 
         className="relative h-[440px] bg-gradient-to-r from-blue-800 to-blue-400 flex items-center"
@@ -100,18 +100,18 @@ const InvestorsPage = () => {
       </div>
 
       {/* Market Analytics & Insights */}
-      <div className="bg-gray-50 py-16">
+      <div className="bg-gray-50 dark:bg-gray-800 py-16">
         <div className="container mx-auto px-6 max-w-6xl">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-12">
             Market Analytics & Insights
           </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
             {/* Neighborhood Price Growth */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-gray-700 rounded-xl shadow-sm p-6">
               <div className="flex items-center gap-2 mb-6">
                 <FiTrendingUp className="w-5 h-5 text-blue-500" />
-                <h3 className="text-xl font-semibold text-black">Neighborhood Price Growth</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Neighborhood Price Growth</h3>
               </div>
               <div className="relative h-40 bg-gray-50 rounded-lg flex items-end justify-center p-4">
                 <div className="flex items-end gap-2 h-full">
@@ -131,41 +131,41 @@ const InvestorsPage = () => {
             </div>
 
             {/* Investment Potential */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-gray-700 rounded-xl shadow-sm p-6">
               <div className="flex items-center gap-2 mb-6">
-                                 <FiBarChart2 className="w-5 h-5 text-blue-500" />
-                <h3 className="text-xl font-semibold text-black">Investment Potential</h3>
+                <FiBarChart2 className="w-5 h-5 text-blue-500" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Investment Potential</h3>
               </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">District 1</span>
+                  <span className="text-gray-600 dark:text-gray-400">District 1</span>
                   <div className="flex items-center gap-2">
                     <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">High</span>
-                    <span className="font-semibold text-gray-900">12% ROI</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">12% ROI</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">District 2</span>
+                  <span className="text-gray-600 dark:text-gray-400">District 2</span>
                   <div className="flex items-center gap-2">
                     <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Medium</span>
-                    <span className="font-semibold text-gray-900">10% ROI</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">10% ROI</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">District 3</span>
+                  <span className="text-gray-600 dark:text-gray-400">District 3</span>
                   <div className="flex items-center gap-2">
                     <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">Moderate</span>
-                    <span className="font-semibold text-gray-900">8% ROI</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">8% ROI</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Area Comparison */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-gray-700 rounded-xl shadow-sm p-6">
               <div className="flex items-center gap-2 mb-6">
                 <FiPieChart className="w-5 h-5 text-blue-500" />
-                <h3 className="text-xl font-semibold text-black">Area Comparison</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Area Comparison</h3>
               </div>
               <div className="relative h-40 bg-gray-50 rounded-lg flex items-end justify-center p-4">
                 <div className="flex items-end gap-1 h-full">
@@ -192,13 +192,13 @@ const InvestorsPage = () => {
       {/* Premium Investment Properties */}
       <div className="py-16">
         <div className="container mx-auto px-6 max-w-6xl">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-12">
             Premium Investment Properties
           </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
             {properties.map((property) => (
-              <div key={property.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div key={property.id} className="bg-white dark:bg-gray-700 rounded-xl shadow-sm overflow-hidden">
                 <div 
                   className="h-48 bg-gray-200"
                   style={{
@@ -208,31 +208,31 @@ const InvestorsPage = () => {
                   }}
                 ></div>
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold text-black mb-3">{property.title}</h3>
-                  <div className="flex items-center gap-1 mb-4 text-gray-600">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">{property.title}</h3>
+                  <div className="flex items-center gap-1 mb-4 text-gray-600 dark:text-gray-400">
                     <FiMapPin className="w-4 h-4" />
                     <span>{property.location}</span>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-sm text-gray-600 mb-1">Price</div>
-                      <div className="text-lg font-semibold text-black">{property.price}</div>
+                    <div className="bg-gray-50 dark:bg-gray-600 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Price</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">{property.price}</div>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-sm text-gray-600 mb-1">Expected ROI</div>
+                    <div className="bg-gray-50 dark:bg-gray-600 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Expected ROI</div>
                       <div className="text-lg font-semibold text-green-600">{property.roi}</div>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-sm text-gray-600 mb-1">Monthly Rent</div>
-                      <div className="text-lg font-semibold text-black">{property.monthlyRent}</div>
+                    <div className="bg-gray-50 dark:bg-gray-600 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Monthly Rent</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">{property.monthlyRent}</div>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-sm text-gray-600 mb-1">Occupancy</div>
-                      <div className="text-lg font-semibold text-black">{property.occupancy}</div>
+                    <div className="bg-gray-50 dark:bg-gray-600 rounded-lg p-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Occupancy</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">{property.occupancy}</div>
                     </div>
                   </div>
                   
@@ -249,16 +249,16 @@ const InvestorsPage = () => {
       {/* Evaluate Your Investment */}
       <div className="bg-gray-50 py-16">
         <div className="container mx-auto px-6 max-w-6xl">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-12">
             Evaluate Your Investment
           </h2>
           
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Investment Calculator */}
-            <div className="bg-white rounded-xl shadow-sm p-8">
+            <div className="bg-white dark:bg-gray-700 rounded-xl shadow-sm p-8">
               <div className="flex items-center gap-2 mb-6">
-                                 <FiActivity className="w-5 h-5 text-blue-500" />
-                <h3 className="text-xl font-semibold text-black">Investment Calculator</h3>
+                <FiActivity className="w-5 h-5 text-blue-500" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Investment Calculator</h3>
               </div>
               
               <div className="space-y-6">

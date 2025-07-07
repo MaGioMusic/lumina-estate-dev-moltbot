@@ -1,164 +1,130 @@
 # Lumina Estate - Real Estate Platform
 
-A modern, multilingual real estate platform built with Next.js, featuring advanced search, AI chat, and interactive maps.
+## 🏠 Overview
+Lumina Estate is a modern real estate platform built with Next.js 15, TypeScript, and Tailwind CSS v4. The platform features a beautiful, responsive design with dark mode support, multi-language capabilities (Georgian, English, Russian), and integration with Motiff design system.
 
-## Features
+## 🚀 Features
+- **Modern UI/UX**: Beautiful, responsive design with smooth animations
+- **Dark Mode**: Full dark mode support with manual toggle
+- **Multi-language**: Support for Georgian (ka), English (en), and Russian (ru)
+- **Property Listings**: Advanced search and filtering capabilities
+- **Interactive Maps**: Google Maps integration for property locations
+- **Agent Dashboard**: Comprehensive dashboard for real estate agents
+- **Investor Portal**: Dedicated section for property investors
+- **AI Chat Integration**: Smart property recommendations and assistance
 
-- 🌍 **Multilingual Support**: Georgian, English, and Russian
-- 🗺️ **Interactive Maps**: Real Google Maps integration with property markers
-- 🤖 **AI Chat Assistant**: Get property recommendations and answers
-- 🔍 **Advanced Search & Filters**: Find properties by location, price, type, and more
-- 📱 **Responsive Design**: Works perfectly on all devices
-- 🎨 **Modern UI**: Clean, professional interface with dark/light mode
-- 🔒 **Security**: Comprehensive security implementation with CSP, input validation, and more
+## 🛠️ Tech Stack
+- **Framework**: Next.js 15.3.4 with App Router
+- **Language**: TypeScript 5
+- **Styling**: Tailwind CSS v4
+- **Animations**: Framer Motion + GSAP
+- **Icons**: Phosphor Icons, React Icons, Lucide
+- **Maps**: Google Maps API, Leaflet (fallback)
+- **Forms**: React Hook Form + Zod validation
+- **State Management**: React Context API
 
-## Tech Stack
+## 📦 Installation
 
-- **Frontend**: Next.js 14, React, TypeScript
-- **Styling**: Tailwind CSS
-- **Maps**: Google Maps JavaScript API with @vis.gl/react-google-maps
-- **Validation**: Zod for schema validation
-- **Security**: DOMPurify for XSS prevention
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-- Google Maps API Key
-
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone <repository-url>
+# Clone the repository
+git clone https://github.com/MaGioMusic/Luminia-Estate-Motiff-Edition-Private.git
+
+# Navigate to project directory
 cd lumina-estate
-```
 
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-3. Set up Google Maps API Key:
-
-   a. Go to [Google Cloud Console](https://console.cloud.google.com/)
-   
-   b. Create a new project or select an existing one
-   
-   c. Enable the following APIs:
-      - Maps JavaScript API
-      - Places API (optional, for enhanced search)
-   
-   d. Create credentials (API Key)
-   
-   e. Restrict the API key (recommended):
-      - Application restrictions: HTTP referrers
-      - Add your domain: `http://localhost:3000/*` for development
-   
-   f. Create a `.env.local` file in the project root:
-   ```bash
-   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_actual_api_key_here
-   ```
-
-4. Start the development server:
-```bash
+# Run development server
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+## 🔧 Configuration
 
-## Environment Variables
-
-Create a `.env.local` file with the following variables:
+### Environment Variables
+Create a `.env.local` file in the root directory:
 
 ```env
-# Google Maps API Key (Required for map functionality)
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-
-# Example:
-# NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-## Project Structure
+### Dark Mode
+The application uses a class-based dark mode strategy. Dark mode can be toggled from:
+- Settings page (`/settings`)
+- Header menu toggle
+
+### Language Support
+Languages can be switched from the header menu. Supported languages:
+- 🇬🇪 Georgian (ka) - Primary
+- 🇬🇧 English (en) - Secondary
+- 🇷🇺 Russian (ru) - Tertiary
+
+## 📁 Project Structure
 
 ```
 lumina-estate/
 ├── src/
-│   ├── app/                 # Next.js app directory
-│   │   ├── properties/      # Properties page and components
-│   │   └── agents/          # Agents page
-│   ├── components/          # Shared components
-│   ├── contexts/           # React contexts (Language, Theme)
-│   └── lib/                # Utility libraries
-├── public/                 # Static assets
-└── docs/                  # Documentation
+│   ├── app/              # Next.js App Router pages
+│   ├── components/       # Reusable UI components
+│   ├── contexts/         # React Context providers
+│   ├── lib/             # Utility functions
+│   └── types/           # TypeScript type definitions
+├── public/              # Static assets
+│   ├── images/          # Images and icons
+│   └── videos/          # Video assets
+├── tailwind.config.js   # Tailwind CSS configuration
+├── next.config.ts       # Next.js configuration
+└── tsconfig.json        # TypeScript configuration
 ```
 
-## Key Components
+## 🎨 Design System
 
-### MapView Component
-- Real Google Maps integration
-- Property markers with custom colors by type
-- Interactive info windows
-- Zoom controls and legend
-- Responsive design
+### Color Palette
+- **Primary**: Lumina Gold (#D4AF37, #B8860B)
+- **Secondary**: Deep Blue (#1E3A8A, #3B82F6)
+- **Neutral**: Gray Scale (#F8FAFC to #0F172A)
+- **Success**: Green (#10B981)
+- **Warning**: Amber (#F59E0B)
+- **Error**: Red (#EF4444)
 
-### Language System
-- Complete translation system for 3 languages
-- Persistent language selection
-- Secure localStorage with validation
+### Typography
+- **Primary Font**: Inter
+- **Serif Font**: Georgia (fallback)
+- **Display Font**: Archivo Black
 
-### Security Features
-- Content Security Policy (CSP)
-- Input validation with Zod
-- XSS prevention with DOMPurify
-- Rate limiting for AI chat
-- Secure headers implementation
+## 🚀 Deployment
 
-## Available Scripts
+### Build for Production
+```bash
+npm run build
+npm start
+```
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+### Deploy to Vercel
+```bash
+vercel
+```
 
-## Map Features
+## 🧪 Testing
+```bash
+# Run linter
+npm run lint
 
-The interactive map includes:
-- 7 sample properties across Tbilisi districts
-- Color-coded markers by property type
-- Detailed property information in popups
-- Zoom controls and reset functionality
-- Property count display
-- Type legend
+# Type checking
+npm run type-check
+```
 
-## Security Implementation
+## 📝 License
+This project is private and proprietary.
 
-This project includes comprehensive security measures:
-- CSP headers to prevent XSS attacks
-- Input validation and sanitization
-- Rate limiting for API endpoints
-- Secure localStorage handling
-- HTTPS enforcement (production)
+## 👥 Contributors
+- MaGioMusic - Project Owner
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For support or questions, please contact the development team.
+## 🤝 Contributing
+This is a private repository. Please contact the project owner for contribution guidelines.
 
 ---
 
-**Note**: Make sure to replace the placeholder Google Maps API key with your actual key for the map functionality to work properly.
+Built with ❤️ using Next.js, TypeScript, and Tailwind CSS

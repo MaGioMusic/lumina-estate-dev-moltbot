@@ -1,21 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 // Phosphor Icons imports - using correct icon names
 import { 
-  House, Buildings, Rows, BuildingOffice,
-  Car, SwimmingPool, Barbell, Plant, TreePalm, Snowflake
+  House, Buildings, BuildingOffice,
+  Car, SwimmingPool, Barbell, Plant, TreePalm, Snowflake,
+  CaretDown, Check
 } from '@phosphor-icons/react';
 // Temporarily removed GSAP animations to fix the error
 // import { AnimatedIcon, StaggeredIcons } from '@/components/animations/IconAnimations';
 
 interface FiltersState {
   priceRange: [number, number];
-  bedrooms: string;
-  bathrooms: string;
-  propertyType: string;
+  bedrooms: string[];
+  bathrooms: string[];
+  propertyTypes: string[];
+  transactionType: string;
+  constructionStatus: string;
+  floor: string;
+  furniture: string;
   area: [number, number];
+  amenities: string[];
 }
 
 interface FiltersSidebarProps {
@@ -26,308 +32,843 @@ export default function FiltersSidebar({ onFiltersChange }: FiltersSidebarProps)
   const { t } = useLanguage();
   const [filters, setFilters] = useState<FiltersState>({
     priceRange: [0, 1000000],
-    bedrooms: '',
-    bathrooms: '',
-    propertyType: '',
-    area: [0, 500]
+    bedrooms: [],
+    bathrooms: [],
+    propertyTypes: [],
+    transactionType: '',
+    constructionStatus: '',
+    floor: '',
+    furniture: '',
+    area: [0, 500],
+    amenities: []
   });
-  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>([]);
-  const [selectedBedrooms, setSelectedBedrooms] = useState<string | null>(null);
-  const [selectedBathrooms, setSelectedBathrooms] = useState<string | null>(null);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [areaSize, setAreaSize] = useState('');
-  const [areaUnit, setAreaUnit] = useState('sqft');
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [isPropertyTypeOpen, setIsPropertyTypeOpen] = useState(false);
+  const [isTransactionTypeOpen, setIsTransactionTypeOpen] = useState(false);
+  const [isConstructionOpen, setIsConstructionOpen] = useState(false);
+  const [isFloorOpen, setIsFloorOpen] = useState(false);
+  const [isFurnitureOpen, setIsFurnitureOpen] = useState(false);
+  const propertyTypeRef = useRef<HTMLDivElement>(null);
+  const transactionTypeRef = useRef<HTMLDivElement>(null);
+  const constructionRef = useRef<HTMLDivElement>(null);
+  const floorRef = useRef<HTMLDivElement>(null);
+  const furnitureRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside - but not for Property Type (multi-select)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Don't close Property Type dropdown on outside click - it's multi-select
+      // User should close it manually or use Clear button
+      
+      if (transactionTypeRef.current && !transactionTypeRef.current.contains(event.target as Node)) {
+        setIsTransactionTypeOpen(false);
+      }
+      if (constructionRef.current && !constructionRef.current.contains(event.target as Node)) {
+        setIsConstructionOpen(false);
+      }
+      if (floorRef.current && !floorRef.current.contains(event.target as Node)) {
+        setIsFloorOpen(false);
+      }
+      if (furnitureRef.current && !furnitureRef.current.contains(event.target as Node)) {
+        setIsFurnitureOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Real-time filtering - update parent whenever filters change
+  useEffect(() => {
+    console.log('FiltersSidebar filters changed:', filters);
+    onFiltersChange(filters);
+    
+    // Count active filters
+    let count = 0;
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000000) count++;
+    if (filters.bedrooms.length > 0) count += filters.bedrooms.length;
+    if (filters.bathrooms.length > 0) count += filters.bathrooms.length;
+    if (filters.propertyTypes.length > 0) count += filters.propertyTypes.length;
+    if (filters.transactionType) count++;
+    if (filters.constructionStatus) count++;
+    if (filters.floor) count++;
+    if (filters.furniture) count++;
+    if (filters.area[0] > 0 || filters.area[1] < 500) count++;
+    if (filters.amenities.length > 0) count += filters.amenities.length;
+    setActiveFiltersCount(count);
+  }, [filters, onFiltersChange]);
 
   const handleFilterChange = (key: keyof FiltersState, value: any) => {
+    console.log('handleFilterChange called:', key, '=', value);
     const newFilters = { ...filters, [key]: value };
+    console.log('New filters state:', newFilters);
     setFilters(newFilters);
-    onFiltersChange(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    setFilters({
+      priceRange: [0, 1000000],
+      bedrooms: [],
+      bathrooms: [],
+      propertyTypes: [],
+      transactionType: '',
+      constructionStatus: '',
+      floor: '',
+      furniture: '',
+      area: [0, 500],
+      amenities: []
+    });
   };
 
   const propertyTypes = [
-    { value: 'apartment', label: 'Apartment' },
-    { value: 'house', label: 'House' },
-    { value: 'villa', label: 'Villa' },
-    { value: 'commercial', label: 'Commercial' }
+    { value: 'apartment', label: t('apartment'), icon: Buildings },
+    { value: 'house', label: t('house'), icon: House },
+    { value: 'villa', label: t('villa'), icon: House },
+    { value: 'commercial', label: t('commercial'), icon: BuildingOffice }
+  ];
+
+  const transactionTypes = [
+    { value: 'for-sale', label: t('forSale') },
+    { value: 'for-rent', label: t('forRent') },
+    { value: 'for-lease', label: t('forLease') }
+  ];
+
+  const constructionStatuses = [
+    { value: 'new', label: t('newConstruction') },
+    { value: 'under-construction', label: t('underConstruction') },
+    { value: 'old', label: t('oldConstruction') },
+    { value: 'renovated', label: t('renovated') }
+  ];
+
+  const floorOptions = [
+    { value: 'first', label: t('firstFloor') },
+    { value: 'last', label: t('lastFloor') },
+    { value: 'middle', label: t('middleFloors') },
+    { value: '1-5', label: t('floor15') },
+    { value: '6-10', label: t('floor610') },
+    { value: '11-15', label: t('floor1115') },
+    { value: '16+', label: t('floor16plus') }
+  ];
+
+  const furnitureOptions = [
+    { value: 'furnished', label: t('furnished') },
+    { value: 'partially', label: t('partiallyFurnished') },
+    { value: 'unfurnished', label: t('unfurnished') }
   ];
 
   const bedroomOptions = ['1', '2', '3', '4', '5+'];
   const bathroomOptions = ['1', '2', '3', '4+'];
 
   const amenities = [
-    { id: 'parking', label: 'Parking', icon: <Car size={20} weight="regular" /> },
-    { id: 'swimming_pool', label: 'Swimming Pool', icon: <SwimmingPool size={20} weight="regular" /> },
-    { id: 'gym', label: 'Gym', icon: <Barbell size={20} weight="regular" /> },
-    { id: 'garden', label: 'Garden', icon: <Plant size={20} weight="regular" /> },
-    { id: 'balcony', label: 'Balcony', icon: <TreePalm size={20} weight="regular" /> },
-    { id: 'air_conditioning', label: 'Air Conditioning', icon: <Snowflake size={20} weight="regular" /> }
+    { id: 'parking', label: 'Parking', icon: Car },
+    { id: 'swimming_pool', label: 'Pool', icon: SwimmingPool },
+    { id: 'gym', label: 'Gym', icon: Barbell },
+    { id: 'garden', label: 'Garden', icon: Plant },
+    { id: 'balcony', label: 'Balcony', icon: TreePalm },
+    { id: 'air_conditioning', label: 'AC', icon: Snowflake }
   ];
 
-  const togglePropertyType = (type: string) => {
-    setSelectedPropertyTypes(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
+  const toggleAmenity = (amenityId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(amenityId)
+        ? prev.amenities.filter(id => id !== amenityId)
+        : [...prev.amenities, amenityId]
+    }));
   };
 
-  const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities(prev => 
-      prev.includes(amenity) 
-        ? prev.filter(a => a !== amenity)
-        : [...prev, amenity]
-    );
+  const togglePropertyType = (typeValue: string) => {
+    setFilters(prev => ({
+      ...prev,
+      propertyTypes: prev.propertyTypes.includes(typeValue)
+        ? prev.propertyTypes.filter(t => t !== typeValue)
+        : [...prev.propertyTypes, typeValue]
+    }));
+  };
+
+  const toggleBedrooms = (bedroomValue: string) => {
+    setFilters(prev => ({
+      ...prev,
+      bedrooms: prev.bedrooms.includes(bedroomValue)
+        ? prev.bedrooms.filter(b => b !== bedroomValue)
+        : [...prev.bedrooms, bedroomValue]
+    }));
+  };
+
+  const toggleBathrooms = (bathroomValue: string) => {
+    setFilters(prev => ({
+      ...prev,
+      bathrooms: prev.bathrooms.includes(bathroomValue)
+        ? prev.bathrooms.filter(b => b !== bathroomValue)
+        : [...prev.bathrooms, bathroomValue]
+    }));
   };
 
   return (
-    <div className="w-64 bg-white dark:bg-dark-bg-secondary rounded-lg p-6 h-fit border border-gray-100 dark:border-dark-border transition-all duration-300 animate-fade-in">
-      <h2 className="text-lg font-medium text-[#1A365D] dark:text-dark-text mb-6 transition-colors duration-300">
-        {t('filters')}
-      </h2>
+    <div className="w-56 bg-white dark:bg-gray-800 rounded-2xl p-4 h-fit border border-gray-200 dark:border-gray-700 shadow-sm">
+      {/* Header with Clear button */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-medium text-gray-900 dark:text-gray-50">
+          {t('filters')}
+          {activeFiltersCount > 0 && (
+            <span className="ml-2 text-xs text-orange-500">({activeFiltersCount})</span>
+          )}
+        </h2>
+        {activeFiltersCount > 0 && (
+          <button
+            onClick={clearAllFilters}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-orange-500 transition-colors px-2 py-1 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Clear
+          </button>
+        )}
+      </div>
       
-      {/* Price Range */}
-      <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-        <h3 className="text-sm font-medium text-[#4B5563] dark:text-dark-text-secondary mb-3 transition-colors duration-300">
+      {/* Price Range - Custom Dual Range Slider */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
           {t('priceRange')}
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <input
-              type="range"
-              min="0"
-              max="1000000"
-              step="10000"
-              value={filters.priceRange[0]}
-              onChange={(e) => handleFilterChange('priceRange', [parseInt(e.target.value), filters.priceRange[1]])}
-              className="flex-1"
+          {/* Custom Slider */}
+          <div className="relative h-6 flex items-center px-2">
+            {/* Track Background */}
+            <div className="absolute left-0 right-0 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+              {/* Active Track */}
+              <div 
+                className="absolute h-2 bg-orange-500 rounded-full"
+                style={{
+                  left: `${(filters.priceRange[0] / 1000000) * 100}%`,
+                  width: `${((filters.priceRange[1] - filters.priceRange[0]) / 1000000) * 100}%`
+                }}
+              />
+            </div>
+            
+            {/* Min Thumb */}
+            <div
+              className="absolute w-5 h-5 bg-white border-2 border-orange-500 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform"
+              style={{ 
+                left: `${(filters.priceRange[0] / 1000000) * 100}%`,
+                transform: 'translateX(-50%)',
+                zIndex: 10
+              }}
+              onMouseDown={(e) => {
+                const startX = e.clientX;
+                const startValue = filters.priceRange[0];
+                const sliderRect = e.currentTarget.parentElement!.getBoundingClientRect();
+                
+                const handleMouseMove = (e: MouseEvent) => {
+                  const deltaX = e.clientX - startX;
+                  const percentChange = (deltaX / sliderRect.width) * 100;
+                  const valueChange = (percentChange / 100) * 1000000;
+                  const newValue = Math.max(0, Math.min(filters.priceRange[1], startValue + valueChange));
+                  handleFilterChange('priceRange', [Math.round(newValue / 10000) * 10000, filters.priceRange[1]]);
+                };
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+            />
+            
+            {/* Max Thumb */}
+            <div
+              className="absolute w-5 h-5 bg-white border-2 border-orange-500 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform"
+              style={{ 
+                left: `${(filters.priceRange[1] / 1000000) * 100}%`,
+                transform: 'translateX(-50%)',
+                zIndex: 10
+              }}
+              onMouseDown={(e) => {
+                const startX = e.clientX;
+                const startValue = filters.priceRange[1];
+                const sliderRect = e.currentTarget.parentElement!.getBoundingClientRect();
+                
+                const handleMouseMove = (e: MouseEvent) => {
+                  const deltaX = e.clientX - startX;
+                  const percentChange = (deltaX / sliderRect.width) * 100;
+                  const valueChange = (percentChange / 100) * 1000000;
+                  const newValue = Math.max(filters.priceRange[0], Math.min(1000000, startValue + valueChange));
+                  handleFilterChange('priceRange', [filters.priceRange[0], Math.round(newValue / 10000) * 10000]);
+                };
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
             />
           </div>
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-            <span>${filters.priceRange[0].toLocaleString()}</span>
-            <span>${filters.priceRange[1].toLocaleString()}</span>
+          
+          {/* Price Display */}
+          <div className="flex items-center justify-between text-xs">
+            <div className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
+              <span className="text-gray-500 dark:text-gray-400">{t('min')}: </span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">${filters.priceRange[0].toLocaleString()}</span>
+            </div>
+            <div className="text-gray-400 dark:text-gray-500">—</div>
+            <div className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
+              <span className="text-gray-500 dark:text-gray-400">{t('max')}: </span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">${filters.priceRange[1].toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Property Type */}
-      <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-        <h3 className="text-sm font-medium text-[#4B5563] dark:text-dark-text-secondary mb-3 transition-colors duration-300">
+      {/* Transaction Type - Single Select Dropdown */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          {t('transactionType')}
+        </h3>
+        <div className="relative" ref={transactionTypeRef}>
+          <button
+            type="button"
+            onClick={() => setIsTransactionTypeOpen(!isTransactionTypeOpen)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl 
+              bg-white dark:bg-gray-800/50 cursor-pointer flex items-center justify-between
+              focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 
+              hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
+          >
+            <span className={filters.transactionType ? 'text-gray-700 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
+              {filters.transactionType
+                ? transactionTypes.find(t => t.value === filters.transactionType)?.label
+                : t('all')}
+            </span>
+            <CaretDown 
+              size={16} 
+              className={`text-gray-400 transition-transform duration-200 ${
+                isTransactionTypeOpen ? 'rotate-180' : ''
+              }`} 
+            />
+          </button>
+
+          {/* Dropdown Menu */}
+          {isTransactionTypeOpen && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+              <button
+                onClick={() => {
+                  handleFilterChange('transactionType', '');
+                  setIsTransactionTypeOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                  ${!filters.transactionType ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+              >
+                <span>{t('all')}</span>
+                {!filters.transactionType && <Check size={14} className="text-orange-500" />}
+              </button>
+              {transactionTypes.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => {
+                    handleFilterChange('transactionType', type.value);
+                    setIsTransactionTypeOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                    ${filters.transactionType === type.value ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+                >
+                  <span>{type.label}</span>
+                  {filters.transactionType === type.value && <Check size={14} className="text-orange-500" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Property Type - Collapsible Multi-Select */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
           {t('propertyType')}
         </h3>
-        <select
-          value={filters.propertyType}
-          onChange={(e) => handleFilterChange('propertyType', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-        >
-          <option value="">{t('propertyType')}</option>
-          {propertyTypes.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
+        <div className="relative" ref={propertyTypeRef}>
+          {/* Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsPropertyTypeOpen(!isPropertyTypeOpen)}
+            className={`w-full px-3 py-2 text-sm border rounded-xl cursor-pointer flex items-center justify-between
+              transition-all duration-200
+              ${isPropertyTypeOpen 
+                ? 'border-orange-500 dark:border-orange-500 bg-orange-50 dark:bg-orange-900/20' 
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600'
+              }
+              focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500`}
+          >
+            <span className={filters.propertyTypes.length > 0 ? 'text-gray-700 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
+              {filters.propertyTypes.length > 0
+                ? filters.propertyTypes.length === 1
+                  ? propertyTypes.find(t => t.value === filters.propertyTypes[0])?.label
+                  : `${filters.propertyTypes.length} ${t('selected')}`
+                : t('all')}
+            </span>
+            <CaretDown 
+              size={16} 
+              className={`text-gray-400 transition-transform duration-200 ${
+                isPropertyTypeOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          {/* Collapsible Selection List */}
+          {isPropertyTypeOpen && (
+            <div className="mt-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+            <div className="max-h-48 overflow-y-auto">
+              {propertyTypes.map((type) => {
+                const Icon = type.icon;
+                const isSelected = filters.propertyTypes.includes(type.value);
+                
+                return (
+                  <button
+                    key={type.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePropertyType(type.value);
+                    }}
+                    className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                      ${isSelected ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon size={16} weight="regular" className={isSelected ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'} />
+                      <span>{type.label}</span>
+                    </div>
+                    <Check 
+                      size={16} 
+                      weight="bold"
+                      className={`transition-all duration-200 ${
+                        isSelected 
+                          ? 'text-orange-500 opacity-100' 
+                          : 'text-gray-300 dark:text-gray-600 opacity-0'
+                      }`} 
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Clear selection button */}
+            {filters.propertyTypes.length > 0 && (
+              <div className="border-t border-gray-200 dark:border-gray-700 p-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFilterChange('propertyTypes', []);
+                  }}
+                  className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors rounded-md px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                >
+                  {t('clearSelection')}
+                </button>
+              </div>
+            )}
+          </div>
+          )}
+        </div>
       </div>
 
-      {/* Bedrooms */}
-      <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-        <h3 className="text-sm font-medium text-[#4B5563] dark:text-dark-text-secondary mb-3 transition-colors duration-300">
+      {/* Construction Status - After Transaction Type */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          {t('constructionStatus')}
+        </h3>
+        <div className="relative" ref={constructionRef}>
+          <button
+            type="button"
+            onClick={() => setIsConstructionOpen(!isConstructionOpen)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl 
+              bg-white dark:bg-gray-800/50 cursor-pointer flex items-center justify-between
+              focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 
+              hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
+          >
+            <span className={filters.constructionStatus ? 'text-gray-700 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
+              {filters.constructionStatus
+                ? constructionStatuses.find(s => s.value === filters.constructionStatus)?.label
+                : t('all')}
+            </span>
+            <CaretDown 
+              size={16} 
+              className={`text-gray-400 transition-transform duration-200 ${
+                isConstructionOpen ? 'rotate-180' : ''
+              }`} 
+            />
+          </button>
+
+          {isConstructionOpen && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+              <button
+                onClick={() => {
+                  handleFilterChange('constructionStatus', '');
+                  setIsConstructionOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                  ${!filters.constructionStatus ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+              >
+                <span>{t('all')}</span>
+                {!filters.constructionStatus && <Check size={14} className="text-orange-500" />}
+              </button>
+              {constructionStatuses.map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => {
+                    handleFilterChange('constructionStatus', status.value);
+                    setIsConstructionOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                    ${filters.constructionStatus === status.value ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+                >
+                  <span>{status.label}</span>
+                  {filters.constructionStatus === status.value && <Check size={14} className="text-orange-500" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Floor - Custom Dropdown */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          {t('floor')}
+        </h3>
+        <div className="relative" ref={floorRef}>
+          <button
+            type="button"
+            onClick={() => setIsFloorOpen(!isFloorOpen)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl 
+              bg-white dark:bg-gray-800/50 cursor-pointer flex items-center justify-between
+              focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 
+              hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
+          >
+            <span className={filters.floor ? 'text-gray-700 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
+              {filters.floor
+                ? floorOptions.find(f => f.value === filters.floor)?.label
+                : t('all')}
+            </span>
+            <CaretDown 
+              size={16} 
+              className={`text-gray-400 transition-transform duration-200 ${
+                isFloorOpen ? 'rotate-180' : ''
+              }`} 
+            />
+          </button>
+
+          {isFloorOpen && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+              <button
+                onClick={() => {
+                  handleFilterChange('floor', '');
+                  setIsFloorOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                  ${!filters.floor ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+              >
+                <span>{t('all')}</span>
+                {!filters.floor && <Check size={14} className="text-orange-500" />}
+              </button>
+              {floorOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    console.log('Floor option clicked:', option.value);
+                    handleFilterChange('floor', option.value);
+                    setIsFloorOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                    ${filters.floor === option.value ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+                >
+                  <span>{option.label}</span>
+                  {filters.floor === option.value && <Check size={14} className="text-orange-500" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Furniture Status */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          {t('furniture')}
+        </h3>
+        <div className="relative" ref={furnitureRef}>
+          <button
+            type="button"
+            onClick={() => setIsFurnitureOpen(!isFurnitureOpen)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl 
+              bg-white dark:bg-gray-800/50 cursor-pointer flex items-center justify-between
+              focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 
+              hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
+          >
+            <span className={filters.furniture ? 'text-gray-700 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
+              {filters.furniture
+                ? furnitureOptions.find(f => f.value === filters.furniture)?.label
+                : t('all')}
+            </span>
+            <CaretDown 
+              size={16} 
+              className={`text-gray-400 transition-transform duration-200 ${
+                isFurnitureOpen ? 'rotate-180' : ''
+              }`} 
+            />
+          </button>
+
+          {isFurnitureOpen && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+              <button
+                onClick={() => {
+                  handleFilterChange('furniture', '');
+                  setIsFurnitureOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                  ${!filters.furniture ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+              >
+                <span>{t('all')}</span>
+                {!filters.furniture && <Check size={14} className="text-orange-500" />}
+              </button>
+              {furnitureOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    handleFilterChange('furniture', option.value);
+                    setIsFurnitureOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between
+                    ${filters.furniture === option.value ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}
+                >
+                  <span>{option.label}</span>
+                  {filters.furniture === option.value && <Check size={14} className="text-orange-500" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bedrooms - Multi-Select Grid */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
           {t('bedrooms')}
+          {filters.bedrooms.length > 0 && (
+            <span className="ml-2 text-xs text-orange-500">({filters.bedrooms.length})</span>
+          )}
         </h3>
-        <div className="grid grid-cols-3 gap-2">
-          {bedroomOptions.map((option) => (
-            <button
-              key={option}
-              onClick={() => handleFilterChange('bedrooms', filters.bedrooms === option ? '' : option)}
-              className={`px-3 py-2 text-sm rounded-lg border transition-all duration-200 ${
-                filters.bedrooms === option
-                  ? 'bg-orange-500 text-white border-orange-500'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-orange-500'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-1">
+          {bedroomOptions.map((option) => {
+            const isSelected = filters.bedrooms.includes(option);
+            return (
+              <button
+                key={option}
+                onClick={() => toggleBedrooms(option)}
+                className={`px-2 py-1.5 text-xs rounded-lg border transition-all flex items-center justify-center ${
+                  isSelected
+                    ? 'bg-orange-500 text-white border-orange-500'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-orange-300'
+                }`}
+              >
+                <span>{option}</span>
+                {isSelected && <Check size={12} className="ml-1" />}
+              </button>
+            );
+          })}
         </div>
+        {filters.bedrooms.length > 0 && (
+          <button
+            onClick={() => handleFilterChange('bedrooms', [])}
+            className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors mt-2 py-1"
+          >
+            {t('clearSelection')}
+          </button>
+        )}
       </div>
 
-      {/* Bathrooms */}
-      <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-        <h3 className="text-sm font-medium text-[#4B5563] dark:text-dark-text-secondary mb-3 transition-colors duration-300">
+      {/* Bathrooms - Multi-Select Grid */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
           {t('bathrooms')}
+          {filters.bathrooms.length > 0 && (
+            <span className="ml-2 text-xs text-orange-500">({filters.bathrooms.length})</span>
+          )}
         </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {bathroomOptions.map((option) => (
-            <button
-              key={option}
-              onClick={() => handleFilterChange('bathrooms', filters.bathrooms === option ? '' : option)}
-              className={`px-3 py-2 text-sm rounded-lg border transition-all duration-200 ${
-                filters.bathrooms === option
-                  ? 'bg-orange-500 text-white border-orange-500'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-orange-500'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-1">
+          {bathroomOptions.map((option) => {
+            const isSelected = filters.bathrooms.includes(option);
+            return (
+              <button
+                key={option}
+                onClick={() => toggleBathrooms(option)}
+                className={`px-2 py-1.5 text-xs rounded-lg border transition-all flex items-center justify-center ${
+                  isSelected
+                    ? 'bg-orange-500 text-white border-orange-500'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-orange-300'
+                }`}
+              >
+                <span>{option}</span>
+                {isSelected && <Check size={12} className="ml-1" />}
+              </button>
+            );
+          })}
         </div>
+        {filters.bathrooms.length > 0 && (
+          <button
+            onClick={() => handleFilterChange('bathrooms', [])}
+            className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors mt-2 py-1"
+          >
+            {t('clearSelection')}
+          </button>
+        )}
       </div>
 
-      {/* Amenities */}
-      <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.5s' }}>
-        <h3 className="text-sm font-medium text-[#4B5563] dark:text-dark-text-secondary mb-3 transition-colors duration-300">
+      {/* Amenities - Ultra Compact */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
           {t('amenities')}
         </h3>
-        <div className="space-y-3">
-          {amenities.map((amenity, index) => (
-            <label
-              key={amenity.id}
-              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer 
-                transition-all duration-300 ease-out transform group
-                hover:bg-orange-50/50 dark:hover:bg-orange-900/10 hover:shadow-md hover:scale-[1.02]
-                active:scale-[0.98]
-                ${selectedAmenities.includes(amenity.id) 
-                  ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' 
-                  : 'hover:bg-gray-50 dark:hover:bg-dark-bg-tertiary border border-transparent'
-                }`}
-              style={{ animationDelay: `${0.5 + index * 0.05}s` }}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-gray-600 dark:text-gray-400 transition-transform duration-300 hover:scale-110 hover:rotate-6">
-                  {amenity.icon}
-                </span>
-                <span className={`text-sm font-medium transition-all duration-300 ${
-                  selectedAmenities.includes(amenity.id)
-                    ? 'text-orange-700 dark:text-orange-300'
-                    : 'text-gray-700 dark:text-dark-text-secondary group-hover:text-gray-900 dark:group-hover:text-dark-text'
-                }`}>
-                  {amenity.label}
-                </span>
-              </div>
-              
-              <div className="relative group/toggle">
-                <input
-                  type="checkbox"
-                  checked={selectedAmenities.includes(amenity.id)}
-                  onChange={() => toggleAmenity(amenity.id)}
-                  className="sr-only"
-                />
-                
-                {/* Toggle Switch Background */}
-                <div 
-                  className={`w-12 h-6 rounded-full p-0.5 cursor-pointer relative overflow-hidden
-                    transition-all duration-200 ease-out transform
-                    ${selectedAmenities.includes(amenity.id) 
-                      ? 'bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 shadow-lg shadow-orange-500/40 scale-105 ring-2 ring-orange-300/50' 
-                      : 'bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 shadow-inner hover:from-gray-300 hover:to-gray-400 dark:hover:from-gray-500 dark:hover:to-gray-600'
-                    } 
-                    hover:scale-110 active:scale-95 group-hover/toggle:shadow-2xl
-                  `}
-                  onClick={() => toggleAmenity(amenity.id)}
-                >
-                  {/* Animated gradient overlay */}
-                  <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent 
-                    transform -skew-x-12 transition-transform duration-300 ease-out
-                    ${selectedAmenities.includes(amenity.id) ? 'translate-x-12' : '-translate-x-12'}
-                  `} />
-                  
-                  {/* Toggle Circle */}
-                  <div className={`w-5 h-5 rounded-full shadow-lg relative z-10
-                    transition-all duration-200 ease-out transform
-                    ${selectedAmenities.includes(amenity.id) 
-                      ? 'translate-x-6 bg-white scale-110 rotate-180' 
-                      : 'translate-x-0 bg-white scale-100 rotate-0'
-                    }
-                    group-hover/toggle:scale-125 group-active/toggle:scale-95
-                  `} 
-                  style={{
-                    background: 'linear-gradient(145deg, #ffffff, #f8f9fa)',
-                    boxShadow: selectedAmenities.includes(amenity.id) 
-                      ? '0 6px 12px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.9)' 
-                      : '0 3px 6px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.8)'
-                  }}>
-                    {/* Inner glow effect */}
-                    <div className={`absolute inset-0.5 rounded-full transition-all duration-200
-                      ${selectedAmenities.includes(amenity.id) 
-                        ? 'bg-gradient-to-br from-orange-100/50 to-orange-200/30' 
-                        : 'bg-gradient-to-br from-gray-50/50 to-gray-100/30'
-                      }
-                    `} />
-                  </div>
+        <div className="space-y-1.5">
+          {amenities.map((amenity) => {
+            const Icon = amenity.icon;
+            const isSelected = filters.amenities.includes(amenity.id);
+            
+            return (
+              <label
+                key={amenity.id}
+                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs
+                  transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700
+                  ${isSelected ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon size={14} weight="regular" className={isSelected ? 'text-orange-500' : 'text-gray-400'} />
+                  <span className={isSelected ? 'text-orange-700 dark:text-orange-400 font-medium' : 'text-gray-600 dark:text-gray-300'}>
+                    {amenity.label}
+                  </span>
                 </div>
                 
-                {/* Success Checkmark Animation */}
-                {selectedAmenities.includes(amenity.id) && (
-                  <div className="absolute -top-2 -right-2 text-orange-500 animate-bounce z-20">
-                    <div className="relative">
-                      <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      
-                      {/* Pulsing ring effect */}
-                      <div className="absolute inset-0 rounded-full border-2 border-orange-400 animate-ping opacity-20" />
-                    </div>
-                  </div>
-                )}
-                
-                {/* Ripple effect on click */}
-                <div className={`absolute inset-0 rounded-full pointer-events-none
-                  ${selectedAmenities.includes(amenity.id) 
-                    ? 'bg-orange-500/20 animate-ping' 
-                    : 'bg-gray-400/10'
-                  }
-                  transition-all duration-300
-                `} />
-              </div>
-            </label>
-          ))}
+                {/* Compact Toggle */}
+                <div 
+                  className={`w-9 h-5 rounded-full p-0.5 cursor-pointer transition-all duration-200
+                    ${isSelected ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-600'}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleAmenity(amenity.id);
+                  }}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm
+                    ${isSelected ? 'translate-x-4' : 'translate-x-0'}`} 
+                  />
+                </div>
+              </label>
+            );
+          })}
         </div>
       </div>
 
-      {/* Area Size - Fixed layout */}
-      <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.6s' }}>
-        <h3 className="text-sm font-medium text-[#4B5563] dark:text-dark-text-secondary mb-3 transition-colors duration-300">
-          {t('area')} ({t('sqm')})
+      {/* Area Size - Custom Dual Range Slider */}
+      <div className="mb-4">
+        <h3 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          {t('area')} (m²)
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <input
-              type="range"
-              min="0"
-              max="500"
-              step="10"
-              value={filters.area[0]}
-              onChange={(e) => handleFilterChange('area', [parseInt(e.target.value), filters.area[1]])}
-              className="flex-1"
+          {/* Custom Slider */}
+          <div className="relative h-6 flex items-center px-2">
+            {/* Track Background */}
+            <div className="absolute left-0 right-0 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+              {/* Active Track */}
+              <div 
+                className="absolute h-2 bg-orange-500 rounded-full"
+                style={{
+                  left: `${(filters.area[0] / 500) * 100}%`,
+                  width: `${((filters.area[1] - filters.area[0]) / 500) * 100}%`
+                }}
+              />
+            </div>
+            
+            {/* Min Thumb */}
+            <div
+              className="absolute w-5 h-5 bg-white border-2 border-orange-500 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform"
+              style={{ 
+                left: `${(filters.area[0] / 500) * 100}%`,
+                transform: 'translateX(-50%)',
+                zIndex: 10
+              }}
+              onMouseDown={(e) => {
+                const startX = e.clientX;
+                const startValue = filters.area[0];
+                const sliderRect = e.currentTarget.parentElement!.getBoundingClientRect();
+                
+                const handleMouseMove = (e: MouseEvent) => {
+                  const deltaX = e.clientX - startX;
+                  const percentChange = (deltaX / sliderRect.width) * 100;
+                  const valueChange = (percentChange / 100) * 500;
+                  const newValue = Math.max(0, Math.min(filters.area[1], startValue + valueChange));
+                  handleFilterChange('area', [Math.round(newValue / 10) * 10, filters.area[1]]);
+                };
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+            />
+            
+            {/* Max Thumb */}
+            <div
+              className="absolute w-5 h-5 bg-white border-2 border-orange-500 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform"
+              style={{ 
+                left: `${(filters.area[1] / 500) * 100}%`,
+                transform: 'translateX(-50%)',
+                zIndex: 10
+              }}
+              onMouseDown={(e) => {
+                const startX = e.clientX;
+                const startValue = filters.area[1];
+                const sliderRect = e.currentTarget.parentElement!.getBoundingClientRect();
+                
+                const handleMouseMove = (e: MouseEvent) => {
+                  const deltaX = e.clientX - startX;
+                  const percentChange = (deltaX / sliderRect.width) * 100;
+                  const valueChange = (percentChange / 100) * 500;
+                  const newValue = Math.max(filters.area[0], Math.min(500, startValue + valueChange));
+                  handleFilterChange('area', [filters.area[0], Math.round(newValue / 10) * 10]);
+                };
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
             />
           </div>
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-            <span>{filters.area[0]} {t('sqm')}</span>
-            <span>{filters.area[1]} {t('sqm')}</span>
+          
+          {/* Area Display */}
+          <div className="flex items-center justify-between text-xs">
+            <div className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
+              <span className="text-gray-500 dark:text-gray-400">{t('min')}: </span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">{filters.area[0]} m²</span>
+            </div>
+            <div className="text-gray-400 dark:text-gray-500">—</div>
+            <div className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
+              <span className="text-gray-500 dark:text-gray-400">{t('max')}: </span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">{filters.area[1]} m²</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Apply Filters Button */}
-      <button className={`w-full bg-gradient-to-r from-[#F08336] to-[#e6753d] hover:from-[#e6753d] hover:to-[#d66830] 
-        text-white py-4 rounded-xl font-bold text-base
-        transition-all duration-300 ease-out transform
-        hover:scale-105 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-1
-        active:scale-95 active:translate-y-0 active:shadow-lg
-        focus:outline-none focus:ring-4 focus:ring-orange-300/50
-        animate-scale-in relative overflow-hidden group
-      `} 
-      style={{ animationDelay: '0.7s' }}
-      >
-        <span className="relative z-10 flex items-center justify-center gap-2">
-          {t('applyFilters')}
-          <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </span>
-        
-        {/* Animated background shimmer */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
-      </button>
+      {/* Results Count - Real-time */}
+      <div className="pt-3 border-t border-gray-100 dark:border-gray-700 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {t('resultsUpdateAutomatically')}
+        </p>
+      </div>
     </div>
   );
 } 
