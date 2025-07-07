@@ -294,23 +294,34 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
 
       {/* Properties Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {currentProperties.map((property) => (
-          <PropertyCard
-            key={property.id}
-            id={property.id.toString()}
-            image={property.image}
-            price={`$${property.price.toLocaleString()}`}
-            address={`${t('tbilisi')}, ${t(property.address)}`}
-            bedrooms={property.bedrooms}
-            bathrooms={property.bathrooms}
-            sqft={property.sqft}
-            floor={property.floor}
-            isFavorite={property.isFavorite}
-            type={property.type}
-            status={property.status}
-            isNew={property.isNew}
-          />
-        ))}
+        {currentProperties.map((property) => {
+          // Debug log for first few properties
+          if (property.id <= 5) {
+            console.log(`Property ${property.id}:`, {
+              type: property.type,
+              status: property.status,
+              isNew: property.isNew
+            });
+          }
+          
+          return (
+            <PropertyCard
+              key={property.id}
+              id={property.id.toString()}
+              image={property.image}
+              price={`$${property.price.toLocaleString()}`}
+              address={`${t('tbilisi')}, ${t(property.address)}`}
+              bedrooms={property.bedrooms}
+              bathrooms={property.bathrooms}
+              sqft={property.sqft}
+              floor={property.floor}
+              isFavorite={property.isFavorite}
+              type={property.type}
+              status={property.status}
+              isNew={property.isNew}
+            />
+          );
+        })}
       </div>
 
       {/* Pagination - Compact Version */}
