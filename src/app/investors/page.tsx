@@ -15,6 +15,7 @@ import {
   FiActivity,
   FiChevronDown
 } from 'react-icons/fi';
+import AnimatedCardChart from '@/components/AnimatedCardChart';
 
 interface Property {
   id: number;
@@ -161,26 +162,12 @@ const InvestorsPage = () => {
           
           <div className="grid md:grid-cols-3 gap-8">
             {/* Neighborhood Price Growth */}
-            <div className="bg-white dark:bg-gray-700 rounded-xl shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-6">
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-2 mb-3">
                 <FiTrendingUp className="w-5 h-5 text-blue-500" />
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Neighborhood Price Growth</h3>
               </div>
-              <div className="relative h-40 bg-gray-50 dark:bg-gray-600 rounded-lg flex items-end justify-center p-4">
-                <div className="flex items-end gap-2 h-full">
-                  <div className="bg-blue-500 w-8 rounded-t" style={{height: '60%'}}></div>
-                  <div className="bg-yellow-400 w-8 rounded-t" style={{height: '40%'}}></div>
-                  <div className="bg-blue-500 w-8 rounded-t" style={{height: '80%'}}></div>
-                  <div className="bg-yellow-400 w-8 rounded-t" style={{height: '65%'}}></div>
-                  <div className="bg-blue-500 w-8 rounded-t" style={{height: '30%'}}></div>
-                </div>
-                <div className="absolute left-2 top-2 text-xs text-gray-600 dark:text-gray-400">
-                  <div className="mb-2">220</div>
-                  <div className="mb-2">165</div>
-                  <div className="mb-2">110</div>
-                  <div>55</div>
-                </div>
-              </div>
+              <AnimatedCardChart title="" className="!w-full" />
             </div>
 
             {/* Investment Potential */}
@@ -215,28 +202,17 @@ const InvestorsPage = () => {
             </div>
 
             {/* Area Comparison */}
-            <div className="bg-white dark:bg-gray-700 rounded-xl shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-6">
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-2 mb-3">
                 <FiPieChart className="w-5 h-5 text-blue-500" />
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Area Comparison</h3>
               </div>
-              <div className="relative h-40 bg-gray-50 dark:bg-gray-600 rounded-lg flex items-end justify-center p-4">
-                <div className="flex items-end gap-1 h-full">
-                  <div className="bg-blue-500 w-6 rounded-t" style={{height: '70%'}}></div>
-                  <div className="bg-primary-400 w-6 rounded-t" style={{height: '50%'}}></div>
-                  <div className="bg-blue-500 w-6 rounded-t" style={{height: '90%'}}></div>
-                  <div className="bg-primary-400 w-6 rounded-t" style={{height: '65%'}}></div>
-                  <div className="bg-blue-500 w-6 rounded-t" style={{height: '40%'}}></div>
-                  <div className="bg-primary-400 w-6 rounded-t" style={{height: '25%'}}></div>
-                </div>
-                <div className="absolute left-2 top-2 text-xs text-gray-600 dark:text-gray-400">
-                  <div className="mb-3">12</div>
-                  <div className="mb-3">9</div>
-                  <div className="mb-3">6</div>
-                  <div className="mb-3">3</div>
-                  <div>0</div>
-                </div>
-              </div>
+              <AnimatedCardChart
+                title=""
+                mainColor="#3B82F6"
+                secondaryColor="#F59E0B"
+                className="!w-full"
+              />
             </div>
           </div>
         </div>
