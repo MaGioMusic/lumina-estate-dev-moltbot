@@ -20,10 +20,10 @@ export function GlowingShadow({ children, className, contentClassName, style }: 
         @property --bg-x { syntax: "<number>"; inherits: true; initial-value: 0; }
         @property --glow-translate-y { syntax: "<number>"; inherits: true; initial-value: 0; }
         @property --bg-size { syntax: "<number>"; inherits: true; initial-value: 1; }
-        @property --glow-opacity { syntax: "<number>"; inherits: true; initial-value: 0.45; }
-        @property --glow-blur { syntax: "<number>"; inherits: true; initial-value: 3; }
-        @property --glow-scale { syntax: "<number>"; inherits: true; initial-value: 1.0; }
-        @property --glow-radius { syntax: "<number>"; inherits: true; initial-value: 60; }
+        @property --glow-opacity { syntax: "<number>"; inherits: true; initial-value: 0.22; }
+        @property --glow-blur { syntax: "<number>"; inherits: true; initial-value: 1; }
+        @property --glow-scale { syntax: "<number>"; inherits: true; initial-value: 0.6; }
+        @property --glow-radius { syntax: "<number>"; inherits: true; initial-value: 40; }
         @property --white-shadow { syntax: "<number>"; inherits: true; initial-value: 0; }
 
         .glow-container {
@@ -58,17 +58,17 @@ export function GlowingShadow({ children, className, contentClassName, style }: 
           transition: --bg-size var(--interaction-speed) ease;
         }
 
-        .glow { --glow-translate-y: 0; position: absolute; width: 48px; height: 48px; animation: rotate var(--animation-speed) linear infinite; transform: rotateZ(calc(var(--rotate) * var(--glow-rotate-unit))); transform-origin: center; border-radius: calc(var(--glow-radius) * 1px); inset: -10px auto auto -10px; z-index: 1; }
+        .glow { --glow-translate-y: 0; position: absolute; width: 28px; height: 28px; animation: rotate var(--animation-speed) linear infinite; transform: rotateZ(calc(var(--rotate) * var(--glow-rotate-unit))); transform-origin: center; border-radius: calc(var(--glow-radius) * 1px); inset: -6px auto auto -6px; z-index: 1; }
         .glow:after {
-          content: ""; position: relative; display: block; filter: blur(calc(var(--glow-blur) * 1px)); width: 120%; height: 120%; left: -10%; top: -10%;
+          content: ""; position: relative; display: block; filter: blur(calc(var(--glow-blur) * 1px)); width: 110%; height: 110%; left: -5%; top: -5%;
           background: hsl(calc(var(--hue) * var(--hue-speed) * 1deg) 100% 60%); border-radius: calc(var(--glow-radius) * 1px);
           animation: hue-animation var(--animation-speed) linear infinite;
-          transform: scaleY(calc(var(--glow-scale) / 1.25)) scaleX(calc(var(--glow-scale) * 0.9)) translateY(calc(var(--glow-translate-y) * 1%));
+          transform: scaleY(calc(var(--glow-scale) / 1.3)) scaleX(calc(var(--glow-scale) * 0.8)) translateY(calc(var(--glow-translate-y) * 1%));
           opacity: var(--glow-opacity);
         }
 
-        .glow-container:hover .glow-content:before { --bg-size: 6; animation-play-state: paused; }
-        .glow-container:hover .glow { --glow-blur: 2; --glow-opacity: 0.5; --glow-scale: 1.4; --glow-radius: 0; --rotate: 900; --glow-rotate-unit: 0; animation-play-state: paused; }
+        .glow-container:hover .glow-content:before { --bg-size: 4; animation-play-state: paused; }
+        .glow-container:hover .glow { --glow-blur: 1.3; --glow-opacity: 0.28; --glow-scale: 0.9; --glow-radius: 0; --rotate: 900; --glow-rotate-unit: 0; animation-play-state: paused; }
         .glow-container:hover .glow:after { --glow-translate-y: 0; }
 
         @keyframes rotate-bg {
