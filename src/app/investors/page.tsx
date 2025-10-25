@@ -167,7 +167,12 @@ const InvestorsPage = () => {
                 <FiTrendingUp className="w-5 h-5 text-blue-500" />
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Neighborhood Price Growth</h3>
               </div>
-              <AnimatedCardChart title="" className="!w-full" />
+              <AnimatedCardChart
+                title=""
+                mainColor="#D4AF37"      
+                secondaryColor="#1E3A8A"
+                className="!w-full"
+              />
             </div>
 
             {/* Investment Potential */}
@@ -209,7 +214,7 @@ const InvestorsPage = () => {
               </div>
               <AnimatedCardChart
                 title=""
-                mainColor="#3B82F6"
+                mainColor="#10B981"
                 secondaryColor="#F59E0B"
                 className="!w-full"
               />
