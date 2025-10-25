@@ -1,7 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { CaretLeft, CaretRight, Calendar as CalendarIcon } from '@phosphor-icons/react';
+import dynamic from 'next/dynamic';
+
+const GlassCalendar = dynamic(() => import('@/components/GlassCalendar'), { ssr: false });
 
 type EventItem = {
   id: string;
@@ -125,12 +128,10 @@ export default function AgentCalendar() {
 
       <div className="col-span-1">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm mb-4">
-          <div className="flex items-center gap-2 font-medium mb-2"><CalendarIcon className="w-4 h-4" />Mini calendar</div>
-          <div className="grid grid-cols-7 gap-1 text-xs text-gray-600">
-            {Array.from({ length: 35 }).map((_, i) => (
-              <div key={i} className="aspect-square rounded bg-gray-50" />
-            ))}
-          </div>
+          <div className="flex items-center gap-2 font-medium mb-3"><CalendarIcon className="w-4 h-4" />Mini calendar</div>
+          <Suspense fallback={<div className="h-[240px] rounded-2xl bg-gray-50" />}>
+            <GlassCalendar className="max-w-full" />
+          </Suspense>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="font-semibold mb-2">Activity</div>
