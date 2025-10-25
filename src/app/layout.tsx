@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
-import { Inter, Archivo_Black } from "next/font/google";
+import { cookies } from 'next/headers';
+import { Inter, Archivo_Black, Noto_Sans_Georgian, Noto_Sans } from "next/font/google";
 import "./globals.css";
-import Header from '@/components/Header';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import ConditionalLayout from './ConditionalLayout';
+import { CompareProvider } from '@/contexts/CompareContext';
+import GlobalAIChat from '@/app/components/GlobalAIChat';
 
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
   display: 'swap',
   variable: "--font-inter",
 });
@@ -19,6 +24,20 @@ const archivoBlack = Archivo_Black({
   variable: "--font-archivo-black",
 });
 
+const notoGeorgian = Noto_Sans_Georgian({
+  subsets: ["georgian"],
+  weight: ["700", "800", "900"],
+  display: 'swap',
+  variable: "--font-noto-georgian",
+});
+
+const notoCyrillic = Noto_Sans({
+  subsets: ["cyrillic"],
+  weight: ["800", "900"],
+  display: 'swap',
+  variable: "--font-noto-cyrillic",
+});
+
 export const metadata: Metadata = {
   title: "Lumina Estate - Premium Real Estate Platform",
   description: "Discover premium real estate opportunities with Lumina Estate. Professional property management, investment solutions, and expert real estate services.",
@@ -26,7 +45,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Lumina Estate" }],
   creator: 'Lumina Estate',
   publisher: 'Lumina Estate',
-  viewport: "width=device-width, initial-scale=1",
+  // moved to dedicated viewport export
   robots: "index, follow",
   openGraph: {
     title: 'Lumina Estate - Premium Real Estate in Georgia',
@@ -42,59 +61,70 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const langCookie = cookieStore.get('lumina_language')?.value as 'ka' | 'en' | 'ru' | undefined;
+  const initialLang = langCookie && ['ka','en','ru'].includes(langCookie) ? langCookie : 'ka';
   return (
-    <html lang="ka" suppressHydrationWarning>
+    <html lang={initialLang} suppressHydrationWarning>
       <head>
+        {process.env.NEXT_PUBLIC_GA4_ID ? (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA4_ID}`}></script>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${process.env.NEXT_PUBLIC_GA4_ID}',{anonymize_ip:true});`,
+              }}
+            />
+          </>
+        ) : null}
         {/* Performance optimizations */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Basic SEO */}
+        <meta name="description" content="Discover premium real estate opportunities with Lumina Estate." />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Lumina Estate',
+            url: 'https://lumina-estate.example',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: 'https://lumina-estate.example/properties?location={search_term_string}',
+              'query-input': 'required name=search_term_string'
+            }
+          })
+        }} />
       </head>
       <body
-        className={`${inter.variable} ${archivoBlack.variable} antialiased`}
+        className={`${inter.variable} ${archivoBlack.variable} ${notoGeorgian.variable} ${notoCyrillic.variable} antialiased`}
         suppressHydrationWarning
       >
         <ErrorBoundary>
           <ThemeProvider>
-            <LanguageProvider>
-              <Header />
-              <main className="min-h-screen">
-                {children}
-              </main>
+            <LanguageProvider initialLanguage={initialLang}>
+              <AuthProvider>
+                <FavoritesProvider>
+                  <CompareProvider>
+                    <ConditionalLayout>{children}</ConditionalLayout>
+                    <GlobalAIChat />
+                  </CompareProvider>
+                </FavoritesProvider>
+              </AuthProvider>
             </LanguageProvider>
           </ThemeProvider>
         </ErrorBoundary>
-        
-        {/* Auto-improvement script */}
-        <script 
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Auto-apply image fallbacks
-              if (typeof window !== 'undefined') {
-                setTimeout(() => {
-                  const images = document.querySelectorAll('img');
-                  images.forEach(img => {
-                    if (!img.onerror) {
-                      img.onerror = function() {
-                        this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5QbGFjZWhvbGRlcjwvdGV4dD48L3N2Zz4=';
-                      };
-                    }
-                    if (!img.hasAttribute('loading')) {
-                      img.setAttribute('loading', 'lazy');
-                    }
-                    if (!img.hasAttribute('alt') || img.alt === '') {
-                      img.setAttribute('alt', 'Image');
-                    }
-                  });
-                }, 500);
-              }
-            `
-          }}
-        />
       </body>
     </html>
   );

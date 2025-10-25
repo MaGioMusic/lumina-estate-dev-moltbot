@@ -2,24 +2,64 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '@/contexts/AuthContext';
+import { ChevronLeft, Upload } from 'lucide-react';
 
 interface PropertyDashboardProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function PropertyDashboard({ params }: PropertyDashboardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [, setPropertyId] = useState<string>('');
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    setIsLoading(false);
-  }, []);
+    params.then((resolvedParams) => {
+      setPropertyId(resolvedParams.id);
+      setIsLoading(false);
+    });
+  }, [params]);
 
-  if (isLoading) {
+  // Show loading while auth is initializing
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-400"></div>
+      </div>
+    );
+  }
+
+  // Show access denied for non-authenticated users
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-20 h-20 mx-auto mb-6 bg-cream-200 rounded-full flex items-center justify-center">
+            <svg className="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">წვდომა შეზღუდულია</h2>
+          <p className="text-gray-600 mb-6">
+            ამ გვერდის სანახავად საჭიროა ავტორიზაცია. გთხოვთ შეხვიდეთ თქვენს ანგარიშში.
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => router.push('/login')}
+              className="w-full bg-primary-500 text-white px-6 py-3 rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              შესვლა
+            </button>
+            <button 
+              onClick={() => router.back()}
+              className="w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              უკან დაბრუნება
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -28,29 +68,33 @@ export default function PropertyDashboard({ params }: PropertyDashboardProps) {
     <div className="min-h-screen bg-white dashboard-layout">
       <div className="flex">
         {/* Left Sidebar */}
-        <div className="w-[350px] border-r border-gray-200 min-h-screen flex flex-col p-6 gap-5">
-          {/* Back Button */}
+        <div className="w-80 border-r border-gray-200 p-6 space-y-8">
           <button 
             onClick={() => router.back()}
             className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-4"
           >
-            <ChevronLeftIcon className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5" />
             <span>უკან დაბრუნება</span>
           </button>
 
           {/* Upload Property Section */}
           <div className="flex flex-col gap-5">
             <h2 className="text-lg font-medium text-gray-900">Upload Property</h2>
-            
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mt-4">
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="mt-2 block text-sm font-medium text-gray-900">
+                    Upload property images and documents
+                  </span>
+                  <span className="mt-1 block text-xs text-gray-500">
+                    PNG, JPG, PDF up to 10MB
+                  </span>
+                </label>
+                <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple />
               </div>
-              <p className="text-gray-700 mb-4">Drag and drop files or click to upload</p>
-              <button className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600">
-                Upload Files
+              <button className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                Select Files
               </button>
             </div>
           </div>
@@ -120,7 +164,7 @@ export default function PropertyDashboard({ params }: PropertyDashboardProps) {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-orange-500 mb-2">$350,000</div>
+                <div className="text-3xl font-bold text-primary-500 mb-2">$350,000</div>
                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">გასაყიდი</span>
               </div>
             </div>

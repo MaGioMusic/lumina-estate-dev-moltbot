@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LuminaEstateMCPServer } from '@/lib/mcpServer';
+import { logger, sanitizeForLogging } from '@/lib/logger';
+import { getMockPropertyById } from '@/lib/mockProperties';
+import { getPropertyImages } from '@/lib/samplePropertyImages';
 
-// Initialize MCP server instance
-const mcpServer = new LuminaEstateMCPServer();
+// Note: MCP server instance temporarily unused in mock API
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('MCP API Error:', error);
+    logger.error('MCP API Error:', sanitizeForLogging(error));
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -112,7 +113,7 @@ async function handleSearchProperties(params: any) {
       searchCriteria: params
     });
   } catch (error) {
-    console.error('Search properties error:', error);
+    logger.error('Search properties error:', sanitizeForLogging(error));
     return NextResponse.json(
       { error: 'Failed to search properties' },
       { status: 500 }
@@ -122,37 +123,51 @@ async function handleSearchProperties(params: any) {
 
 async function handleGetPropertyDetails(params: any) {
   try {
-    // Mock property details
-    const mockProperty = {
-      id: params.propertyId,
-      title: 'ლუქსუს ბინა ვაკეში',
-      price: 250000,
-      location: 'ვაკე, თბილისი',
-      type: 'apartment',
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 120,
-      description: 'ულამაზესი ბინა ვაკეში, ყველა კომფორტით. ბინა აღჭურვილია თანამედროვე ტექნიკით და მდებარეობს ვაკის პრესტიჟულ უბანში.',
-      images: [
-        '/images/properties/property-1.jpg',
-        '/images/properties/property-2.jpg',
-        '/images/properties/property-3.jpg'
-      ],
-      coordinates: { lat: 41.7151, lng: 44.7661 },
-      agent: {
-        name: 'ნინო გელაშვილი',
-        phone: '+995 555 123 456',
-        email: 'nino@lumina-estate.ge'
-      },
-      features: ['ბალკონი', 'პარკინგი', 'ცენტრალური გათბობა', 'ლიფტი', 'უსაფრთხოება'],
-      status: 'available',
+    const idStr = String(params.propertyId || '').trim();
+    const idNum = parseInt(idStr, 10);
+    if (!Number.isFinite(idNum)) {
+      return NextResponse.json({ error: 'Invalid propertyId' }, { status: 400 });
+    }
+
+    const p = getMockPropertyById(idNum);
+    if (!p) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const images = getPropertyImages(String(p.id));
+    // Basic district translation (fallback English)
+    const districtMap: Record<string, string> = {
+      vake: 'Vake',
+      mtatsminda: 'Mtatsminda',
+      saburtalo: 'Saburtalo',
+      isani: 'Isani',
+      gldani: 'Gldani',
+    };
+    const district = districtMap[p.address] || p.address;
+
+    const resp = {
+      id: String(p.id),
+      title: `${p.type.charAt(0).toUpperCase()}${p.type.slice(1)} in ${district}`,
+      price: p.price,
+      location: `${district}, Tbilisi`,
+      type: p.type,
+      bedrooms: p.bedrooms,
+      bathrooms: p.bathrooms,
+      area: p.sqft,
+      description: '—',
+      images,
+      // Simple mock coordinates per district
+      coordinates: { lat: 41.7151 + (p.id % 10) * 0.001, lng: 44.7661 + (p.id % 10) * 0.001 },
+      agent: { name: 'Lumina Agent', phone: '+995 555 123 456', email: 'agent@lumina-estate.ge' },
+      features: p.amenities || [],
+      status: p.status,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
-    return NextResponse.json(mockProperty);
+    return NextResponse.json(resp);
   } catch (error) {
-    console.error('Get property details error:', error);
+    logger.error('Get property details error:', sanitizeForLogging(error));
     return NextResponse.json(
       { error: 'Failed to get property details' },
       { status: 500 }
@@ -179,7 +194,7 @@ async function handleGetAgentInfo(params: any) {
 
     return NextResponse.json(mockAgent);
   } catch (error) {
-    console.error('Get agent info error:', error);
+    logger.error('Get agent info error:', sanitizeForLogging(error));
     return NextResponse.json(
       { error: 'Failed to get agent info' },
       { status: 500 }
@@ -212,7 +227,7 @@ async function handleCalculateMortgage(params: any) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Calculate mortgage error:', error);
+    logger.error('Calculate mortgage error:', sanitizeForLogging(error));
     return NextResponse.json(
       { error: 'Failed to calculate mortgage' },
       { status: 500 }
@@ -242,7 +257,7 @@ async function handleGetMarketInsights(params: any) {
 
     return NextResponse.json(mockInsights);
   } catch (error) {
-    console.error('Get market insights error:', error);
+    logger.error('Get market insights error:', sanitizeForLogging(error));
     return NextResponse.json(
       { error: 'Failed to get market insights' },
       { status: 500 }

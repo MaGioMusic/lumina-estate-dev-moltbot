@@ -4,8 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { FiSearch, FiPhone, FiVideo, FiPaperclip, FiImage, FiSend, FiUser, FiClock, FiMapPin, FiMail, FiShoppingBag, FiHelpCircle } from 'react-icons/fi';
-import { motion } from 'framer-motion';
+import { FiSearch, FiPhone, FiPaperclip, FiImage, FiSend, FiUser, FiMapPin, FiMail, FiBell, FiCalendar, FiShare2, FiX, FiMessageCircle } from 'react-icons/fi';
+import { motion, MotionConfig } from 'framer-motion';
 
 interface ChatUser {
   id: string;
@@ -25,6 +25,8 @@ interface Message {
   avatar: string;
 }
 
+type MessagesById = Record<string, Message[]>;
+
 interface Transaction {
   id: string;
   date: string;
@@ -41,12 +43,51 @@ export default function ChatPage() {
   const [selectedChat, setSelectedChat] = useState<string>('giorgi-mamaladze');
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesWrapRef = useRef<HTMLDivElement | null>(null);
+  const [isAssistantTyping, setIsAssistantTyping] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const replyTimeoutRef = useRef<number | null>(null);
+  // Quick actions states
+  const [pinnedIds] = useState<Set<string>>(new Set());
+  // Removed unused notes/reminders/mute states
+
+  // Modals
+  const [meetingOpen, setMeetingOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [draftNote, setDraftNote] = useState('');
+  const [draftMeeting, setDraftMeeting] = useState<{ day: string; time: string }>({ day: t('today'), time: '15:00' });
+  const [draftReminder, setDraftReminder] = useState<string>(t('tomorrow'));
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+
+  const quickReplies = [
+    t('chat_qr_1'),
+    t('chat_qr_2'),
+    t('chat_qr_3'),
+    t('chat_qr_4'),
+    t('chat_qr_5')
+  ];
+
+  const recentProperties = [
+    { id: 'p1', title: `${t('vake')} • 3 ${t('rooms')} • 120 ${t('sqm')}`, url: '/properties/101' },
+    { id: 'p2', title: `${t('saburtalo')} • 2 ${t('rooms')} • 78 ${t('sqm')}`, url: '/properties/102' },
+    { id: 'p3', title: `${t('vera')} • 1 ${t('rooms')} • 52 ${t('sqm')}`, url: '/properties/103' },
+  ];
+
+  const buildMockReply = (text: string): string => {
+    const lower = text.toLowerCase();
+    if (lower.includes('ფას') || lower.includes('price')) return 'საწყისი ფასი იწყება 299₾-დან.';
+    if (lower.includes('მისამართ') || lower.includes('address')) return 'მისამართს გაგიზიარებთ.';
+    if (lower.includes('დათვალი') || lower.includes('view')) return 'შეხვედრის დაგეგმვა შეგვიძლია.';
+    return 'მოგწერ დეტალებს მოკლე დროში.';
+  };
 
   // Mock data for chat users
   const chatUsers: ChatUser[] = [
     {
       id: 'giorgi-mamaladze',
-      name: 'გიორგი მამალაძე',
+      name: t('teamMember1Name'),
       avatar: '/images/photos/contact-1.jpg',
       lastMessage: 'გმადლობთ დახმარებისთვის, ძალიან...',
       timestamp: '10:23',
@@ -76,7 +117,7 @@ export default function ChatPage() {
       name: 'თამარ ბერიძე',
       avatar: '/images/photos/contact-4.jpg',
       lastMessage: '',
-      timestamp: 'გუშინ',
+      timestamp: t('yesterday'),
       unreadCount: 0,
       isOnline: false
     },
@@ -100,67 +141,111 @@ export default function ChatPage() {
     }
   ];
 
-  // Messages state
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'გამარჯობა, მაინტერესებს თქვენი პროდუქტის შესახებ დამატებითი ინფორმაცია',
-      timestamp: '10:15',
-      isOwn: false,
-      avatar: '/images/photos/contact-1.jpg'
-    },
-    {
-      id: '2',
-      text: 'გამარჯობა! რა თქმა უნდა, რა გაინტერესებთ კონკრეტულად?',
-      timestamp: '10:17',
-      isOwn: true,
-      avatar: '/images/photos/contact-4.jpg'
-    },
-    {
-      id: '3',
-      text: 'მაინტერესებს ფასი და მიწოდების ვადები',
-      timestamp: '10:19',
-      isOwn: false,
-      avatar: '/images/photos/contact-1.jpg'
-    },
-    {
-      id: '4',
-      text: 'პროდუქტის ფასი არის 299₾, ხოლო მიწოდება შესაძლებელია 2-3 სამუშაო დღეში თბილისის მასშტაბით. რეგიონებში მიწოდებას სჭირდება 3-5 სამუშაო დღე.',
-      timestamp: '10:20',
-      isOwn: true,
-      avatar: '/images/photos/contact-4.jpg'
-    },
-    {
-      id: '5',
-      text: 'გმადლობთ დახმარებისთვის, ძალიან სასარგებლო ინფორმაციაა',
-      timestamp: '10:23',
-      isOwn: false,
-      avatar: '/images/photos/contact-1.jpg'
-    }
-  ]);
+  // Messages state by conversation id
+  const [messagesById, setMessagesById] = useState<MessagesById>({
+    'giorgi-mamaladze': [
+      {
+        id: '1',
+        text: 'გამარჯობა, მაინტერესებს თქვენი პროდუქტის შესახებ დამატებითი ინფორმაცია',
+        timestamp: '10:15',
+        isOwn: false,
+        avatar: '/images/photos/contact-1.jpg'
+      },
+      {
+        id: '2',
+        text: 'გამარჯობა! რა თქმა უნდა, რა გაინტერესებთ კონკრეტულად?',
+        timestamp: '10:17',
+        isOwn: true,
+        avatar: '/images/photos/contact-4.jpg'
+      },
+      {
+        id: '3',
+        text: 'მაინტერესებს ფასი და მიწოდების ვადები',
+        timestamp: '10:19',
+        isOwn: false,
+        avatar: '/images/photos/contact-1.jpg'
+      },
+      {
+        id: '4',
+        text: 'პროდუქტის ფასი არის 299₾, ხოლო მიწოდება შესაძლებელია 2-3 სამუშაო დღეში თბილისის მასშტაბით. რეგიონებში მიწოდებას სჭირდება 3-5 სამუშაო დღე.',
+        timestamp: '10:20',
+        isOwn: true,
+        avatar: '/images/photos/contact-4.jpg'
+      },
+      {
+        id: '5',
+        text: 'გმადლობთ დახმარებისთვის, ძალიან სასარგებლო ინფორმაციაა',
+        timestamp: '10:23',
+        isOwn: false,
+        avatar: '/images/photos/contact-1.jpg'
+      }
+    ],
+    'nino-kvaratskhelia': [
+      {
+        id: '1',
+        text: 'გამარჯობა! მაინტერესებს ბინის დათვალიერება.',
+        timestamp: '09:42',
+        isOwn: false,
+        avatar: '/images/photos/contact-2.jpg'
+      }
+    ],
+    'davit-gurgenidze': [
+      {
+        id: '1',
+        text: 'გთხოვთ მომაწოდოთ მეტი ფოტო.',
+        timestamp: 'გუშინ',
+        isOwn: false,
+        avatar: '/images/photos/contact-3.jpg'
+      }
+    ],
+    'tamar-beridze': [],
+    'levan-kiknadze': [],
+    'mariam-gogoladze': []
+  });
+
+  const currentMessages = messagesById[selectedChat] ?? [];
 
   // Mock transactions
   const transactions: Transaction[] = [
-    { id: '1', date: '15/05/2023', amount: '299₾', status: 'დასრულებული' },
-    { id: '2', date: '03/04/2023', amount: '149₾', status: 'დასრულებული' },
-    { id: '3', date: '22/02/2023', amount: '499₾', status: 'დასრულებული' }
+    { id: '1', date: '15/05/2023', amount: '299₾', status: t('completed') },
+    { id: '2', date: '03/04/2023', amount: '149₾', status: t('completed') },
+    { id: '3', date: '22/02/2023', amount: '499₾', status: t('completed') }
   ];
 
   const selectedUser = chatUsers.find(user => user.id === selectedChat);
+  // isMuted check removed (not used)
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          text: newMessage,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isOwn: true,
-          avatar: '/images/photos/contact-4.jpg'
-        }
-      ]);
+      const message: Message = {
+        id: Date.now().toString(),
+        text: newMessage,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isOwn: true,
+        avatar: '/images/photos/contact-4.jpg'
+      };
+      setMessagesById(prev => {
+        const prevList = prev[selectedChat] ?? [];
+        return { ...prev, [selectedChat]: [...prevList, message] };
+      });
       setNewMessage('');
+      // Simulate assistant typing and simple mock auto-reply
+      setIsAssistantTyping(true);
+      if (replyTimeoutRef.current) window.clearTimeout(replyTimeoutRef.current);
+      replyTimeoutRef.current = window.setTimeout(() => {
+        const reply: Message = {
+          id: (Date.now() + 1).toString(),
+          text: buildMockReply(message.text),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isOwn: false,
+          avatar: selectedUser?.avatar || '/images/photos/contact-1.jpg'
+        };
+        setMessagesById(prev => {
+          const prevList = prev[selectedChat] ?? [];
+          return { ...prev, [selectedChat]: [...prevList, reply] };
+        });
+        setIsAssistantTyping(false);
+      }, 1000);
     }
   };
 
@@ -181,10 +266,83 @@ export default function ChatPage() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [selectedChat, currentMessages]);
+
+  // Track scroll position to toggle scroll-to-bottom chip
+  useEffect(() => {
+    const el = messagesWrapRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+      setShowScrollToBottom(!nearBottom);
+    };
+    onScroll();
+    el.addEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [selectedChat]);
+
+  // Chat list sorting: pinned first
+  const sortedChatUsers = [...chatUsers].sort((a, b) => {
+    const ap = pinnedIds.has(a.id) ? 1 : 0;
+    const bp = pinnedIds.has(b.id) ? 1 : 0;
+    if (ap !== bp) return bp - ap;
+    return 0;
+  });
+
+  // togglePin removed (no UI entry points)
+
+  // toggleFavorite removed (no UI entry points)
+
+  // muteFor removed (not used)
+
+  const insertQuickReply = (text: string) => {
+    setNewMessage(curr => (curr ? curr + ' ' + text : text));
+  };
+
+  const addSystemMessage = (text: string) => {
+    const sys: Message = {
+      id: (Date.now() + Math.random()).toString(),
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isOwn: true,
+      avatar: '/images/photos/contact-4.jpg'
+    };
+    setMessagesById(prev => {
+      const prevList = prev[selectedChat] ?? [];
+      return { ...prev, [selectedChat]: [...prevList, sys] };
+    });
+  };
+
+  // Modal handlers (lightweight, inline UI at bottom)
+  const confirmMeeting = () => {
+    addSystemMessage(`${t('chat_schedule')}: ${draftMeeting.day}, ${draftMeeting.time}`);
+    setMeetingOpen(false);
+  };
+  const confirmShare = (propUrl: string) => {
+    addSystemMessage(`${t('chat_shared_property')}: ${propUrl}`);
+    setShareOpen(false);
+  };
+  const confirmReminder = () => {
+    addSystemMessage(`${t('chat_reminder_set')}: ${draftReminder}`);
+    setReminderOpen(false);
+  };
+  const saveNote = () => {
+    if (!draftNote.trim()) return setNoteOpen(false);
+    setDraftNote('');
+    setNoteOpen(false);
+  };
+
+  // Clear pending timers on unmount
+  useEffect(() => {
+    return () => {
+      if (replyTimeoutRef.current) window.clearTimeout(replyTimeoutRef.current);
+    };
+  }, []);
 
   return (
-    <div className={`h-screen flex ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} pt-16`}>
+    <>
+    <MotionConfig reducedMotion="user">
+    <div className={`fixed inset-x-0 top-20 bottom-0 overflow-hidden flex ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Left Sidebar - Chat List */}
       <div className={`w-[350px] flex-shrink-0 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} border-r ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
         {/* Search Bar */}
@@ -193,8 +351,8 @@ export default function ChatPage() {
             <FiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} w-4 h-4`} />
             <input
               type="text"
-              placeholder="ძიება"
-              className={`w-full pl-10 pr-4 py-2 ${theme === 'dark' ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-white text-gray-900 placeholder-gray-500'} rounded-lg border-0 focus:ring-2 focus:ring-orange-500`}
+              placeholder={t('search')}
+              className={`w-full pl-10 pr-4 py-2 ${theme === 'dark' ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-white text-gray-900 placeholder-gray-500'} rounded-lg border-0 focus:ring-2 focus:ring-primary-500`}
             />
             <FiSearch className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} w-4 h-4`} />
           </div>
@@ -202,7 +360,7 @@ export default function ChatPage() {
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto">
-          {chatUsers.map((user, idx) => (
+          {sortedChatUsers.map((user, idx) => (
             <motion.div
               key={user.id}
               onClick={() => setSelectedChat(user.id)}
@@ -245,6 +403,7 @@ export default function ChatPage() {
                     )}
                   </div>
                 </div>
+                {/* Row actions temporarily hidden per request */}
               </div>
             </motion.div>
           ))}
@@ -267,27 +426,20 @@ export default function ChatPage() {
                   {selectedUser?.name || 'გიორგი მამალაძე'}
                 </h2>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full online-badge-breathe"></div>
                   <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    ონლაინ
+                    {t('online')}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <button className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}>
-                <FiPhone className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
-              </button>
-              <button className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}>
-                <FiVideo className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
-              </button>
-            </div>
+            {/* Calls disabled per requirement */}
           </div>
         </div>
 
         {/* Messages */}
-        <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-          {messages.map((message, idx) => (
+        <div ref={messagesWrapRef} className={`relative flex-1 overflow-y-auto p-4 space-y-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+          {currentMessages.map((message, idx) => (
             <motion.div
               key={message.id}
               className={`flex gap-2 ${message.isOwn ? 'justify-end' : 'justify-start'}`}
@@ -305,7 +457,7 @@ export default function ChatPage() {
               <div className={`max-w-lg ${message.isOwn ? 'order-first' : ''}`}>
                 <div className={`px-4 py-3 rounded-lg ${
                   message.isOwn 
-                    ? 'bg-orange-500 text-white' 
+                    ? 'bg-[#F08336] text-white' 
                     : theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
                 } shadow-sm`}>
                   <p className="text-sm leading-relaxed">{message.text}</p>
@@ -325,12 +477,36 @@ export default function ChatPage() {
               )}
             </motion.div>
           ))}
+
+          {/* Typing indicator */}
+          {isAssistantTyping && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gray-300/30 dark:bg-gray-700/50 flex items-center justify-center">
+                <div className="w-2 h-2 bg-gray-400 rounded-full" />
+              </div>
+              <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-white'} px-4 py-2 rounded-lg shadow-sm`}>
+                <div className="typing-dots">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
+
+          {/* Scroll to bottom chip */}
+          {showScrollToBottom && (
+            <button
+              onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="absolute right-4 bottom-4 bg-primary-400 hover:bg-primary-500 text-white text-xs px-3 py-2 rounded-full shadow-md"
+            >
+              {t('chat_go_to_bottom')}
+            </button>
+          )}
         </div>
 
-        {/* Message Input */}
+        {/* Message Input (compact toolbar) */}
         <div className={`p-4 border-t ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-          <div className={`flex items-center gap-3 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3`}>
+          <div className={`relative flex items-center gap-2 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-2`}>
             <button className={`p-2 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}>
               <FiPaperclip className="w-5 h-5" />
             </button>
@@ -342,19 +518,46 @@ export default function ChatPage() {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="დაწერეთ შეტყობინება..."
+              placeholder={t('chat_type_message')}
               className={`flex-1 ${theme === 'dark' ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-gray-50 text-gray-900 placeholder-gray-500'} border-0 focus:ring-0 focus:outline-none`}
             />
-            <button className={`p-2 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}>
-              <FiImage className="w-5 h-5" />
+            {/* Compact quick actions (icons only) */}
+            <button title={t('chat_quick_replies')} className={`p-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`} onClick={() => setShowQuickReplies(v => !v)}>
+              <FiMessageCircle className="w-5 h-5" />
+            </button>
+            <button title={t('chat_schedule')} onClick={() => setMeetingOpen(true)} className={`p-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <FiCalendar className="w-5 h-5" />
+            </button>
+            <button title={t('chat_share')} onClick={() => setShareOpen(true)} className={`p-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <FiShare2 className="w-5 h-5" />
+            </button>
+            <button title={t('chat_reminder')} onClick={() => setReminderOpen(true)} className={`p-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <FiBell className="w-5 h-5" />
+            </button>
+            <button title={t('chat_note')} onClick={() => setNoteOpen(true)} className={`p-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <FiUser className="w-5 h-5" />
             </button>
             <motion.button
               onClick={handleSendMessage}
-              className="bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
+              className="bg-primary-400 hover:bg-primary-500 text-white p-2 rounded-full transition-colors"
               whileTap={{ scale: 0.9 }}
             >
               <FiSend className="w-4 h-4" />
             </motion.button>
+
+            {/* Quick replies popover */}
+            {showQuickReplies && (
+              <div className={`absolute bottom-full right-2 mb-2 ${theme==='dark'?'bg-gray-800 text-white':'bg-white text-gray-900'} border ${theme==='dark'?'border-gray-700':'border-gray-200'} rounded-lg shadow-lg p-2 w-[280px] max-h-40 overflow-auto`}
+                   onMouseLeave={() => setShowQuickReplies(false)}>
+                <div className="flex flex-wrap gap-2">
+                  {quickReplies.map((qr) => (
+                    <button key={qr} onClick={() => { insertQuickReply(qr); setShowQuickReplies(false); }} className={`text-xs px-2 py-1 rounded-full ${theme==='dark'?'bg-gray-700 hover:bg-gray-600':'bg-gray-100 hover:bg-gray-200'} transition`}>
+                      {qr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -374,18 +577,19 @@ export default function ChatPage() {
             className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-white shadow-lg"
           />
           <h3 className={`mt-4 text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            {selectedUser?.name || 'გიორგი მამალაძე'}
+            {selectedUser?.name || t('teamMember1Name')}
+            {selectedUser?.name || t('teamMember1Name')}
           </h3>
           <div className="flex items-center justify-center gap-2 mt-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>ონლაინ</span>
+            <div className="w-2 h-2 bg-green-500 rounded-full online-badge-breathe"></div>
+            <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{t('online')}</span>
           </div>
         </div>
 
         {/* Contact Information */}
         <div className={`p-5 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <h4 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>
-            საკონტაქტო ინფორმაცია
+            {t('contactInformation')}
           </h4>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -409,7 +613,7 @@ export default function ChatPage() {
                 <FiMapPin className="w-4 h-4 text-green-600" />
               </div>
               <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                თბილისი, საქართველო
+                {t('addressValue')}
               </span>
             </div>
           </div>
@@ -418,7 +622,7 @@ export default function ChatPage() {
         {/* Transaction History */}
         <div className={`p-5 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <h4 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>
-            ტრანზაქციების ისტორია
+            {t('transactionHistory')}
           </h4>
           <div className="space-y-3">
             {transactions.map((transaction) => (
@@ -444,31 +648,65 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="p-5">
-          <h4 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>
-            სწრაფი ქმედებები
-          </h4>
-          <div className="grid grid-cols-2 gap-3">
-            <button className={`${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-50 text-gray-900'} p-3 rounded-lg shadow-sm transition-colors flex items-center gap-2`}>
-              <FiClock className="w-4 h-4" />
-              <span className="text-sm font-medium">ისტორია</span>
-            </button>
-            <button className={`${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-50 text-gray-900'} p-3 rounded-lg shadow-sm transition-colors flex items-center gap-2`}>
-              <FiUser className="w-4 h-4" />
-              <span className="text-sm font-medium">პროფილი</span>
-            </button>
-            <button className={`${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-50 text-gray-900'} p-3 rounded-lg shadow-sm transition-colors flex items-center gap-2`}>
-              <FiShoppingBag className="w-4 h-4" />
-              <span className="text-sm font-medium">შეკვეთები</span>
-            </button>
-            <button className={`${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-white hover:bg-gray-50 text-gray-900'} p-3 rounded-lg shadow-sm transition-colors flex items-center gap-2`}>
-              <FiHelpCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">დახმარება</span>
-            </button>
-          </div>
-        </div>
+        {/* Quick Actions removed (duplicated with chat toolbar) */}
       </motion.div>
     </div>
+    </MotionConfig>
+
+    {/* Lightweight Modals */}
+    {meetingOpen && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setMeetingOpen(false)}>
+        <div className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-xl p-4 w-[320px]`} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">{t('chat_schedule')}</h3><button onClick={() => setMeetingOpen(false)}><FiX/></button></div>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              {[t('today'), t('tomorrow'), t('other')].map(d => (
+                <button key={d} onClick={() => setDraftMeeting({ ...draftMeeting, day: d })} className={`text-xs px-2 py-1 rounded-full border ${draftMeeting.day===d ? 'bg-primary-400 text-white border-transparent' : theme === 'dark' ? 'border-gray-600' : 'border-gray-300'}`}>{d}</button>
+              ))}
+            </div>
+            <input value={draftMeeting.time} onChange={(e)=>setDraftMeeting({ ...draftMeeting, time: e.target.value })} className={`${theme==='dark'?'bg-gray-700 text-white':'bg-gray-100 text-gray-900'} w-full rounded px-2 py-2`} />
+            <button onClick={confirmMeeting} className="w-full bg-primary-400 hover:bg-primary-500 text-white rounded px-3 py-2">{t('chat_confirm')}</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {shareOpen && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setShareOpen(false)}>
+        <div className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-xl p-4 w-[360px]`} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">{t('chat_recent_properties')}</h3><button onClick={() => setShareOpen(false)}><FiX/></button></div>
+          <div className="space-y-2">
+            {recentProperties.map(p => (
+              <button key={p.id} onClick={()=>confirmShare(p.url)} className={`${theme==='dark'?'bg-gray-700 hover:bg-gray-600':'bg-gray-100 hover:bg-gray-200'} w-full text-left rounded px-3 py-2`}>{p.title}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {reminderOpen && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setReminderOpen(false)}>
+        <div className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-xl p-4 w-[320px]`} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">{t('chat_reminder')}</h3><button onClick={() => setReminderOpen(false)}><FiX/></button></div>
+          <div className="flex gap-2 mb-3">
+            {[t('today'), t('tomorrow'), t('oneWeek')].map(d => (
+              <button key={d} onClick={()=>setDraftReminder(d)} className={`text-xs px-2 py-1 rounded-full border ${draftReminder===d ? 'bg-primary-400 text-white border-transparent' : theme==='dark' ? 'border-gray-600' : 'border-gray-300'}`}>{d}</button>
+            ))}
+          </div>
+          <button onClick={confirmReminder} className="w-full bg-primary-400 hover:bg-primary-500 text-white rounded px-3 py-2">{t('chat_confirm')}</button>
+        </div>
+      </div>
+    )}
+
+    {noteOpen && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setNoteOpen(false)}>
+        <div className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-xl p-4 w-[360px]`} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">{t('chat_private_note')}</h3><button onClick={() => setNoteOpen(false)}><FiX/></button></div>
+          <textarea value={draftNote} onChange={(e)=>setDraftNote(e.target.value)} rows={4} className={`${theme==='dark'?'bg-gray-700 text-white':'bg-gray-100 text-gray-900'} w-full rounded px-2 py-2 mb-3`} placeholder={t('chat_private_note')} />
+          <button onClick={saveNote} className="w-full bg-primary-400 hover:bg-primary-500 text-white rounded px-3 py-2">{t('chat_save')}</button>
+        </div>
+      </div>
+    )}
+    </>
   );
 } 

@@ -1,8 +1,67 @@
 import type { NextConfig } from "next";
 
+// Bundle analyzer configuration
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig: NextConfig = {
   // Disable x-powered-by header
   poweredByHeader: false,
+  async headers() {
+    const isProd = process.env.NODE_ENV === 'production';
+    const csp = [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'",
+      "object-src 'none'",
+      "img-src 'self' data: blob: https: http: https://maps.googleapis.com https://maps.gstatic.com",
+      "media-src 'self' data: blob: https: http:",
+      "font-src 'self' data: https:",
+      "style-src 'self' 'unsafe-inline' https: https://fonts.googleapis.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https: http://localhost:3000 https://maps.googleapis.com",
+      "connect-src 'self' ws: wss: http://localhost:3000 https: https://maps.googleapis.com",
+      'upgrade-insecure-requests'
+    ].join('; ');
+    const headers = [
+      { key: 'Content-Security-Policy', value: csp },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+    ];
+    if (isProd) {
+      headers.push({ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' });
+    }
+    return [
+      {
+        source: '/:path*',
+        headers,
+      },
+    ];
+  },
+  
+  // Performance optimizations
+  experimental: {
+    optimizePackageImports: [
+      '@phosphor-icons/react',
+      'react-icons',
+      'lucide-react',
+      'framer-motion',
+      'recharts'
+    ],
+    webpackMemoryOptimizations: true,
+    // Enable modern build features
+    optimizeCss: true,
+    scrollRestoration: true,
+  },
+  
+  // Bundle optimization
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+    // Remove React DevTools in production
+    reactRemoveProperties: process.env.NODE_ENV === 'production',
+  },
   
   // Simple image configuration
   images: {
@@ -14,9 +73,53 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: '**',
+      },
+    ],
+    // Optimize image formats
+    formats: ['image/webp', 'image/avif'],
+    // Device sizes for responsive images
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    // Enable lazy loading by default
+    dangerouslyAllowSVG: false,
+    // Keep Next/Image own CSP relaxed; global CSP set above
+    contentSecurityPolicy: "default-src 'self'",
+  },
+  
+  // Webpack optimizations
+  webpack: (config, { dev }) => {
+    // Memory optimization for production builds
+    if (!dev && config.cache) {
+      config.cache = Object.freeze({
+        type: 'memory',
+      });
+    }
+    
+    // Tree shaking optimization
+    config.optimization = {
+      ...config.optimization,
+      usedExports: true,
+      sideEffects: false,
+      // Aggressive chunk splitting
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
           },
-        ],
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      },
+    };
+    
+    return config;
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

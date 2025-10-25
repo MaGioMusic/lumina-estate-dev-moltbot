@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Image from 'next/image';
+import ContactMap from './ContactMap';
+import PageSnapshotEmitter, { emitPageSnapshotNow } from '@/app/components/PageSnapshotEmitter';
 
 export default function ContactPage() {
-  const { t } = useLanguage();
+  const { /* t */ } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -103,6 +105,13 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
+      <PageSnapshotEmitter
+        page="contact"
+        title="Contact — Lumina Estate"
+        summary="საკონტაქტო ინფორმაცია და ფორმა."
+        data={{ email: 'info@luminaestate.ge', phone: '+995 555 123 456', address: 'Rustaveli Avenue 12, Tbilisi', hasForm: true }}
+        auto
+      />
       {/* Hero Section */}
       <div className="relative h-[400px] bg-gradient-to-r from-orange-500 to-red-500 flex items-center">
         <div className="absolute inset-0 bg-black/30"></div>
@@ -131,7 +140,7 @@ export default function ContactPage() {
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                   {info.title}
                 </h3>
-                <p className="text-lg text-orange-500 font-semibold mb-2">
+                <p className="text-lg text-primary-500 font-semibold mb-2">
                   {info.value}
                 </p>
                 <p className="text-gray-600 dark:text-gray-300">
@@ -168,7 +177,7 @@ export default function ContactPage() {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       placeholder="Your full name"
                     />
                   </div>
@@ -182,7 +191,7 @@ export default function ContactPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       placeholder="your.email@example.com"
                     />
                   </div>
@@ -198,7 +207,7 @@ export default function ContactPage() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       placeholder="+995 555 123 456"
                     />
                   </div>
@@ -210,7 +219,7 @@ export default function ContactPage() {
                       name="subject"
                       value={formData.subject}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     >
                       <option value="">Select a subject</option>
                       <option value="buying">Buying Property</option>
@@ -232,7 +241,7 @@ export default function ContactPage() {
                     onChange={handleInputChange}
                     required
                     rows={6}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     placeholder="Tell us about your property needs..."
                   />
                 </div>
@@ -252,15 +261,14 @@ export default function ContactPage() {
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
                 Find Us
               </h2>
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl h-[500px] flex items-center justify-center mb-6">
-                <div className="text-center">
-                  <svg className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <p className="text-gray-500 dark:text-gray-400 text-lg">Interactive Map</p>
-                  <p className="text-gray-400 dark:text-gray-500">Rustaveli Avenue 12, Tbilisi</p>
-                </div>
+              <ContactMap />
+              <div className="mt-4">
+                <button
+                  onClick={() => emitPageSnapshotNow({ page: 'contact', title: 'Contact — Lumina Estate', summary: 'მიმდინარე საკონტაქტო სექციები', data: { hasForm: true } })}
+                  className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm"
+                >
+                  ამ გვერდის აღწერა
+                </button>
               </div>
               
               <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
@@ -314,20 +322,20 @@ export default function ContactPage() {
                   </h3>
                   <div className="space-y-3 text-gray-600 dark:text-gray-300">
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-orange-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-primary-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                       <span className="text-sm">{office.address}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                       <span className="text-sm">{office.phone}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                       <span className="text-sm">{office.email}</span>

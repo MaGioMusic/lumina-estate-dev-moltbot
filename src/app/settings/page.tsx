@@ -2,6 +2,7 @@
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import FancySwitch from '@/components/FancySwitch';
 
 export default function SettingsPage() {
   const { t } = useLanguage();
@@ -101,14 +102,23 @@ export default function SettingsPage() {
             
             <div className="mb-4">
               <label className="text-black dark:text-white text-sm mb-2 block">{t('theme')}</label>
-              <div className="flex gap-2">
-                <button 
-                  onClick={toggleTheme}
-                  className="px-4 py-2 rounded-md text-sm bg-orange-500 text-white hover:bg-orange-600 transition-colors"
-                >
-                  {theme === 'dark' ? t('lightMode') : t('darkMode')}
-                </button>
-              </div>
+              <FancySwitch
+                checked={theme === 'dark'}
+                onChange={toggleTheme}
+                leftLabel={t('lightMode')}
+                rightLabel={t('darkMode')}
+                leftIcon={
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                }
+                rightIcon={
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                }
+                ariaLabel={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              />
             </div>
 
             <div className="mb-4">
@@ -130,7 +140,7 @@ export default function SettingsPage() {
           {/* Profile Section */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-6">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 flex items-center justify-center text-white text-xl font-bold">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary-400 to-sage-400 flex items-center justify-center text-white text-xl font-bold">
                 JD
               </div>
               <div>
@@ -138,7 +148,7 @@ export default function SettingsPage() {
                 <p className="text-gray-500 dark:text-gray-400">john.doe@example.com</p>
               </div>
             </div>
-            <button className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 transition-colors">
+            <button className="bg-primary-400 text-white px-4 py-2 rounded-md hover:bg-primary-500 transition-colors">
               {t('editProfile')}
             </button>
           </div>
@@ -180,7 +190,7 @@ export default function SettingsPage() {
                 />
               </div>
               
-              <button className="bg-orange-500 text-white px-6 py-2 rounded-md hover:bg-orange-600 transition-colors">
+              <button className="bg-primary-400 text-white px-6 py-2 rounded-md hover:bg-primary-500 transition-colors">
                 {t('saveChanges')}
               </button>
             </div>
@@ -207,7 +217,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-black dark:text-white text-sm mb-2 block">{t('confirmNewPassword')}</label>
+                  <label className="text-black dark:text-white text-sm mb-2 block">{t('confirmPassword')}</label>
                   <input 
                     type="password" 
                     className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-black dark:text-white"
@@ -215,89 +225,56 @@ export default function SettingsPage() {
                 </div>
               </div>
               
-              <button className="bg-orange-500 text-white px-6 py-2 rounded-md hover:bg-orange-600 transition-colors">
-                {t('updatePasswordBtn')}
+              <button className="bg-primary-400 text-white px-6 py-2 rounded-md hover:bg-primary-500 transition-colors">
+                {t('updatePassword')}
               </button>
             </div>
 
-            {/* Two-Factor Authentication */}
+            {/* Notifications */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-black dark:text-white mb-2">{t('twoFactorAuth')}</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6">{t('extraSecurity')}</p>
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-2">{t('notifications')}</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">{t('manageNotifications')}</p>
               
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-black dark:text-white font-medium">{t('enableTwoFactor')}</h4>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">{t('secure2FA')}</p>
-                </div>
-                <div className="relative">
-                  <input type="checkbox" className="sr-only" />
-                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full shadow-inner">
-                    <div className="w-5 h-5 bg-white dark:bg-gray-300 rounded-full shadow transform translate-x-0.5 translate-y-0.5"></div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-black dark:text-white font-medium">{t('emailNotifications')}</h4>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('receiveEmailUpdates')}</p>
                   </div>
+                  <FancySwitch
+                    checked={true}
+                    onChange={() => {}}
+                    leftLabel={t('off')}
+                    rightLabel={t('on')}
+                    ariaLabel="Toggle email notifications"
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-black dark:text-white font-medium">{t('pushNotifications')}</h4>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('receivePushUpdates')}</p>
+                  </div>
+                  <FancySwitch
+                    checked={false}
+                    onChange={() => {}}
+                    leftLabel={t('off')}
+                    rightLabel={t('on')}
+                    ariaLabel="Toggle push notifications"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Connected Accounts */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-black dark:text-white mb-2">{t('connectedAccounts')}</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6">{t('connectAccounts')}</p>
+            {/* Danger Zone */}
+            <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-700 rounded-lg p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">{t('dangerZone')}</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">{t('irreversibleActions')}</p>
               
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 text-gray-500 dark:text-gray-400">
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-black dark:text-white font-medium">{t('google')}</h4>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">{t('connected')}</p>
-                    </div>
-                  </div>
-                  <button className="border border-gray-300 dark:border-gray-600 text-black dark:text-white px-3 py-2 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    {t('disconnect')}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 text-gray-500 dark:text-gray-400">
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.51 0 10-4.48 10-10S17.51 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-black dark:text-white font-medium">{t('apple')}</h4>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">{t('notConnected')}</p>
-                    </div>
-                  </div>
-                  <button className="bg-orange-500 text-white px-3 py-2 rounded-md text-sm hover:bg-orange-600 transition-colors">
-                    {t('connect')}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 text-gray-500 dark:text-gray-400">
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-black dark:text-white font-medium">{t('facebook')}</h4>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">{t('connected')}</p>
-                    </div>
-                  </div>
-                  <button className="border border-gray-300 dark:border-gray-600 text-black dark:text-white px-3 py-2 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    {t('disconnect')}
-                  </button>
-                </div>
+              <div className="space-y-4">
+                <button className="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600 transition-colors">
+                  {t('deleteAccount')}
+                </button>
               </div>
             </div>
           </div>

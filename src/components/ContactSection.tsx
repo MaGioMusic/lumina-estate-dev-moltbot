@@ -81,34 +81,34 @@ export default function ContactSection() {
         </svg>
       ),
       titleKey: 'address',
-      value: 'თბილისი, საქართველო'
+      valueKey: 'addressValue'
     }
   ];
 
   const teamMembers = [
     {
-      name: 'ნინო გელაშვილი',
-      role: 'Senior Real Estate Agent',
-      image: '/images/photos/contact-1.jpg',
-      experience: '8 წელი'
+      nameKey: 'teamMember1Name',
+      roleKey: 'teamMember1Role',
+      experienceKey: 'teamMember1Experience',
+      image: '/images/photos/contact-1.jpg'
     },
     {
-      name: 'დავით მამაცაშვილი',
-      role: 'Property Investment Consultant',
-      image: '/images/photos/contact-2.jpg',
-      experience: '12 წელი'
+      nameKey: 'teamMember2Name',
+      roleKey: 'teamMember2Role',
+      experienceKey: 'teamMember2Experience',
+      image: '/images/photos/contact-2.jpg'
     },
     {
-      name: 'ანა ხუციშვილი',
-      role: 'Luxury Property Specialist',
-      image: '/images/photos/contact-3.jpg',
-      experience: '6 წელი'
+      nameKey: 'teamMember3Name',
+      roleKey: 'teamMember3Role',
+      experienceKey: 'teamMember3Experience',
+      image: '/images/photos/contact-3.jpg'
     },
     {
-      name: 'გიორგი ნადირაძე',
-      role: 'Commercial Real Estate Expert',
-      image: '/images/photos/contact-4.jpg',
-      experience: '15 წელი'
+      nameKey: 'teamMember4Name',
+      roleKey: 'teamMember4Role',
+      experienceKey: 'teamMember4Experience',
+      image: '/images/photos/contact-4.jpg'
     }
   ];
 
@@ -129,14 +129,14 @@ export default function ContactSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {contactInfo.map((info, index) => (
             <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 text-center hover:shadow-lg transition-all duration-300">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-[#F08336] text-white rounded-full mb-6">
                 {info.icon}
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                 {t(info.titleKey)}
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                {info.value}
+                {info.valueKey ? t(info.valueKey) : info.value}
               </p>
             </div>
           ))}
@@ -155,21 +155,21 @@ export default function ContactSection() {
               <div className="relative w-24 h-24 mx-auto mb-4">
                 <Image
                   src={member.image}
-                  alt={member.name}
+                  alt={t(member.nameKey)}
                   width={96}
                   height={96}
                   className="w-full h-full rounded-full object-cover"
-                  priority={index < 2} // Load first 2 images with priority
+                  loading="lazy"
                 />
               </div>
               <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                {member.name}
+                {t(member.nameKey)}
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                {member.role}
+                {t(member.roleKey)}
               </p>
-              <p className="text-sm text-orange-500 font-semibold">
-                {t('experience')}: {member.experience}
+              <p className="text-sm text-primary-500 font-semibold">
+                {t('experience')}: {t(member.experienceKey)}
               </p>
             </div>
           ))}

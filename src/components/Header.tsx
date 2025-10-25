@@ -1,68 +1,111 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
+import { logger } from '@/lib/logger';
 import { 
-  List, X, House, Buildings, Users, AddressBook, Info,
-  MagnifyingGlass, Heart, Moon, Sun, SignIn, Globe, Gear,
-  Bell, EnvelopeSimple
+  List, X, House, Buildings, /* Users, */ AddressBook, Info,
+  /* MagnifyingGlass, */ Heart, Moon, Sun, SignIn, SignOut, Globe, Gear,
+  /* Bell, */ EnvelopeSimple, ChartLine, UserList, GridFour, CaretDown
 } from '@phosphor-icons/react';
 import IOSToggle from '@/app/properties/components/IOSToggle';
+import LoginModal from '@/components/LoginModal';
+import PropertySubmitModal from '@/components/PropertySubmitModal';
+
+// Type definitions for navigation items
+interface NavItem {
+  name: string;
+  href: string;
+  icon?: any;
+  hasDropdown?: boolean;
+}
 
 export default function Header() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [currentView, setCurrentView] = useState<'grid' | 'map'>('grid');
-  const pathname = usePathname();
-  const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
   const { language, setLanguage: updateLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
+  const { getFavoritesCount } = useFavorites();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<'grid' | 'map'>('grid');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isPagesOpen, setIsPagesOpen] = useState(false);
+  const pagesCloseTimeout = useRef<number | null>(null);
 
+  const router = useRouter();
+  const pathname = usePathname();
+  
   // Check if we're on properties page
   const isPropertiesPage = pathname === '/properties';
   
-  // Debug log
-  console.log('Current pathname:', pathname);
-  console.log('Is Properties Page:', isPropertiesPage);
+  // Debug log (dev only)
+  logger.log('Current pathname:', pathname);
+  logger.debug('Is Properties Page:', isPropertiesPage);
   
-  // Check if we're on a dashboard page
-  const isDashboardPage = pathname.includes('/dashboard');
+  // Derived flags not used currently
 
-  // Check if we're on agents page
-  const isAgentsPage = pathname === '/agents' || pathname === '/agents/chat';
-
-  // Base navigation items
-  const navItems = [
+  // Motiff-style navigation with Lumina features
+  const getNavItems = (): NavItem[] => {
+    return [
     { name: t('home'), href: '/', icon: House },
-    { name: t('properties'), href: '/properties', icon: Buildings },
-    { name: t('investors'), href: '/investors', icon: Buildings },
-    { name: t('agents'), href: '/agents', icon: Users },
-    { name: t('about'), href: '/about', icon: Info },
-    { name: t('contact'), href: '/contact', icon: AddressBook }
+      { name: t('properties'), href: '/properties', icon: Buildings, hasDropdown: true },
+      { name: t('pages'), href: '/about', icon: Info, hasDropdown: true },
+      { name: t('blog'), href: '/blog', icon: AddressBook, hasDropdown: true },
+      { name: t('contact'), href: '/contact', icon: AddressBook, hasDropdown: true }
+    ];
+  };
+
+  const navItems = getNavItems();
+
+  // Dropdown items for "Pages" menu
+  const pagesDropdown = [
+    { name: 'Neighborhoods', href: '/neighborhoods' },
+    { name: 'Market Reports', href: '/market-reports' },
+    { name: 'Calculators', href: '/calculators' },
+    { name: 'New Developments', href: '/new-developments' },
+    { name: 'Guides', href: '/guides' },
+    { name: 'Investors', href: '/investors' },
+    { name: t('legal'), href: '/legal' }
   ];
 
-  // Mobile navigation items
-  const mobileNavItems = navItems;
+  // Menu sections with authentication logic (keeping Lumina functionality)
+  const getMenuItems = () => {
+    const baseItems = [
+      { name: t('settings'), icon: Gear, action: 'settings' },
+      { name: t('language'), icon: Globe, action: 'language' },
+      { name: theme === 'dark' ? t('lightMode') : t('darkMode'), icon: theme === 'dark' ? Sun : Moon, action: 'theme' }
+    ];
 
-  // Menu sections
-  const menuItems = [
-    {
-      id: 'account',
-      items: [
-        { name: t('search'), icon: MagnifyingGlass, action: 'search' },
-        { name: t('favorites'), icon: Heart, action: 'favorites' },
-        { name: t('settings'), icon: Gear, action: 'settings' },
-        { name: t('language'), icon: Globe, action: 'language' },
-        { name: theme === 'dark' ? t('lightMode') : t('darkMode'), icon: theme === 'dark' ? Sun : Moon, action: 'theme' },
-        { name: t('login'), icon: SignIn, action: 'login' }
-      ]
+    if (isAuthenticated) {
+      // Add favorites for all authenticated users
+      baseItems.splice(1, 0, { name: t('favorites'), icon: Heart, action: 'favorites' });
+      // Add agent quick links for agent/admin
+      if (user?.role === 'agent' || user?.role === 'admin') {
+        baseItems.splice(1, 0, { name: t('agentDashboard'), icon: ChartLine, action: 'agentDashboard' });
+        baseItems.splice(1, 0, { name: 'Agent Chat', icon: EnvelopeSimple, action: 'agentChat' });
+      }
+      if (user?.role === 'client') {
+        baseItems.splice(1, 0, { name: t('clientDashboard'), icon: GridFour, action: 'clientDashboard' });
+      }
+      // Add logout (single entry, routes to /logout for robust clear + redirect)
+      baseItems.push({ name: t('logout'), icon: SignOut, action: 'logout' });
+    } else {
+      // Add login
+      baseItems.push({ name: t('login'), icon: SignIn, action: 'login' });
     }
-  ];
+
+    return [{ id: 'account', items: baseItems }];
+  };
+
+  const menuItems = getMenuItems();
 
   const languages = [
     { code: 'ka', name: t('georgian'), flag: '🇬🇪' },
@@ -72,33 +115,10 @@ export default function Header() {
 
   const handleLanguageChange = (lang: 'ka' | 'en' | 'ru') => {
     updateLanguage(lang);
+    try {
+      document.cookie = `lumina_language=${lang}; path=/; max-age=31536000`;
+    } catch {}
     setIsMobileMenuOpen(false);
-  };
-
-  const handleMenuAction = (action: string) => {
-    switch (action) {
-      case 'search':
-        // Handle search
-        break;
-      case 'favorites':
-        // Handle favorites
-        break;
-      case 'settings':
-        router.push('/settings');
-        break;
-      case 'theme':
-        toggleTheme();
-        break;
-      case 'login':
-        // Handle login
-        break;
-    }
-    setIsMobileMenuOpen(false);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Searching for:', searchQuery);
   };
 
   const handleViewChange = (view: 'grid' | 'map') => {
@@ -108,235 +128,415 @@ export default function Header() {
     }
   };
 
+  const handleMenuAction = async (action: string) => {
+    switch (action) {
+      case 'favorites':
+        router.push('/favorites');
+        break;
+      case 'agentDashboard':
+        router.push('/agents/dashboard');
+        break;
+      case 'agentChat':
+        router.push('/agents/chat');
+        break;
+      case 'clientDashboard':
+        router.push('/client/dashboard');
+        break;
+      case 'settings':
+        router.push('/settings');
+        break;
+      case 'theme':
+        toggleTheme();
+        break;
+      case 'language':
+        // Language dropdown is handled separately
+        break;
+      case 'login':
+        setIsLoginModalOpen(true);
+        break;
+      case 'logout':
+        router.push('/logout');
+        break;
+    }
+    setIsMobileMenuOpen(false);
+  };
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Header background polish on scroll
+  useEffect(() => {
+    const onScroll = () => {
+      if (typeof window === 'undefined') return;
+      setIsScrolled(window.scrollY > 8);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.header-menu-container')) {
-        setIsMobileMenuOpen(false);
+      if (isLanguageDropdownOpen && !target.closest('[data-language-dropdown]')) {
+        setIsLanguageDropdownOpen(false);
+      }
+      if (isAccountDropdownOpen && !target.closest('[data-account-dropdown]')) {
+        setIsAccountDropdownOpen(false);
       }
     };
 
-    if (isMobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMobileMenuOpen]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isLanguageDropdownOpen, isAccountDropdownOpen]);
 
   return (
-    <header className="bg-white dark:bg-gray-900 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
-      <div className="w-full px-8 lg:px-12">
-        <div className="flex items-center justify-between h-16">
-          {/* Left side - Logo and Properties Title */}
-          <div className="flex items-center gap-4">
-            {isAgentsPage ? (
-              // Sarah Wilson Profile for Agents Page
-              <div className="flex items-center space-x-3">
-                <Image
-                  src="/images/photos/sarah-wilson.jpg"
-                  alt="Sarah Wilson"
-                  width={40}
-                  height={40}
-                  className="rounded-full object-cover w-10 h-10"
-                />
-                <div>
-                  <div className="text-lg font-bold text-gray-900">Sarah Wilson</div>
-                  <div className="text-xs text-gray-600">Real Estate Agent</div>
-                </div>
+    <>
+      {/* Main Header */}
+      <header className={`${theme === 'dark' 
+          ? (isScrolled ? 'bg-[#111111]/80 backdrop-blur-md border-gray-800' : 'bg-[#111111] border-gray-800') 
+          : (isScrolled ? 'bg-white/80 backdrop-blur-md border-gray-100' : 'bg-white border-gray-100')
+        } border-b sticky top-0 z-50 font-['Geist',sans-serif] ${isScrolled ? 'shadow-sm' : ''}`}>
+        <div className="px-8 py-5">
+          <div className="flex items-center justify-between">
+            {/* Logo Section - Keeping Lumina Estate */}
+            <Link href="/" className="flex items-center gap-1">
+              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded flex items-center justify-center">
+                <House className="w-5 h-5 text-white" weight="fill" />
               </div>
-            ) : (
-              // Default Lumina Estate Logo
-              <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-                <div className="w-8 h-8 bg-[#F08336] rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">L</span>
-                </div>
-                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">Lumina Estate</span>
-              </Link>
-            )}
+              <div className="ml-1">
+                <div className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} [font-family:var(--font-inter),var(--font-noto-georgian),system-ui,sans-serif]`}>Lumina Estate</div>
+                <div className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>{t('searchingHomes')}</div>
+              </div>
+            </Link>
 
-            {/* Properties Page Title */}
-            {isPropertiesPage && (
-              <div className="ml-6 border-l border-gray-200 pl-6">
-                <h1 className="text-sm font-medium text-gray-900 dark:text-gray-100 animate-slow-shimmer">{t('allProperties')}</h1>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Discover your perfect property</p>
+            {/* Desktop Navigation - Motiff Style */}
+            <nav className="hidden lg:flex items-center space-x-9">
+              {navItems.map((item) => (
+                <div
+                  key={item.name}
+                  className="relative"
+                  onMouseEnter={() => {
+                    if (item.hasDropdown && item.href === '/about') {
+                      if (pagesCloseTimeout.current) {
+                        window.clearTimeout(pagesCloseTimeout.current);
+                        pagesCloseTimeout.current = null;
+                      }
+                      setIsPagesOpen(true);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (item.hasDropdown && item.href === '/about') {
+                      if (pagesCloseTimeout.current) {
+                        window.clearTimeout(pagesCloseTimeout.current);
+                      }
+                      pagesCloseTimeout.current = window.setTimeout(() => setIsPagesOpen(false), 120);
+                    }
+                  }}
+                >
+                  <Link
+                    href={item.href}
+                    onClick={(e) => {
+                      if (item.hasDropdown && item.href === '/about') {
+                        e.preventDefault();
+                        setIsPagesOpen((v) => !v);
+                      }
+                    }}
+                    className={`flex items-center gap-2 text-sm font-medium transition-colors duration-200 ${
+                      pathname === item.href 
+                        ? 'text-[#FFCB74]' 
+                        : theme === 'dark' ? 'text-gray-300 hover:text-[#FFCB74]' : 'text-gray-700 hover:text-[#FFCB74]'
+                    }`}
+                  >
+                    <span suppressHydrationWarning>{item.name}</span>
+                    {item.hasDropdown && (
+                      <CaretDown className="w-4 h-4 text-gray-400" />
+                    )}
+                  </Link>
+                  {item.hasDropdown && item.href === '/about' && (
+                    <div
+                      className={`absolute left-0 mt-1 border rounded-lg shadow-xl z-40 ${
+                        theme === 'dark' ? 'bg-[#222222] border-gray-700' : 'bg-white border-gray-200'
+                      } ${isPagesOpen ? 'block' : 'hidden'}`}
+                      onMouseEnter={() => {
+                        if (pagesCloseTimeout.current) {
+                          window.clearTimeout(pagesCloseTimeout.current);
+                          pagesCloseTimeout.current = null;
+                        }
+                        setIsPagesOpen(true);
+                      }}
+                      onMouseLeave={() => {
+                        if (pagesCloseTimeout.current) {
+                          window.clearTimeout(pagesCloseTimeout.current);
+                        }
+                        pagesCloseTimeout.current = window.setTimeout(() => setIsPagesOpen(false), 120);
+                      }}
+                    >
+                      <div className="py-1 min-w-[200px]">
+                        {pagesDropdown.map((sub) => (
+                          <a
+                            key={sub.href}
+                            href={sub.href}
+                            className={`block px-4 py-2 text-sm ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'}`}
+                          >
+                            {sub.name}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {isPropertiesPage && (
+                <div className="ml-4 flex items-center relative group" aria-label="View toggle">
+                  <IOSToggle isGrid={currentView === 'grid'} onToggle={handleViewChange} />
+                  {/* Hint tooltip */}
+                  <div
+                    role="tooltip"
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-3 py-1.5 rounded-md text-xs text-white bg-gray-900 shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap"
+                  >
+                    {currentView === 'grid' ? 'Switch to Map View' : 'Switch to Grid View'}
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
               </div>
+                </div>
+              )}
+            </nav>
+
+            {/* Right Side - Auth & Controls */}
+            <div className="flex items-center gap-4 relative">
+              {/* Language Switcher - Dropdown */}
+              <div className="relative" data-language-dropdown>
+                <button
+                  onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>{languages.find(lang => lang.code === language)?.flag}</span>
+                  <span>{language.toUpperCase()}</span>
+                  <CaretDown className={`w-4 h-4 transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Language Dropdown */}
+                {isLanguageDropdownOpen && (
+                  <div className={`absolute right-0 mt-2 w-40 border rounded-lg shadow-xl z-50 ${
+                    theme === 'dark' ? 'bg-[#222222] border-gray-700' : 'bg-white border-gray-200'
+                  }`}>
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          handleLanguageChange(lang.code as 'ka' | 'en' | 'ru');
+                          setIsLanguageDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors ${
+                          language === lang.code
+                            ? 'bg-[#FFCB74] text-black'
+                            : theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                        } ${lang === languages[0] ? 'rounded-t-lg' : ''} ${lang === languages[languages.length - 1] ? 'rounded-b-lg' : ''}`}
+                      >
+                        <span className="text-base">{lang.flag}</span>
+                        <span>{lang.name}</span>
+                        <span className="ml-auto text-xs opacity-70">{lang.code.toUpperCase()}</span>
+                      </button>
+                    ))}
+                  </div>
             )}
           </div>
 
-          {/* Center - Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-x-6 flex-1 justify-center">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || 
-                (isAgentsPage && item.href === '/agents');
+              {/* Account controls moved next to auth buttons */}
 
-              return (
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-colors ${
+                  theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title={theme === 'dark' ? t('lightMode') : t('darkMode')}
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+
+              {/* Favorites (if authenticated) */}
+              {isAuthenticated && (
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`text-sm font-medium transition-colors duration-200 hover:text-[#F08336] whitespace-nowrap ${
-                    isActive
-                      ? 'text-[#F08336] border-b-2 border-[#F08336] pb-1'
-                      : 'text-gray-700 dark:text-gray-300'
+                  href="/favorites"
+                  className={`relative p-2 rounded-lg transition-colors ${
+                    theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
                   }`}
+                  title={t('favorites')}
                 >
-                  {item.name}
+                  <Heart className="w-5 h-5" />
+                  {getFavoritesCount() > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {getFavoritesCount()}
+                    </span>
+                  )}
                 </Link>
-              );
-            })}
-          </nav>
+              )}
 
-          {/* Right side controls */}
-          <div className="flex items-center gap-3 header-menu-container">
-            {/* Properties page specific controls */}
-            {isPropertiesPage && (
-              <>
-                {/* Compact Search Bar */}
-                <div className={`relative transition-all duration-300 ${
-                  isSearchFocused ? 'w-64' : 'w-48'
-                }`}>
-                  <form onSubmit={handleSearch}>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsSearchFocused(true)}
-                      onBlur={() => setIsSearchFocused(false)}
-                      placeholder={t('searchPlaceholder')}
-                      className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm dark:text-gray-100 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
-                    />
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <MagnifyingGlass size={16} className="text-gray-400" />
+              {/* Account + Auth */}
+              <div className="flex items-center gap-2">
+                {!isAuthenticated ? (
+                  <>
+                    <button
+                      onClick={() => setIsLoginModalOpen(true)}
+                      className={`px-5 py-2 border rounded-full text-sm font-medium transition-colors ${
+                        theme === 'dark' 
+                          ? 'border-gray-600 text-gray-300 hover:bg-gray-800' 
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {t('signIn')}
+                    </button>
+                    <button onClick={() => setIsPropertyModalOpen(true)} className="px-5 py-2 bg-[#F08336] text-white rounded-full hover:bg-[#e0743a] transition-colors text-sm font-medium">
+                      {t('addProperty')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Account Dropdown - compact (replaces old welcome/logout area) */}
+                    <div className="relative" data-account-dropdown>
+                      <button
+                        onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <UserList className="w-5 h-5" />
+                        {isAuthenticated && user?.role === 'agent' && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FFCB74] text-black">
+                            Agent
+                          </span>
+                        )}
+                        <CaretDown className={`w-4 h-4 transition-transform ${isAccountDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isAccountDropdownOpen && (
+                        <div className={`absolute right-0 mt-2 w-56 border rounded-lg shadow-xl z-50 ${
+                          theme === 'dark' ? 'bg-[#222222] border-gray-700' : 'bg-white border-gray-200'
+                        }`}>
+                          {menuItems[0].items.map((item: any, idx: number) => (
+                            <button
+                              key={`${item.action}-${idx}`}
+                              onClick={() => { setIsAccountDropdownOpen(false); handleMenuAction(item.action); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors ${
+                                item.action === 'logout'
+                                  ? 'text-[#F08336] hover:bg-orange-50'
+                                  : theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                              } ${idx === 0 ? 'rounded-t-lg' : ''} ${idx === menuItems[0].items.length - 1 ? 'rounded-b-lg' : ''}`}
+                            >
+                              {item.icon && <item.icon className="w-5 h-5" />}
+                              <span>{item.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </form>
-                </div>
+                  </>
+                )}
+              </div>
 
-                {/* iOS Toggle */}
-                <IOSToggle 
-                  isGrid={currentView === 'grid'} 
-                  onToggle={handleViewChange}
-                />
-              </>
-            )}
-
-            {/* User Profile - Only show on dashboard pages */}
-            {isDashboardPage && (
-              <>
-                <div className="hidden lg:flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-cover bg-center border-2 border-gray-200" 
-                       style={{backgroundImage: "url('https://static.motiffcontent.com/private/resource/image/1968daba13331c3-7417598c-7a87-4402-a019-272363db3103.jpeg')"}}></div>
-                  <span className="text-sm font-medium text-gray-700">John Cooper</span>
-                </div>
-                
-                {/* Notification Bell */}
-                <button className="p-2 rounded-lg text-gray-700 hover:text-[#F08336] hover:bg-gray-50 transition-all duration-200">
-                  <Bell size={20} weight="regular" />
-                </button>
-                
-                {/* Mail Envelope */}
-                <button className="p-2 rounded-lg text-gray-700 hover:text-[#F08336] hover:bg-gray-50 transition-all duration-200">
-                  <EnvelopeSimple size={20} weight="regular" />
-                </button>
-              </>
-            )}
-
-            {/* Menu Button */}
+              {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg text-gray-700 hover:text-[#F08336] hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#F08336]/20"
+                className={`lg:hidden p-2 rounded-lg transition-colors ${
+                  theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
+                }`}
               aria-label="Toggle menu"
             >
-              {isMobileMenuOpen ? (
-                <X size={20} weight="regular" />
-              ) : (
-                <List size={20} weight="regular" />
-              )}
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <List className="w-6 h-6" />}
             </button>
+            </div>
+          </div>
+        </div>
 
-            {/* Mobile Menu Dropdown */}
+        {/* Mobile Menu */}
             {isMobileMenuOpen && (
-                              <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
-                {/* Navigation Links - Mobile Only */}
-                                  <div className="p-3 border-b border-gray-100 dark:border-gray-700 lg:hidden">
-                  <div className="space-y-1">
-                    {mobileNavItems.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = pathname === item.href || 
-                        (isAgentsPage && item.href === '/agents');
-
-                      return (
+          <div className={`lg:hidden border-t ${
+            theme === 'dark' ? 'border-gray-700 bg-[#111111]' : 'border-gray-100 bg-white'
+          }`}>
+            <div className="px-4 py-4 space-y-4">
+              {/* Mobile Navigation */}
+              {navItems.map((item) => (
                         <Link
-                          key={item.href}
+                  key={item.name}
                           href={item.href}
-                          className={`flex items-center space-x-2 p-2 rounded-lg transition-colors text-sm ${
-                            isActive
-                              ? 'bg-[#F08336]/10 text-[#F08336]'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#F08336]'
-                          }`}
-                        >
-                          <Icon size={16} weight="regular" />
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    pathname === item.href
+                      ? 'bg-[#FFCB74] text-black'
+                      : theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.icon && <item.icon className="w-5 h-5" />}
                           <span className="font-medium">{item.name}</span>
                         </Link>
-                      );
-                    })}
-                  </div>
-                </div>
+              ))}
 
-                {/* Menu Items */}
-                {menuItems.map((section) => (
-                  <div key={section.id} className="p-3">
+              {/* Mobile: Pages submenu quick link(s) */}
+              <div className="px-3 pt-2">
+                <Link
+                  href="/investors"
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    theme === 'dark' ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Info className="w-5 h-5" />
+                  <span className="font-medium">Investors</span>
+                </Link>
+                  </div>
+
+              {/* Mobile Language Switcher */}
+              <div className="border-t border-gray-100 pt-4">
+                <div className="px-3 py-2 text-sm font-medium text-gray-900 mb-2">
+                  {t('language')}
+                </div>
                     <div className="space-y-1">
-                      {section.items.map((item) => {
-                        const Icon = item.icon;
-                        
-                        if (item.action === 'language') {
-                          return (
-                            <div key={item.action} className="space-y-1">
-                                                              <div className="flex items-center space-x-2 p-2 text-gray-700 dark:text-gray-300 text-sm">
-                                <Icon size={16} weight="regular" />
-                                <span className="font-medium">{item.name}</span>
-                              </div>
-                              <div className="pl-6 space-y-1">
                                 {languages.map((lang) => (
                                   <button
                                     key={lang.code}
                                     onClick={() => handleLanguageChange(lang.code as 'ka' | 'en' | 'ru')}
-                                    className={`flex items-center space-x-2 w-full p-1.5 rounded-md text-left transition-colors text-sm ${
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                                       language === lang.code
-                                        ? 'bg-[#F08336]/10 text-[#F08336]'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#F08336]'
-                                    }`}
-                                  >
-                                    <span className="text-sm">{lang.flag}</span>
-                                    <span className="font-medium">{lang.name}</span>
-                                    {language === lang.code && (
-                                      <span className="ml-auto w-1.5 h-1.5 bg-[#F08336] rounded-full"></span>
-                                    )}
+                          ? 'bg-orange-50 text-orange-700'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
                                   </button>
                                 ))}
                               </div>
                             </div>
-                          );
-                        }
 
-                        return (
+              {/* Mobile Theme Toggle */}
                           <button
-                            key={item.action}
-                            onClick={() => handleMenuAction(item.action)}
-                            className="flex items-center space-x-2 w-full p-2 rounded-lg text-left transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#F08336] text-sm"
-                          >
-                            <Icon size={16} weight="regular" />
-                            <span className="font-medium">{item.name}</span>
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                <span className="font-medium">
+                  {theme === 'dark' ? t('lightMode') : t('darkMode')}
+                </span>
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
               </div>
-            )}
           </div>
-        </div>
-      </div>
+        )}
     </header>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
+      <PropertySubmitModal isOpen={isPropertyModalOpen} onClose={() => setIsPropertyModalOpen(false)} />
+    </>
   );
 } 

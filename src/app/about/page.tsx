@@ -1,227 +1,213 @@
 'use client';
 
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRouter } from 'next/navigation';
+import { AddressBook, Article, Users, Heart, Star, Trophy } from '@phosphor-icons/react';
 import Image from 'next/image';
 
 export default function AboutPage() {
   const { t } = useLanguage();
+  const router = useRouter();
+
+  const aboutCards = [
+    {
+      title: t('contact'),
+      description: 'Get in touch with our team and find your perfect property',
+      icon: AddressBook,
+      href: '/contact',
+      color: 'bg-blue-500',
+      stats: 'Available 24/7'
+    },
+    {
+      title: 'ბლოგი', // Blog in Georgian
+      description: 'Read the latest real estate insights and market trends',
+      icon: Article,
+      href: '/blog',
+      color: 'bg-purple-500',
+      stats: 'Coming Soon'
+    }
+  ];
 
   const teamMembers = [
     {
-      name: 'ნინო გელაშვილი',
-      role: 'CEO & Founder',
+      name: 'Sarah Wilson',
+      role: 'Senior Real Estate Agent',
       image: '/images/photos/contact-1.jpg',
-      experience: '15 წელი',
-      description: 'Real Estate industry veteran with extensive experience in luxury properties'
+      experience: '8+ years'
     },
     {
-      name: 'დავით მამაცაშვილი', 
-      role: 'Head of Sales',
+      name: 'Michael Chen',
+      role: 'Property Investment Advisor',
       image: '/images/photos/contact-2.jpg',
-      experience: '12 წელი',
-      description: 'Expert in property investment and commercial real estate'
+      experience: '12+ years'
     },
     {
-      name: 'ანა ხუციშვილი',
-      role: 'Marketing Director',
+      name: 'Emma Thompson',
+      role: 'Market Research Analyst',
       image: '/images/photos/contact-3.jpg',
-      experience: '8 წელი',
-      description: 'Specialized in digital marketing and brand development'
+      experience: '6+ years'
     },
     {
-      name: 'გიორგი ნადირაძე',
-      role: 'Technical Director',
+      name: 'David Rodriguez',
+      role: 'Luxury Properties Specialist',
       image: '/images/photos/contact-4.jpg',
-      experience: '10 წელი',
-      description: 'Leading our digital transformation and technology initiatives'
+      experience: '10+ years'
     }
   ];
 
   const stats = [
-    { number: '2,500+', label: 'Properties Sold' },
-    { number: '15+', label: 'Years Experience' },
-    { number: '98%', label: 'Client Satisfaction' },
-    { number: '50+', label: 'Expert Agents' }
+    { label: 'Properties Sold', value: '500+', icon: Trophy },
+    { label: 'Happy Clients', value: '1,200+', icon: Heart },
+    { label: 'Team Members', value: '25+', icon: Users },
+    { label: 'Years Experience', value: '15+', icon: Star }
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Hero Section */}
-      <div className="relative h-[400px] bg-gradient-to-r from-orange-500 to-red-500 flex items-center">
-        <div className="absolute inset-0 bg-black/30"></div>
-        <div className="container mx-auto px-6 max-w-6xl relative z-10">
-          <div className="max-w-3xl">
-            <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-              About Lumina Estate
-            </h1>
-            <p className="text-xl text-white/90 leading-relaxed">
-              Your trusted partner in finding the perfect property in Georgia. 
-              We combine local expertise with cutting-edge technology to deliver exceptional results.
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            {t('about')} Lumina Estate
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            We are Georgia's premier real estate agency, dedicated to helping you find your perfect home 
+            or investment opportunity in Tbilisi and beyond.
+          </p>
+        </div>
+
+        {/* Stats Section */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center border border-gray-200 dark:border-gray-700">
+                <Icon size={32} className="mx-auto mb-3 text-[#F08336]" />
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {stat.label}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main About Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          {aboutCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={card.href}
+                onClick={() => router.push(card.href)}
+                className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 cursor-pointer group hover:border-[#F08336] hover:scale-105"
+              >
+                <div className="flex items-start space-x-4">
+                  <div className={`${card.color} p-3 rounded-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon size={24} className="text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-[#F08336] transition-colors">
+                      {card.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      {card.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {card.stats}
+                      </span>
+                      <span className="text-[#F08336] font-medium text-sm group-hover:underline">
+                        {card.href === '/blog' ? 'Coming Soon' : 'Get Started →'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Our Story */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 mb-16 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
+            Our Story
+          </h2>
+          <div className="max-w-4xl mx-auto text-gray-600 dark:text-gray-400 text-lg leading-relaxed">
+            <p className="mb-4">
+              Founded in 2009, Lumina Estate has been at the forefront of Georgia's real estate revolution. 
+              We started with a simple mission: to make property buying, selling, and investing accessible 
+              to everyone, from first-time homebuyers to seasoned investors.
+            </p>
+            <p className="mb-4">
+              Over the years, we've helped thousands of families find their dream homes and assisted 
+              international investors in discovering lucrative opportunities in Georgia's growing market. 
+              Our expertise spans residential, commercial, and luxury properties across Tbilisi, Batumi, 
+              and other key Georgian cities.
+            </p>
+            <p>
+              Today, we combine traditional real estate expertise with cutting-edge technology to provide 
+              an unparalleled service experience. Our multilingual team speaks Georgian, English, and Russian, 
+              ensuring we can serve both local and international clients with equal excellence.
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Stats Section */}
-      <div className="py-16 bg-gray-50 dark:bg-gray-800">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-4xl font-bold text-orange-500 mb-2">{stat.number}</div>
-                <div className="text-gray-600 dark:text-gray-300 font-medium">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Story Section */}
-      <div className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                Our Story
-              </h2>
-              <div className="space-y-4 text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
-                <p>
-                  Founded in 2008, Lumina Estate has been at the forefront of Georgia's real estate revolution. 
-                  What started as a small family business has grown into one of the most trusted names in Georgian real estate.
-                </p>
-                <p>
-                  We believe that finding the perfect property should be an exciting journey, not a stressful ordeal. 
-                  That's why we've invested heavily in technology, training, and customer service to make your 
-                  property search as smooth as possible.
-                </p>
-                <p>
-                  Today, we're proud to serve thousands of satisfied clients across Georgia, from first-time buyers 
-                  to seasoned investors, helping them find their dream homes and investment properties.
-                </p>
-              </div>
-            </div>
-            <div className="relative h-[400px] rounded-2xl overflow-hidden">
-              <Image
-                src="/images/photos/hero-background.jpg"
-                alt="Lumina Estate Office"
-                fill
-                className="object-cover"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Values Section */}
-      <div className="py-20 bg-gray-50 dark:bg-gray-800">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
-              Our Values
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              These core principles guide everything we do
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 text-center shadow-sm">
-              <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Integrity</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                We believe in honest, transparent dealings in every transaction. Your trust is our most valuable asset.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 text-center shadow-sm">
-              <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Innovation</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                We leverage cutting-edge technology and innovative approaches to deliver superior results.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 text-center shadow-sm">
-              <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Excellence</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                We strive for excellence in every aspect of our service, from initial consultation to closing.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Team Section */}
-      <div className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
-              Meet Our Team
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Our experienced professionals are here to guide you through your real estate journey
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* Team Section */}
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8 text-center">
+            Meet Our Team
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {teamMembers.map((member, index) => (
-              <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-2">
-                <div className="relative w-32 h-32 mx-auto mb-6">
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden">
                   <Image
                     src={member.image}
                     alt={member.name}
-                    width={128}
-                    height={128}
-                    className="w-full h-full rounded-full object-cover"
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
                   />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                   {member.name}
                 </h3>
-                <p className="text-orange-500 font-semibold mb-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                   {member.role}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                  {member.description}
-                </p>
-                <p className="text-sm text-orange-500 font-semibold">
-                  Experience: {member.experience}
+                <p className="text-xs text-[#F08336] font-medium">
+                  {member.experience}
                 </p>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* CTA Section */}
-      <div className="py-20 bg-gradient-to-r from-orange-500 to-red-500">
-        <div className="container mx-auto px-6 max-w-6xl text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Find Your Dream Property?
-          </h2>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Let our experienced team help you navigate the Georgian real estate market
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-orange-500 font-semibold px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors">
-              Browse Properties
-            </button>
-            <button className="border-2 border-white text-white font-semibold px-8 py-4 rounded-lg hover:bg-white hover:text-orange-500 transition-colors">
-              Contact Us
-            </button>
+        {/* Values Section */}
+        <div className="bg-gradient-to-r from-[#F08336] to-[#D4AF37] rounded-xl p-8 text-white text-center">
+          <h2 className="text-2xl font-bold mb-6">Our Values</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Transparency</h3>
+              <p className="text-sm opacity-90">
+                Clear communication and honest pricing in every transaction
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Excellence</h3>
+              <p className="text-sm opacity-90">
+                Delivering exceptional service that exceeds expectations
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Innovation</h3>
+              <p className="text-sm opacity-90">
+                Using technology to simplify and enhance the real estate experience
+              </p>
+            </div>
           </div>
         </div>
       </div>

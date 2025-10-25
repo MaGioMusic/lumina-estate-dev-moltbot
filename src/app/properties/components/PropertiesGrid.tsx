@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import PropertyCard from './PropertyCard';
-import { useLanguage } from '@/contexts/LanguageContext';
+import UploadPropertyModal from './UploadPropertyModal';
+import LoginRegisterModal from '@/components/LoginRegisterModal';
+import { useLanguage, translations } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { getMockProperties } from '@/lib/mockProperties';
+import { logger } from '@/lib/logger';
 
 interface FiltersState {
   priceRange: [number, number];
@@ -21,6 +26,8 @@ interface FiltersState {
 interface PropertiesGridProps {
   searchQuery: string;
   filters: FiltersState;
+  highlightedPropertyId?: number | null;
+  onPropertyHighlight?: (propertyId: number | null) => void;
 }
 
 interface Property {
@@ -36,97 +43,125 @@ interface Property {
   type: string;
 }
 
-// Mock properties data - in real app this would come from API  
-const mockProperties = Array.from({ length: 100 }, (_, i) => {
-  // Use deterministic values based on index to avoid hydration issues
-  const basePrice = 100000 + (i * 4567) % 400000;
-  const bedroomCount = (i % 4) + 1;
-  const bathroomCount = (i % 3) + 1;
-  const sqftValue = 50 + (i * 13) % 150;
-  const floorValue = (i % 20) + 1;
-  
-  // District keys for translation
-  const districtKeys = ['vake', 'mtatsminda', 'saburtalo', 'isani', 'gldani'];
-  const districtKey = districtKeys[i % 5];
-  
-  // More realistic property type distribution
-  const propertyTypes = ['apartment', 'house', 'villa', 'studio', 'penthouse'];
-  const propertyType = propertyTypes[i % propertyTypes.length];
-  
-  // Status based on property type - more realistic
-  let status = 'for-sale';
-  if (propertyType === 'apartment' || propertyType === 'studio') {
-    status = i % 3 === 0 ? 'for-rent' : 'for-sale';
-  } else if (propertyType === 'house' || propertyType === 'villa') {
-    status = i % 4 === 0 ? 'for-rent' : 'for-sale';
-  }
-  
-  return {
-    id: i + 1,
-    image: `/images/properties/property-${(i % 15) + 1}.jpg`,
-    price: basePrice,
-    address: districtKey, // Store just the key, we'll translate in component
-    bedrooms: bedroomCount,
-    bathrooms: bathroomCount,
-    sqft: sqftValue,
-    floor: floorValue,
-    isFavorite: i % 5 === 0,
-    type: propertyType,
-    status: status,
-    isNew: i % 7 === 0,
-    amenities: [
-      i % 2 === 0 ? 'parking' : null,
-      i % 4 === 0 ? 'swimming_pool' : null,
-      i % 3 === 0 ? 'gym' : null,
-      i % 2 === 1 ? 'garden' : null,
-      i % 3 === 1 ? 'balcony' : null,
-      i % 5 === 0 ? 'air_conditioning' : null,
-    ].filter(Boolean) as string[]
-  };
-});
+// Shared mock properties util (deterministic for SSR/CSR parity)
+const mockProperties = getMockProperties(100);
 
 const PROPERTIES_PER_PAGE = 25;
 
-export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridProps) {
+export default function PropertiesGrid({ 
+  searchQuery, 
+  filters, 
+  highlightedPropertyId, 
+  onPropertyHighlight 
+}: PropertiesGridProps) {
   const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   
-  console.log('PropertiesGrid received filters:', filters);
+  logger.log('PropertiesGrid received filters:', filters);
+
+  // Allow AI tool to push ad-hoc filters via CustomEvent without full reload
+  const [injectedFilters, setInjectedFilters] = useState<Partial<FiltersState> & { location?: string }>({});
+  useEffect(() => {
+    const onSet = (e: Event) => {
+      try {
+        const det: any = (e as CustomEvent).detail || {};
+        setInjectedFilters(prev => ({ ...prev, ...det }));
+      } catch {}
+    };
+    window.addEventListener('lumina:filters:set', onSet as any);
+    return () => window.removeEventListener('lumina:filters:set', onSet as any);
+  }, []);
+  
+  // Handle upload button click
+  const handleUploadClick = () => {
+    if (isAuthenticated) {
+      setIsUploadModalOpen(true);
+    } else {
+      setIsLoginModalOpen(true);
+    }
+  };
+  
+  // Handle successful login
+  const handleLoginSuccess = () => {
+    setIsLoginModalOpen(false);
+    setIsUploadModalOpen(true);
+  };
   
   // Get current page from URL params
   const currentPage = parseInt(searchParams.get('page') || '1');
   const sortBy = searchParams.get('sort') || 'price';
-  const location = searchParams.get('location') || '';
+  // Prefer URL 'location', fallback to prop searchQuery
+  const locationParam = (searchParams.get('location') || injectedFilters.location || searchQuery || '').toString();
+
+  // Normalize location to match internal district keys
+  const districtKeys = ['vake', 'mtatsminda', 'saburtalo', 'isani', 'gldani'];
+  const normalize = (s: string) => s.toLowerCase().trim();
+  const normalizedInput = normalize(locationParam);
+  let normalizedLocationKey: string | null = null;
+  for (const key of districtKeys) {
+    const localized = normalize(t(key));
+    if (normalizedInput === key || normalizedInput === localized || localized.includes(normalizedInput) || key.includes(normalizedInput)) {
+      normalizedLocationKey = key;
+      break;
+    }
+  }
   
   // Filter and sort properties first
-  console.log('Starting filter with:', filters);
-  console.log('Total properties before filter:', mockProperties.length);
+  // Merge injected filters (partial) over incoming props filters
+  const effectiveFilters: FiltersState = {
+    ...filters,
+    priceRange: [
+      injectedFilters.priceRange?.[0] ?? filters.priceRange[0],
+      injectedFilters.priceRange?.[1] ?? filters.priceRange[1],
+    ],
+    bedrooms: injectedFilters.bedrooms ?? filters.bedrooms,
+    bathrooms: injectedFilters.bathrooms ?? filters.bathrooms,
+    propertyTypes: injectedFilters.propertyTypes ?? filters.propertyTypes,
+    transactionType: injectedFilters.transactionType ?? filters.transactionType,
+    constructionStatus: injectedFilters.constructionStatus ?? filters.constructionStatus,
+    floor: injectedFilters.floor ?? filters.floor,
+    furniture: injectedFilters.furniture ?? filters.furniture,
+    area: injectedFilters.area ?? filters.area,
+    amenities: injectedFilters.amenities ?? filters.amenities,
+  };
+
+  logger.debug('Starting filter with:', effectiveFilters);
+  logger.debug('Total properties before filter:', mockProperties.length);
   
   const filteredProperties = mockProperties
     .filter(property => {
-      // Location filter
-      if (location && !property.address.toLowerCase().includes(location.toLowerCase())) {
-        return false;
+      // Location filter (supports KA/EN/RU names and keys)
+      if (normalizedInput) {
+        if (normalizedLocationKey) {
+          if (property.address !== normalizedLocationKey) return false;
+        } else {
+          // Fallback: compare against translated address string contains
+          const translatedAddress = `${t('tbilisi')}, ${t(property.address)}`.toLowerCase();
+          if (!translatedAddress.includes(normalizedInput)) return false;
+        }
       }
       
       // Price filter
-      if (property.price < filters.priceRange[0] || property.price > filters.priceRange[1]) {
+      if (property.price < effectiveFilters.priceRange[0] || property.price > effectiveFilters.priceRange[1]) {
         if (property.id <= 5) {
-          console.log(`Property ${property.id}: price=${property.price}, range=[${filters.priceRange[0]}, ${filters.priceRange[1]}]`);
+          logger.debug(`Property ${property.id}: price=${property.price}, range=[${effectiveFilters.priceRange[0]}, ${effectiveFilters.priceRange[1]}]`);
         }
         return false;
       }
       
       // Property type filter - now checks if property type is in the selected types array
-      if (filters.propertyTypes.length > 0 && !filters.propertyTypes.includes(property.type)) {
+      if (effectiveFilters.propertyTypes.length > 0 && !effectiveFilters.propertyTypes.includes(property.type)) {
         return false;
       }
       
       // Bedrooms filter - now handles array of selected bedroom counts
-      if (filters.bedrooms.length > 0) {
-        const propertyMatches = filters.bedrooms.some(bedroomFilter => {
+      if (effectiveFilters.bedrooms.length > 0) {
+        const propertyMatches = effectiveFilters.bedrooms.some(bedroomFilter => {
           const bedroomCount = bedroomFilter === '5+' ? 5 : parseInt(bedroomFilter);
           if (bedroomFilter === '5+') {
             return property.bedrooms >= 5;
@@ -138,8 +173,8 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
       }
       
       // Bathrooms filter - now handles array of selected bathroom counts
-      if (filters.bathrooms.length > 0) {
-        const propertyMatches = filters.bathrooms.some(bathroomFilter => {
+      if (effectiveFilters.bathrooms.length > 0) {
+        const propertyMatches = effectiveFilters.bathrooms.some(bathroomFilter => {
           const bathroomCount = bathroomFilter === '4+' ? 4 : parseInt(bathroomFilter);
           if (bathroomFilter === '4+') {
             return property.bathrooms >= 4;
@@ -151,28 +186,28 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
       }
       
       // Area filter
-      if (property.sqft < filters.area[0] || property.sqft > filters.area[1]) {
+      if (property.sqft < effectiveFilters.area[0] || property.sqft > effectiveFilters.area[1]) {
         return false;
       }
       
       // Amenities filter - property must have ALL selected amenities
-      if (filters.amenities.length > 0) {
-        const hasAllAmenities = filters.amenities.every(amenity => 
+      if (effectiveFilters.amenities.length > 0) {
+        const hasAllAmenities = effectiveFilters.amenities.every(amenity => 
           property.amenities.includes(amenity)
         );
         if (!hasAllAmenities) return false;
       }
       
       // Floor filter
-      if (filters.floor) {
+      if (effectiveFilters.floor) {
         const propertyFloor = property.floor || 0;
         
         // Debug log for first few properties
         if (property.id <= 5) {
-          console.log(`Property ${property.id}: floor=${propertyFloor}, filter=${filters.floor}`);
+          logger.debug(`Property ${property.id}: floor=${propertyFloor}, filter=${filters.floor}`);
         }
         
-        switch(filters.floor) {
+        switch(effectiveFilters.floor) {
           case 'first': 
             if (propertyFloor !== 1) return false;
             break;
@@ -200,6 +235,13 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
       return true;
     })
     .sort((a, b) => {
+      // First, prioritize highlighted property
+      if (highlightedPropertyId) {
+        if (a.id === highlightedPropertyId && b.id !== highlightedPropertyId) return -1;
+        if (b.id === highlightedPropertyId && a.id !== highlightedPropertyId) return 1;
+      }
+      
+      // Then apply regular sorting
       switch (sortBy) {
         case 'price-asc': return a.price - b.price;
         case 'price-desc': return b.price - a.price;
@@ -208,8 +250,8 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
       }
     });
   
-  console.log('Total properties after filter:', filteredProperties.length);
-  console.log('Floor filter value:', filters.floor);
+  logger.debug('Total properties after filter:', filteredProperties.length);
+  logger.debug('Floor filter value:', effectiveFilters.floor);
   
   // Calculate pagination based on filtered results
   const totalProperties = filteredProperties.length;
@@ -281,23 +323,24 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
   };
 
   return (
-    <div className="space-y-6">
-      {/* Results Summary */}
-      <div className="flex justify-between items-center">
-        <p className="text-gray-600 dark:text-gray-300">
+    <>
+    <div className="space-y-3">
+      {/* Results Summary - compact */}
+      <div className="flex justify-between items-center py-1">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           {t('showing')} {startIndex + 1}-{Math.min(endIndex, filteredProperties.length)} {t('of')} {filteredProperties.length} {t('propertiesCount')}
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           {t('page')} {currentPage} {t('of')} {totalPages}
         </p>
       </div>
 
       {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
         {currentProperties.map((property) => {
           // Debug log for first few properties
           if (property.id <= 5) {
-            console.log(`Property ${property.id}:`, {
+            logger.debug(`Property ${property.id}:`, {
               type: property.type,
               status: property.status,
               isNew: property.isNew
@@ -305,21 +348,24 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
           }
           
           return (
-            <PropertyCard
-              key={property.id}
-              id={property.id.toString()}
-              image={property.image}
-              price={`$${property.price.toLocaleString()}`}
-              address={`${t('tbilisi')}, ${t(property.address)}`}
-              bedrooms={property.bedrooms}
-              bathrooms={property.bathrooms}
-              sqft={property.sqft}
-              floor={property.floor}
-              isFavorite={property.isFavorite}
-              type={property.type}
-              status={property.status}
-              isNew={property.isNew}
-            />
+          <PropertyCard
+            key={property.id}
+            id={property.id.toString()}
+            image={property.image}
+            price={`$${property.price.toLocaleString()}`}
+            address={`${t('tbilisi')}, ${t(property.address)}`}
+            title={`${property.type} in ${t(property.address)}`}
+            bedrooms={property.bedrooms}
+            bathrooms={property.bathrooms}
+            sqft={property.sqft}
+            floor={property.floor}
+            area={`${property.sqft} მ²`}
+            type={property.type}
+            status={property.status}
+            isNew={property.isNew}
+            isHighlighted={highlightedPropertyId === property.id}
+            onHighlight={() => onPropertyHighlight?.(property.id)}
+          />
           );
         })}
       </div>
@@ -347,7 +393,7 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
               onClick={() => goToPage(pageNum)}
               className={`w-8 h-8 text-sm rounded-md border transition-all ${
                 currentPage === pageNum
-                  ? 'bg-orange-500 text-white border-orange-500 font-medium'
+                  ? 'bg-[#F08336] text-white border-[#F08336] font-medium'
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
             >
@@ -400,11 +446,25 @@ export default function PropertiesGrid({ searchQuery, filters }: PropertiesGridP
                 goToPage(page);
               }
             }}
-            className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-center text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-center text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-400"
           />
           <span className="text-sm text-gray-600 dark:text-gray-300">/ {totalPages}</span>
         </div>
       )}
     </div>
+
+    {/* Upload Property Modal */}
+    <UploadPropertyModal 
+      isOpen={isUploadModalOpen}
+      onClose={() => setIsUploadModalOpen(false)}
+    />
+
+    {/* Login Register Modal */}
+    <LoginRegisterModal
+      isOpen={isLoginModalOpen}
+      onClose={() => setIsLoginModalOpen(false)}
+      onSuccess={handleLoginSuccess}
+    />
+  </>
   );
 } 

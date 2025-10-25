@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { logger, sanitizeForLogging } from '@/lib/logger';
 import { z } from 'zod';
 
 // Language schema for validation
@@ -49,12 +50,63 @@ const translations: Translations = {
     en: 'Contact',
     ru: 'Контакт'
   },
+  blog: {
+    ka: 'ბლოგი',
+    en: 'Blog',
+    ru: 'Блог'
+  },
+  // Short tagline under logo
+  searchingHomes: {
+    ka: 'სახლების ძიება',
+    en: 'Searching homes',
+    ru: 'Поиск жилья'
+  },
+  pages: {
+    ka: 'გვერდები',
+    en: 'Pages',
+    ru: 'Страницы'
+  },
+  legal: {
+    ka: 'იურიდიული',
+    en: 'Legal',
+    ru: 'Юридическое'
+  },
+  dashboard: {
+    ka: 'დეშბორდი',
+    en: 'Dashboard',
+    ru: 'Панель'
+  },
+  clients: {
+    ka: 'კლიენტები',
+    en: 'Clients',
+    ru: 'Клиенты'
+  },
+  analytics: {
+    ka: 'ანალიტიკა',
+    en: 'Analytics',
+    ru: 'Аналитика'
+  },
   
   // Menu items
   login: {
     ka: 'შესვლა',
     en: 'Login',
     ru: 'Войти'
+  },
+  agentDashboard: {
+    ka: 'აგენტის დეშბორდი',
+    en: 'Agent Dashboard',
+    ru: 'Панель агента'
+  },
+  clientDashboard: {
+    ka: 'კლიენტის დეშბორდი',
+    en: 'Client Dashboard',
+    ru: 'Панель клиента'
+  },
+  logout: {
+    ka: 'გასვლა',
+    en: 'Logout',
+    ru: 'Выйти'
   },
   signup: {
     ka: 'რეგისტრაცია',
@@ -71,6 +123,63 @@ const translations: Translations = {
     en: 'Favorites',
     ru: 'Избранное'
   },
+  addToFavorites: {
+    ka: 'რჩეულებში დამატება',
+    en: 'Add to favorites',
+    ru: 'Добавить в избранное'
+  },
+  compare: {
+    ka: 'შედარება',
+    en: 'Compare',
+    ru: 'Сравнение'
+  },
+  compareNow: {
+    ka: 'შედარება ახლა',
+    en: 'Compare now',
+    ru: 'Сравнить'
+  },
+  addToCompare: {
+    ka: 'დამატება შედარებაში',
+    en: 'Add to compare',
+    ru: 'Добавить к сравнению'
+  },
+  addedToCompare: {
+    ka: 'დამატებულია შედარებაში',
+    en: 'Added to compare',
+    ru: 'Добавлено к сравнению'
+  },
+  clearAll: {
+    ka: 'გასუფთავება',
+    en: 'Clear all',
+    ru: 'Очистить'
+  },
+  minTwoObjects: {
+    ka: 'მინ. 2 ობიექტი',
+    en: 'Min. 2 items',
+    ru: 'Мин. 2 объекта'
+  },
+  compareEmptyState: {
+    ka: 'არაფერი არაა არჩეული, სცადე არჩევა',
+    en: 'Nothing selected. Try choosing some properties.',
+    ru: 'Ничего не выбрано. Выберите объекты.'
+  },
+  photo: { ka: 'ფოტო', en: 'Photo', ru: 'Фото' },
+  price: { ka: 'ფასი', en: 'Price', ru: 'Цена' },
+  area: { ka: 'ფართობი (მ²)', en: 'Area (m²)', ru: 'Площадь (м²)' },
+  bedrooms: { ka: 'საძინებლები', en: 'Bedrooms', ru: 'Спальни' },
+  bathrooms: { ka: 'სააბაზანოები', en: 'Bathrooms', ru: 'Ванные' },
+  year: { ka: 'წელი', en: 'Year', ru: 'Год' },
+  address: { ka: 'მისამართი', en: 'Address', ru: 'Адрес' },
+  amenities: { ka: 'საუკეთესოები', en: 'Amenities', ru: 'Удобства' },
+  status: { ka: 'სტატუსი', en: 'Status', ru: 'Статус' },
+  attribute: { ka: 'ატრიბუტი', en: 'Attribute', ru: 'Параметр' },
+  remove: { ka: 'წაშლა', en: 'Remove', ru: 'Удалить' },
+  browseProperties: { ka: 'ქონებების დათვალიერება', en: 'Browse properties', ru: 'Смотреть объекты' },
+  pricePerSqm: { ka: 'ფასი / მ²', en: 'Price / m²', ru: 'Цена / м²' },
+  estimatedMonthly: { ka: 'MONTHLY', en: 'Estimated monthly', ru: 'Ежемесячный платёж' },
+  perMonth: { ka: '/თვეში', en: '/mo', ru: '/мес' },
+  energyClass: { ka: 'ენერგო კლასი', en: 'Energy Class', ru: 'Класс энергоэфф.' },
+  showDifferences: { ka: 'მაჩვენე განსხვავებები', en: 'Show only differences', ru: 'Показывать отличия' },
   darkMode: {
     ka: 'მუქი რეჟიმი',
     en: 'Dark Mode',
@@ -105,6 +214,11 @@ const translations: Translations = {
   },
 
   // Hero Section
+  heroSectionLabel: {
+    ka: 'ჰერო სექცია',
+    en: 'Hero section',
+    ru: 'Герой секция'
+  },
   heroTitle: {
     ka: 'იპოვეთ თქვენი სრულყოფილი სახლი',
     en: 'Find Your Perfect Home',
@@ -236,10 +350,10 @@ const translations: Translations = {
     en: 'Email',
     ru: 'Эл. почта'
   },
-  address: {
-    ka: 'მისამართი',
-    en: 'Address',
-    ru: 'Адрес'
+  addressValue: {
+    ka: 'თბილისი, საქართველო',
+    en: 'Tbilisi, Georgia',
+    ru: 'Тбилиси, Грузия'
   },
   
   // Properties Page
@@ -247,6 +361,116 @@ const translations: Translations = {
     ka: 'ყველა ქონება',
     en: 'All Properties',
     ru: 'Вся недвижимость'
+  },
+  discoverPerfectProperty: {
+    ka: 'იპოვეთ თქვენი იდეალური ქონება',
+    en: 'Discover your perfect property',
+    ru: 'Найдите свою идеальную недвижимость'
+  },
+  uploadProperty: {
+    ka: 'ქონების ატვირთვა',
+    en: 'Upload Property',
+    ru: 'Загрузить недвижимость'
+  },
+  addProperty: {
+    ka: 'ქონების დამატება',
+    en: 'Add Property',
+    ru: 'Добавить недвижимость'
+  },
+  basicInformation: {
+    ka: 'ძირითადი ინფორმაცია',
+    en: 'Basic Information',
+    ru: 'Основная информация'
+  },
+  propertyTitle: {
+    ka: 'ქონების სათაური',
+    en: 'Property Title',
+    ru: 'Название недвижимости'
+  },
+  enterPropertyTitle: {
+    ka: 'შეიყვანეთ ქონების სათაური',
+    en: 'Enter property title',
+    ru: 'Введите название недвижимости'
+  },
+  district: {
+    ka: 'რაიონი',
+    en: 'District',
+    ru: 'Район'
+  },
+  selectDistrict: {
+    ka: 'აირჩიეთ რაიონი',
+    en: 'Select district',
+    ru: 'Выберите район'
+  },
+  selectPropertyType: {
+    ka: 'აირჩიეთ ქონების ტიპი',
+    en: 'Select property type',
+    ru: 'Выберите тип недвижимости'
+  },
+  transactionType: {
+    ka: 'გარიგების ტიპი',
+    en: 'Transaction Type',
+    ru: 'Тип сделки'
+  },
+  selectTransactionType: {
+    ka: 'აირჩიეთ გარიგების ტიპი',
+    en: 'Select transaction type',
+    ru: 'Выберите тип сделки'
+  },
+  fullAddress: {
+    ka: 'სრული მისამართი',
+    en: 'Full Address',
+    ru: 'Полный адрес'
+  },
+  enterFullAddress: {
+    ka: 'შეიყვანეთ სრული მისამართი',
+    en: 'Enter full address',
+    ru: 'Введите полный адрес'
+  },
+  description: {
+    ka: 'აღწერა',
+    en: 'Description',
+    ru: 'Описание'
+  },
+  enterPropertyDescription: {
+    ka: 'შეიყვანეთ ქონების აღწერა',
+    en: 'Enter property description',
+    ru: 'Введите описание недвижимости'
+  },
+  propertyDetails: {
+    ka: 'ქონების დეტალები',
+    en: 'Property Details',
+    ru: 'Детали недвижимости'
+  },
+  floor: {
+    ka: 'სართული',
+    en: 'Floor',
+    ru: 'Этаж'
+  },
+  totalFloors: {
+    ka: 'სართულების რაოდენობა',
+    en: 'Total Floors',
+    ru: 'Общее количество этажей'
+  },
+  propertyImages: {
+    ka: 'ქონების ფოტოები',
+    en: 'Property Images',
+    ru: 'Фотографии недвижимости'
+  },
+  dragDropImages: {
+    ka: 'ჩააგდეთ ფოტოები აქ ან დააწკაპუნეთ ასარჩევად',
+    en: 'Drag and drop images here or click to select',
+    ru: 'Перетащите изображения сюда или нажмите для выбора'
+  },
+  selectImages: {
+    ka: 'ფოტოების არჩევა',
+    en: 'Select Images',
+    ru: 'Выбрать изображения'
+  },
+  uploading: {
+    ka: 'იტვირთება...',
+    en: 'Uploading...',
+    ru: 'Загружается...'
   },
   filters: {
     ka: 'ფილტრები',
@@ -290,42 +514,13 @@ const translations: Translations = {
     en: 'properties',
     ru: 'недвижимость'
   },
-  bedrooms: {
-    ka: 'საძინებელი',
-    en: 'Bedrooms',
-    ru: 'Спальни'
-  },
-  bathrooms: {
-    ka: 'სააბაზანო',
-    en: 'Bathrooms',
-    ru: 'Ванные'
-  },
-  area: {
-    ka: 'ფართობი',
-    en: 'Area',
-    ru: 'Площадь'
-  },
-  sqm: {
-    ka: 'კვ.მ',
-    en: 'sqm',
-    ru: 'кв.м'
-  },
-  price: {
-    ka: 'ფასი',
-    en: 'Price',
-    ru: 'Цена'
-  },
-  viewDetails: {
-    ka: 'დეტალების ნახვა',
-    en: 'View Details',
-    ru: 'Подробнее'
-  },
+  
 
   // Agents Page
   ourAgents: {
     ka: 'ჩვენი აგენტები',
     en: 'Our Agents',
-    ru: 'Наши агенты'
+    ru: 'Наши Агенты'
   },
   meetTeam: {
     ka: 'გაიცანით ჩვენი გუნდი',
@@ -351,6 +546,68 @@ const translations: Translations = {
     ka: 'აგენტთან კონტაქტი',
     en: 'Contact Agent',
     ru: 'Связаться с агентом'
+  },
+
+  // Team Members
+  teamMember1Name: {
+    ka: 'ნინო გელაშვილი',
+    en: 'Nino Gelashvili',
+    ru: 'Нино Гелашвили'
+  },
+  teamMember1Role: {
+    ka: 'უფროსი უძრავი ქონების აგენტი',
+    en: 'Senior Real Estate Agent',
+    ru: 'Старший агент по недвижимости'
+  },
+  teamMember1Experience: {
+    ka: '8 წელი',
+    en: '8 years',
+    ru: '8 лет'
+  },
+  teamMember2Name: {
+    ka: 'დავით მამაცაშვილი',
+    en: 'Davit Mamacashvili',
+    ru: 'Давид Мамацашвили'
+  },
+  teamMember2Role: {
+    ka: 'ქონების ინვესტიციების კონსულტანტი',
+    en: 'Property Investment Consultant',
+    ru: 'Консультант по инвестициям в недвижимость'
+  },
+  teamMember2Experience: {
+    ka: '12 წელი',
+    en: '12 years',
+    ru: '12 лет'
+  },
+  teamMember3Name: {
+    ka: 'ანა ხუციშვილი',
+    en: 'Ana Khutsishvili',
+    ru: 'Ана Хуцишвили'
+  },
+  teamMember3Role: {
+    ka: 'ლუქს ქონების სპეციალისტი',
+    en: 'Luxury Property Specialist',
+    ru: 'Специалист по элитной недвижимости'
+  },
+  teamMember3Experience: {
+    ka: '6 წელი',
+    en: '6 years',
+    ru: '6 лет'
+  },
+  teamMember4Name: {
+    ka: 'გიორგი ნადირაძე',
+    en: 'Giorgi Nadiradze',
+    ru: 'Георгий Надирадзе'
+  },
+  teamMember4Role: {
+    ka: 'კომერციული უძრავი ქონების ექსპერტი',
+    en: 'Commercial Real Estate Expert',
+    ru: 'Эксперт по коммерческой недвижимости'
+  },
+  teamMember4Experience: {
+    ka: '15 წელი',
+    en: '15 years',
+    ru: '15 лет'
   },
 
   // Footer
@@ -437,17 +694,7 @@ const translations: Translations = {
     ru: 'Закрыть'
   },
 
-  // Additional translations
-  amenities: {
-    ka: 'კომფორტი',
-    en: 'Amenities',
-    ru: 'Удобства'
-  },
-  applyFilters: {
-    ka: 'ფილტრების გამოყენება',
-    en: 'Apply Filters',
-    ru: 'Применить фильтры'
-  },
+  // Additional translations (deduped)
 
   // Hero section search form
   searchProperties: {
@@ -533,6 +780,12 @@ const translations: Translations = {
     en: 'New',
     ru: 'Новый'
   },
+  // Generic "new" label used by some components
+  new: {
+    ka: 'ახალი',
+    en: 'New',
+    ru: 'Новый'
+  },
   newConstruction: {
     ka: 'ახალი აშენებული',
     en: 'New Construction',
@@ -609,11 +862,6 @@ const translations: Translations = {
   },
 
   // Filter labels
-  transactionType: {
-    ka: 'გარიგების ტიპი',
-    en: 'Transaction Type',
-    ru: 'Тип сделки'
-  },
   constructionStatus: {
     ka: 'მშენებლობის სტატუსი',
     en: 'Construction Status',
@@ -754,21 +1002,6 @@ const translations: Translations = {
     ka: 'ქონების ტიპები',
     en: 'Property Types',
     ru: 'Типы недвижимости'
-  },
-  forSale: {
-    ka: 'იყიდება',
-    en: 'For Sale',
-    ru: 'Продается'
-  },
-  forRent: {
-    ka: 'ქირავდება',
-    en: 'For Rent',
-    ru: 'Сдается'
-  },
-  newProperty: {
-    ka: 'ახალი',
-    en: 'New',
-    ru: 'Новый'
   },
 
   // Settings Page
@@ -1227,13 +1460,6 @@ const translations: Translations = {
     ru: 'Статическая карта с интерактивными маркерами'
   },
   
-  // Property types
-  penthouse: {
-    ka: 'პენტჰაუსი',
-    en: 'Penthouse',
-    ru: 'Пентхаус'
-  },
-  
   // Property titles
   luxuryVillaInVake: {
     ka: 'ვაკეში ძვირადღირებული ვილა',
@@ -1245,12 +1471,6 @@ const translations: Translations = {
     en: 'Modern Penthouse in Center',
     ru: 'Современный пентхаус в центре'
   },
-  propertyDetails: {
-    ka: 'ქონების დეტალები',
-    en: 'Property Details',
-    ru: 'Детали недвижимости'
-  },
-  
   // Street names
   rustaveliAvenue: {
     ka: 'რუსთაველის გამზირი',
@@ -1327,7 +1547,314 @@ const translations: Translations = {
     ka: 'ქობულეთი',
     en: 'Kobuleti',
     ru: 'Кобулети'
-  }
+  },
+
+  
+  // Authentication
+  signIn: {
+    ka: 'შესვლა',
+    en: 'Sign In',
+    ru: 'Вход'
+  },
+  signUp: {
+    ka: 'რეგისტრაცია',
+    en: 'Sign Up',
+    ru: 'Регистрация'
+  },
+  enterEmail: {
+    ka: 'შეიყვანეთ ელ. ფოსტა',
+    en: 'Enter email',
+    ru: 'Введите email'
+  },
+  enterPassword: {
+    ka: 'შეიყვანეთ პაროლი',
+    en: 'Enter password',
+    ru: 'Введите пароль'
+  },
+  enterFullName: {
+    ka: 'შეიყვანეთ სრული სახელი',
+    en: 'Enter full name',
+    ru: 'Введите полное имя'
+  },
+  confirmPassword: {
+    ka: 'პაროლის დადასტურება',
+    en: 'Confirm Password',
+    ru: 'Подтвердите пароль'
+  },
+  signingIn: {
+    ka: 'შედის...',
+    en: 'Signing in...',
+    ru: 'Входим...'
+  },
+  signingUp: {
+    ka: 'რეგისტრირდება...',
+    en: 'Signing up...',
+    ru: 'Регистрируемся...'
+  },
+  invalidCredentials: {
+    ka: 'არასწორი მონაცემები',
+    en: 'Invalid credentials',
+    ru: 'Неверные данные'
+  },
+  loginError: {
+    ka: 'შესვლისას მოხდა შეცდომა',
+    en: 'Login error occurred',
+    ru: 'Произошла ошибка входа'
+  },
+  registrationError: {
+    ka: 'რეგისტრაციისას მოხდა შეცდომა',
+    en: 'Registration error occurred',
+    ru: 'Произошла ошибка регистрации'
+  },
+  passwordsDoNotMatch: {
+    ka: 'პაროლები არ ემთხვევა',
+    en: 'Passwords do not match',
+    ru: 'Пароли не совпадают'
+  },
+  demoCredentials: {
+    ka: 'ტესტისთვის',
+    en: 'Demo credentials',
+    ru: 'Тестовые данные'
+  },
+  
+  // Enhanced Search Form
+  locationLabel: {
+    ka: 'მდებარეობა',
+    en: 'Location',
+    ru: 'Местоположение'
+  },
+  propertyTypeLabel: {
+    ka: 'ქონების ტიპი',
+    en: 'Property Type',
+    ru: 'Тип недвижимости'
+  },
+  minPriceLabel: {
+    ka: 'მინიმალური ფასი',
+    en: 'Min Price',
+    ru: 'Мин. цена'
+  },
+  maxPriceLabel: {
+    ka: 'მაქსიმალური ფასი',
+    en: 'Max Price',
+    ru: 'Макс. цена'
+  },
+  minPrice: {
+    ka: 'მინ. ფასი',
+    en: 'Min Price',
+    ru: 'Мин. цена'
+  },
+  maxPrice: {
+    ka: 'მაქს. ფასი',
+    en: 'Max Price',
+    ru: 'Макс. цена'
+  },
+  locationInputLabel: {
+    ka: 'შეიყვანეთ მდებარეობა',
+    en: 'Enter location',
+    ru: 'Введите местоположение'
+  },
+  minPriceInputLabel: {
+    ka: 'შეიყვანეთ მინიმალური ფასი',
+    en: 'Enter minimum price',
+    ru: 'Введите минимальную цену'
+  },
+  maxPriceInputLabel: {
+    ka: 'შეიყვანეთ მაქსიმალური ფასი',
+    en: 'Enter maximum price',
+    ru: 'Введите максимальную цену'
+  },
+  searchListingsLabel: {
+    ka: 'ძებნა განცხადებებში',
+    en: 'Search listings',
+    ru: 'Поиск объявлений'
+  },
+  popularSearches: {
+    ka: 'პოპულარული ძებნები',
+    en: 'Popular searches',
+    ru: 'Популярные поиски'
+  },
+  addToSearch: {
+    ka: 'დაამატე ძებნაში',
+    en: 'Add to search',
+    ru: 'Добавить в поиск'
+  },
+  // vake, saburtalo already defined above in Districts
+  withTerrace: {
+    ka: 'ტერასით',
+    en: 'With Terrace',
+    ru: 'С террасой'
+  },
+  withGarage: {
+    ka: 'გარაჟით',
+    en: 'With Garage',
+    ru: 'С гаражом'
+  },
+  newBuilding: {
+    ka: 'ახალი შენობა',
+    en: 'New Building',
+    ru: 'Новое здание'
+  },
+  tryExampleSearch: {
+    ka: 'დემო ძებნა',
+    en: 'Try Example Search',
+    ru: 'Пробный поиск'
+  },
+  tryExampleSearchDesc: {
+    ka: 'სცადეთ მაგალითური ძებნა',
+    en: 'Try an example search',
+    ru: 'Попробуйте пример поиска'
+  },
+
+  // Statistics Section
+  clientSatisfaction: {
+    ka: 'კლიენტების კმაყოფილება',
+    en: 'Client Satisfaction',
+    ru: 'Удовлетворенность клиентов'
+  },
+  support247: {
+    ka: '24/7 მხარდაჭერა',
+    en: '24/7 Support',
+    ru: 'Поддержка 24/7'
+  },
+  verifiedAgents: {
+    ka: 'გადამოწმებული აგენტები',
+    en: 'Verified Agents',
+    ru: 'Проверенные агенты'
+  },
+  propertiesViewed: {
+    ka: 'ნახული ქონება',
+    en: 'Properties Viewed',
+    ru: 'Просмотров недвижимости'
+  },
+  successfulDeals: {
+    ka: 'წარმატებული გარიგებები',
+    en: 'Successful Deals',
+    ru: 'Успешные сделки'
+  },
+  statisticsTitle: {
+    ka: 'ჩვენი მიღწევები',
+    en: 'Our Achievements',
+    ru: 'Наши достижения'
+  },
+  statisticsSubtitle: {
+    ka: 'ციფრებში ჩვენი წარმატების ისტორია',
+    en: 'Our success story in numbers',
+    ru: 'История нашего успеха в цифрах'
+  },
+
+  // Newsletter & Footer
+  newsletter: {
+    ka: 'ახალი ამბები',
+    en: 'Newsletter',
+    ru: 'Новости'
+  },
+  newsletterDescription: {
+    ka: 'გამოიწერეთ ახალი განცხადებები და ინვესტიციის შესაძლებლობები',
+    en: 'Subscribe to get the latest investment opportunities',
+    ru: 'Подпишитесь на новые объявления и инвестиционные возможности'
+  },
+  emailPlaceholder: {
+    ka: 'შეიყვანეთ თქვენი ელფოსტა',
+    en: 'Enter your email',
+    ru: 'Введите ваш email'
+  },
+  subscribe: {
+    ka: 'გამოწერა',
+    en: 'Subscribe',
+    ru: 'Подписаться'
+  },
+  subscribing: {
+    ka: 'იწერება...',
+    en: 'Subscribing...',
+    ru: 'Подписка...'
+  },
+  noSpamMessage: {
+    ka: 'არანაირი სპამი. მხოლოდ სასარგებლო განცხადებები.',
+    en: 'No spam. Only useful property listings.',
+    ru: 'Никакого спама. Только полезные объявления.'
+  },
+  subscriptionSuccess: {
+    ka: 'დაგემატა სიაში!',
+    en: 'Successfully subscribed!',
+    ru: 'Успешно подписаны!'
+  },
+  scrollToTop: {
+    ka: 'თავში დაბრუნება',
+    en: 'Scroll to top',
+    ru: 'Наверх'
+  },
+  // Chat UI
+  chat_schedule: { ka: 'შეხვედრა', en: 'Schedule', ru: 'Встреча' },
+  chat_share: { ka: 'გაზიარება', en: 'Share', ru: 'Поделиться' },
+  chat_reminder: { ka: 'შეხსენება', en: 'Reminder', ru: 'Напоминание' },
+  chat_note: { ka: 'ნოტი', en: 'Note', ru: 'Заметка' },
+  chat_quick_replies: { ka: 'სწრაფი პასუხები', en: 'Quick Replies', ru: 'Быстрые ответы' },
+  chat_type_message: { ka: 'დაწერეთ შეტყობინება...', en: 'Type a message...', ru: 'Напишите сообщение...' },
+  chat_go_to_bottom: { ka: 'ბოლოში გადასვლა', en: 'Go to bottom', ru: 'Вниз' },
+  chat_recent_properties: { ka: 'ბოლოს ნანახი ქონება', en: 'Recent Properties', ru: 'Недавние объекты' },
+  chat_save: { ka: 'შენახვა', en: 'Save', ru: 'Сохранить' },
+  chat_confirm: { ka: 'დამტკიცება', en: 'Confirm', ru: 'Подтвердить' },
+  chat_pin: { ka: 'მიმაგრება', en: 'Pin', ru: 'Закрепить' },
+  chat_unpin: { ka: 'მოხსნა', en: 'Unpin', ru: 'Открепить' },
+  chat_favorite: { ka: 'რჩეულებში', en: 'Favorite', ru: 'Избранное' },
+  chat_unfavorite: { ka: 'რჩეულებიდან ამოღება', en: 'Unfavorite', ru: 'Убрать из избранного' },
+  chat_mute_1h: { ka: 'დადუმება 1სთ', en: 'Mute 1h', ru: 'Отключить на 1ч' },
+  chat_unmute: { ka: 'ხმების ჩართვა', en: 'Unmute', ru: 'Включить звук' },
+  chat_private_note: { ka: 'პირადი ნოტი', en: 'Private note', ru: 'Личная заметка' },
+  chat_qr_1: { ka: 'მადლობა შეტყობინებისთვის, მალე დაგიკავშირდებით.', en: 'Thanks for your message, I will get back soon.', ru: 'Спасибо за сообщение, скоро отвечу.' },
+  chat_qr_2: { ka: 'შეგიძლიათ მომწეროთ სასურველი ბიუჯეტი?', en: 'Could you share your budget?', ru: 'Подскажите ваш бюджет?' },
+  chat_qr_3: { ka: 'როდის გირჩევნიათ დათვალიერება?', en: 'When is a good time for a viewing?', ru: 'Когда удобно для просмотра?' },
+  chat_qr_4: { ka: 'გთხოვთ დატოვოთ საკონტაქტო ნომერი.', en: 'Please leave a contact number.', ru: 'Оставьте, пожалуйста, контактный номер.' },
+  chat_qr_5: { ka: 'მოგწერთ დეტალებს მოკლე დროში.', en: 'I will send details shortly.', ru: 'Скоро отправлю детали.' },
+  today: { ka: 'დღეს', en: 'Today', ru: 'Сегодня' },
+  tomorrow: { ka: 'ხვალ', en: 'Tomorrow', ru: 'Завтра' },
+  oneWeek: { ka: '1 კვირა', en: '1 week', ru: '1 неделя' },
+  other: { ka: 'სხვა', en: 'Other', ru: 'Другое' },
+  yesterday: { ka: 'გუშინ', en: 'Yesterday', ru: 'Вчера' },
+  chat_reminder_set: { ka: 'შეხსენება დაყენებულია', en: 'Reminder set', ru: 'Напоминание установлено' },
+  chat_shared_property: { ka: 'გაგიზიარეთ ქონება', en: 'Shared property', ru: 'Поделился объектом' },
+  contactUs: {
+    ka: 'დაგვიკავშირდით',
+    en: 'Contact Us',
+    ru: 'Связаться с нами'
+  },
+  contactInformation: {
+    ka: 'საკონტაქტო ინფორმაცია',
+    en: 'Contact Information',
+    ru: 'Контактная информация'
+  },
+  transactionHistory: {
+    ka: 'ტრანზაქციების ისტორია',
+    en: 'Transaction History',
+    ru: 'История транзакций'
+  },
+  quickActions: {
+    ka: 'სწრაფი ქმედებები',
+    en: 'Quick Actions',
+    ru: 'Быстрые действия'
+  },
+  online: {
+    ka: 'ონლაინ',
+    en: 'Online',
+    ru: 'Онлайн'
+  },
+  completed: {
+    ka: 'დასრულებული',
+    en: 'Completed',
+    ru: 'Завершено'
+  },
+  callUs: {
+    ka: 'დაგვირეკეთ',
+    en: 'Call Us',
+    ru: 'Позвоните нам'
+  },
+  emailUs: {
+    ka: 'მოგვწერეთ',
+    en: 'Email Us',
+    ru: 'Напишите нам'
+  },
+
+  // Filter Panel keys deduped above; removed duplicated definitions here
 };
 
 interface LanguageContextType {
@@ -1354,7 +1881,8 @@ class SecureLanguageStorage {
       const parsed = LanguageSchema.safeParse(stored);
       return parsed.success ? parsed.data : 'ka';
     } catch (error) {
-      console.warn('Failed to get language from storage:', error);
+      // Non-fatal warning in dev
+      logger.warn('Failed to get language from storage:', sanitizeForLogging(error));
       return 'ka';
     }
   }
@@ -1367,7 +1895,7 @@ class SecureLanguageStorage {
       const validated = LanguageSchema.parse(language);
       localStorage.setItem(this.STORAGE_KEY, validated);
     } catch (error) {
-      console.error('Failed to set language in storage:', error);
+      logger.error('Failed to set language in storage:', sanitizeForLogging(error));
     }
   }
   
@@ -1376,25 +1904,42 @@ class SecureLanguageStorage {
       if (typeof window === 'undefined') return;
       localStorage.removeItem(this.STORAGE_KEY);
     } catch (error) {
-      console.warn('Failed to clear language from storage:', error);
+      logger.warn('Failed to clear language from storage:', sanitizeForLogging(error));
     }
   }
 }
 
 interface LanguageProviderProps {
   children: ReactNode;
+  initialLanguage?: Language;
 }
 
-export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguageState] = useState<Language>('ka');
-  const [isLoading, setIsLoading] = useState(true);
+function setLanguageCookie(lang: Language) {
+  try {
+    if (typeof document === 'undefined') return;
+    document.cookie = `lumina_language=${lang}; path=/; max-age=31536000`;
+  } catch {
+    // ignore
+  }
+}
 
-  // Initialize language from storage
+export function LanguageProvider({ children, initialLanguage }: LanguageProviderProps) {
+  // Always prefer the server-provided initialLanguage to avoid SSR/CSR mismatches
+  const [language, setLanguageState] = useState<Language>(
+    initialLanguage ?? (typeof window === 'undefined' ? 'ka' : SecureLanguageStorage.get())
+  );
+  const [isLoading] = useState(false);
+
+  // Sync the chosen language into client storage and cookie on mount/update
   useEffect(() => {
-    const storedLanguage = SecureLanguageStorage.get();
-    setLanguageState(storedLanguage);
-    setIsLoading(false);
-  }, []);
+    if (typeof window === 'undefined') return;
+    if (initialLanguage) {
+      try {
+        SecureLanguageStorage.set(initialLanguage);
+        setLanguageCookie(initialLanguage);
+      } catch {}
+    }
+  }, [initialLanguage]);
 
   const setLanguage = (lang: Language) => {
     try {
@@ -1402,8 +1947,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       const validated = LanguageSchema.parse(lang);
       setLanguageState(validated);
       SecureLanguageStorage.set(validated);
+      setLanguageCookie(validated);
     } catch (error) {
-      console.error('Invalid language:', error);
+      logger.error('Invalid language:', sanitizeForLogging(error));
     }
   };
 
@@ -1412,12 +1958,12 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     try {
       const translation = translations[key];
       if (!translation) {
-        console.warn(`Translation key "${key}" not found`);
+        logger.warn(`Translation key "${key}" not found`);
         return key; // Return key as fallback
       }
       return translation[language] || translation.en || key;
     } catch (error) {
-      console.error('Translation error:', error);
+      logger.error('Translation error:', sanitizeForLogging(error));
       return key;
     }
   };
