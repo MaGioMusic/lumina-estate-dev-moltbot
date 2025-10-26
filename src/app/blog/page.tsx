@@ -362,13 +362,13 @@ export default function BlogPage() {
                   </div>
                   <h3 className="mt-1 text-xl font-bold text-gray-900 dark:text-white line-clamp-2">{post.title}</h3>
                   <p className="mt-2 text-gray-600 dark:text-gray-300 line-clamp-3">{post.excerpt}</p>
-                  <div className="mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center gap-3">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-[13px] md:text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-3 min-w-0">
                       <span>{post.author}</span>
                       <span>•</span>
                       <span>{post.date}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
                       <span className="text-gray-500">{post.readTime}</span>
                       <button onClick={() => setActivePost(post)} className="text-[#F08336] font-semibold hover:underline flex items-center gap-1">
                         კითხვის დაწყება
@@ -435,9 +435,9 @@ export default function BlogPage() {
             <h4 className="text-base font-semibold mb-3 text-gray-900 dark:text-white">კატეგორიები</h4>
             <div className="space-y-2">
               <button
-                onClick={() => setActiveCategory('ყველა სტატიას')}
+                onClick={() => setActiveCategory('ყველა სტატია')}
                 className={`w-full flex items-center justify-between px-4 py-2 rounded-xl transition ${
-                  activeCategory === 'ყველა სტატიას'
+                  activeCategory === 'ყველა სტატია'
                     ? 'bg-gray-900 text-white'
                     : 'bg-black/5 dark:bg-white/10 text-gray-800 dark:text-gray-200'
                 }`}
