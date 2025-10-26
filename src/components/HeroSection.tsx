@@ -280,7 +280,7 @@ export default function HeroSection() {
         className="absolute top-0 left-0 w-full h-full object-cover z-0 hidden sm:block"
         preload="auto"
       >
-        <source src="/videos/hero-background-new.mp4" type="video/mp4" />
+        <source src="/videos/hero-background-new.mp4?v=2025-10-26" type="video/mp4" />
         {/* Fallback for browsers that don't support video */}
       </video>
 
