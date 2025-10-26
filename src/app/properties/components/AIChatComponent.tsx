@@ -703,6 +703,16 @@ export default function AIChatComponent() {
             if ((type.includes('input_audio_transcription') || type === 'response.input_text.delta') && transcript) {
               setLastTranscript(transcript);
             }
+            // Streamed user transcription deltas
+            if (type === 'conversation.item.input_audio_transcription.delta' && typeof (msg as any).delta === 'string') {
+              try { userVoiceBufRef.current += (msg as any).delta; } catch {}
+            }
+            // Completed user transcription
+            if (type === 'conversation.item.input_audio_transcription.completed') {
+              const full = (typeof (msg as any).transcript === 'string' && (msg as any).transcript) || userVoiceBufRef.current || '';
+              userVoiceBufRef.current = '';
+              if (full) setLastTranscript(full);
+            }
           }
 
           // Extra VAD logs
