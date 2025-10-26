@@ -17,7 +17,7 @@ export interface MockProperty {
 
 let cached: MockProperty[] | null = null;
 
-import { PROPERTY_IMAGES, pickPropertyImages } from './propertyImages';
+import { PROPERTY_IMAGES, pickPropertyImages, shuffledImagesForBlock } from './propertyImages';
 
 export function getMockProperties(count: number = 100): MockProperty[] {
   if (cached && cached.length === count) return cached;
@@ -39,11 +39,17 @@ export function getMockProperties(count: number = 100): MockProperty[] {
       status = i % 4 === 0 ? 'for-rent' : 'for-sale';
     }
 
-    const imgIdx = ((i * 7 + 3) % PROPERTY_IMAGES.length); // disperse across full curated set
+    const blockSize = PROPERTY_IMAGES.length;
+    const block = Math.floor(i / blockSize);
+    const pos = i % blockSize;
+    const perm = shuffledImagesForBlock(block);
     return {
       id: i + 1,
-      image: PROPERTY_IMAGES[imgIdx],
-      images: pickPropertyImages(i, 4),
+      image: perm[pos],
+      images: (() => {
+        const gallery = [perm[pos], ...pickPropertyImages(i + 101, 6)];
+        return Array.from(new Set(gallery)).slice(0, 4);
+      })(),
       price: basePrice,
       address: districtKey,
       bedrooms: bedroomCount,
