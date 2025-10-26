@@ -13,12 +13,16 @@ export default function StickyCompareBar() {
   const { t } = useLanguage();
   const router = useRouter();
 
-  // Add bottom offset to main content while bar is visible
+  // Add bottom offset only when items exist
   useEffect(() => {
     const cls = 'has-compare-bar';
-    document.documentElement.classList.add(cls);
+    if (ids.length > 0) {
+      document.documentElement.classList.add(cls);
+    } else {
+      document.documentElement.classList.remove(cls);
+    }
     return () => document.documentElement.classList.remove(cls);
-  }, []);
+  }, [ids.length]);
 
   const qs = ids.join(',');
 
