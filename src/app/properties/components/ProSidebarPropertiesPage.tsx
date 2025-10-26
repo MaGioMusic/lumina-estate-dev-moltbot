@@ -216,7 +216,7 @@ const ProSidebarPropertiesPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Sidebar (sticky) */}
         <div className="flex-shrink-0">
           <div className="sticky top-16 h-[calc(100vh-4rem)] overflow-auto pr-2 relative group">
