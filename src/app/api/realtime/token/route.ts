@@ -134,7 +134,8 @@ export async function GET(req: NextRequest) {
 
   try {
     // Align session model with Prompt's model when a Prompt is provided
-    const sessionModel = promptId ? (promptModel || 'gpt-realtime-mini') : model;
+    // Default to 'gpt-realtime' to satisfy Prompt API requirement when model isn't extractable
+    const sessionModel = promptId ? (promptModel || 'gpt-realtime') : model;
     // Build base headers/body once
     const baseHeaders = {
       Authorization: `Bearer ${apiKey}`,
@@ -351,7 +352,7 @@ export async function GET(req: NextRequest) {
         headers: baseHeaders,
         body: JSON.stringify({
           ...baseBody,
-          model: 'gpt-realtime-preview',
+          model: 'gpt-realtime',
           input_audio_transcription: {
             model: 'gpt-4o-mini-transcribe',
             ...(includeTranscriptionLanguage ? { language: includeTranscriptionLanguage } : {}),
