@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
   // Optional: fetch instructions from Prompt API if ID provided
   // Accept ?prompt=pmpt_... and/or VOICE_PROMPT_ID env; optional VOICE_PROMPT_VERSION
   const promptId = url.searchParams.get('prompt') || process.env.VOICE_PROMPT_ID || '';
-  const promptVersion = process.env.VOICE_PROMPT_VERSION || '';
+  const promptVersion = url.searchParams.get('version') || process.env.VOICE_PROMPT_VERSION || '';
   if (!systemInstructions && promptId) {
     try {
       const promptUrl = promptVersion
