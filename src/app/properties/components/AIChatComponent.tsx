@@ -80,6 +80,8 @@ export default function AIChatComponent() {
   const [searchResults, setSearchResults] = useState<MockProperty[]>([]);
   const [lastSearchSummary, setLastSearchSummary] = useState<string>('');
   const userVoiceBufRef = useRef<string>('');
+  // Latest user speech transcript from Realtime API
+  const [lastTranscript, setLastTranscript] = useState('');
 
   const matchesNavigateTrigger = (raw: string | undefined | null): boolean => {
     if (!raw) return false;
@@ -98,6 +100,14 @@ export default function AIChatComponent() {
       router.push('/properties');
     }
   }, [message, isOpen, router]);
+
+  // Additional fallback: navigate based on latest voice transcript
+  useEffect(() => {
+    if (matchesNavigateTrigger(lastTranscript)) {
+      try { window.sessionStorage.setItem('lumina_ai_autostart', isOpen ? '1' : '0'); } catch {}
+      router.push('/properties');
+    }
+  }, [lastTranscript, isOpen, router]);
 
   const runPropertySearch = (rawArgs: any): MockProperty[] => {
     try {
@@ -681,6 +691,20 @@ export default function AIChatComponent() {
             });
           }
           
+          // Capture user speech transcription events to enable navigation fallback
+          if (msg && typeof msg === 'object') {
+            const type: string = String(msg.type || '');
+            // Common shapes seen from Realtime for input transcription
+            // Prefer explicit transcript/text fields when present
+            const transcript: string | undefined =
+              (typeof msg.transcript === 'string' && msg.transcript) ||
+              (typeof msg.text === 'string' && msg.text) ||
+              undefined;
+            if ((type.includes('input_audio_transcription') || type === 'response.input_text.delta') && transcript) {
+              setLastTranscript(transcript);
+            }
+          }
+
           // Extra VAD logs
           if (msg && msg.type === 'input_audio_buffer.speech_started') {
             console.log('[OAI] ← input_audio_buffer.speech_started');
