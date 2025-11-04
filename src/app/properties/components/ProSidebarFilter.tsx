@@ -211,12 +211,12 @@ const ProSidebarFilter: React.FC<ProSidebarFilterProps> = ({
           height: '100%',
           color: colors.text,
           '.ps-sidebar-container': {
-            transition: 'width 110ms cubic-bezier(0.2,0.8,0.2,1), min-width 110ms cubic-bezier(0.2,0.8,0.2,1)',
+            transition: 'width 90ms cubic-bezier(0.2,0.8,0.2,1), min-width 90ms cubic-bezier(0.2,0.8,0.2,1)',
             willChange: 'width',
             overflow: 'hidden',
           },
           '.ps-submenu-content': {
-            transition: 'height 110ms ease-in-out',
+            transition: 'none', // prevent nested height animations during sidebar collapse
           },
           // Force override react-pro-sidebar styles
           // '.ps-sidebar-container': {
