@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "erd:check": "node -r ts-node/register scripts/erd-check.js",
     "mcp-server": "node -r ts-node/register src/lib/mcpServer.ts"
   },
   "dependencies": {
