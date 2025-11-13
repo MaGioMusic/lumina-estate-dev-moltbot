@@ -50,10 +50,470 @@ const translations: Translations = {
     en: 'Contact',
     ru: 'Контакт'
   },
+  roadmap: {
+    ka: 'გეგმა',
+    en: 'Roadmap',
+    ru: 'Дорожная карта'
+  },
+  roadmapHeroDescription: {
+    ka: 'გაიგე, რა ახალი ფუნქციები მოაქვს Lumina Estate-ს. ჩვენ მუდმივად ვაუმჯობესებთ უძრავი ქონების გამოცდილებას.',
+    en: 'Discover what\'s coming next to Lumina Estate. We\'re constantly working to improve your real estate experience.',
+    ru: 'Узнайте, что дальше появится в Lumina Estate. Мы постоянно улучшаем опыт с недвижимостью.'
+  },
+  roadmapTimelineLabel: {
+    ka: 'პროდუქტის გეგმა',
+    en: 'Product Roadmap',
+    ru: 'Дорожная карта продукта'
+  },
+  roadmapTimelineTitle: {
+    ka: 'Lumina Estate-ის ნაბიჯ-ნაბიჯ განვითარება',
+    en: 'Step-by-step evolution of Lumina Estate',
+    ru: 'Пошаговое развитие Lumina Estate'
+  },
+  roadmapTimelineSubtitle: {
+    ka: 'Aceternity-ის თაიმლაინით შთაგონებული ეს გეგმა გამოკვეთავს მთავარ ეტაპებს და ფუნქციებს, რომელთაც წელს ვამატებთ.',
+    en: 'Inspired by the Aceternity timeline, this roadmap highlights key milestones and the features we\'re delivering across the year.',
+    ru: 'Вдохновленная таймлайном Aceternity, эта дорожная карта подчеркивает ключевые этапы и функции, которые мы выпускаем в течение года.'
+  },
+  roadmapStatusCompleted: {
+    ka: 'დასრულებული',
+    en: 'Completed',
+    ru: 'Завершено'
+  },
+  roadmapStatusInProgress: {
+    ka: 'მიმდინარეობს',
+    en: 'In Progress',
+    ru: 'В процессе'
+  },
+  roadmapStatusPlanned: {
+    ka: 'დაგეგმილი',
+    en: 'Planned',
+    ru: 'Запланировано'
+  },
+  roadmapQuarter1Title: {
+    ka: 'ფუნდამენტი და საბაზისო ფუნქციები',
+    en: 'Foundation & Core Features',
+    ru: 'Основы и базовые функции'
+  },
+  roadmapQuarter1Item1: {
+    ka: 'უძრავი ქონების კატალოგის სისტემა',
+    en: 'Property listing system',
+    ru: 'Система публикации объектов'
+  },
+  roadmapQuarter1Item2: {
+    ka: 'ძიებისა და ფილტრაციის ფუნქციონალი',
+    en: 'Search and filter functionality',
+    ru: 'Функционал поиска и фильтров'
+  },
+  roadmapQuarter1Item3: {
+    ka: 'მომხმარებლის ავტორიზაცია',
+    en: 'User authentication',
+    ru: 'Аутентификация пользователей'
+  },
+  roadmapQuarter1Item4: {
+    ka: 'ძირითადი AI ჩატის ინტეგრაცია',
+    en: 'Basic AI chat integration',
+    ru: 'Базовая интеграция AI-чату'
+  },
+  roadmapQuarter1ImageAlt: {
+    ka: 'Lumina Estate-ის საფუძვლების სამუშაო გეგმა',
+    en: 'Blueprints and planning documents representing the project foundation',
+    ru: 'Чертежи и планирование, символизирующие фундамент проекта'
+  },
+  roadmapQuarter2Title: {
+    ka: 'გაუმჯობესებული ფუნქციები',
+    en: 'Enhanced Features',
+    ru: 'Расширенные возможности'
+  },
+  roadmapQuarter2Item1: {
+    ka: 'გაფართოებული AI ხმოვანი ჩატი',
+    en: 'Advanced AI voice chat',
+    ru: 'Продвинутый голосовой AI-чат'
+  },
+  roadmapQuarter2Item2: {
+    ka: 'უძრავი ქონების შედარების ინსტრუმენტი',
+    en: 'Property comparison tool',
+    ru: 'Инструмент сравнения объектов'
+  },
+  roadmapQuarter2Item3: {
+    ka: 'ინვესტიციის კალკულატორი',
+    en: 'Investment calculator',
+    ru: 'Инвестиционный калькулятор'
+  },
+  roadmapQuarter2Item4: {
+    ka: 'ბაზრის ანალიტიკის დაფა',
+    en: 'Market analytics dashboard',
+    ru: 'Панель рыночной аналитики'
+  },
+  roadmapQuarter2ImageAlt: {
+    ka: 'ინოვაციური ინტერიერის დიზაინი Lumina Estate-ის გაუმჯობესებებისთვის',
+    en: 'Modern real estate interior symbolising enhanced product features',
+    ru: 'Современный интерьер, символизирующий расширенные возможности продукта'
+  },
+  roadmapQuarter3Title: {
+    ka: 'მობილური და ინტეგრაციები',
+    en: 'Mobile & Integration',
+    ru: 'Мобильность и интеграции'
+  },
+  roadmapQuarter3Item1: {
+    ka: 'მობილური აპი (iOS და Android)',
+    en: 'Mobile app (iOS & Android)',
+    ru: 'Мобильное приложение (iOS и Android)'
+  },
+  roadmapQuarter3Item2: {
+    ka: 'გადახდის გეითვეის ინტეგრაცია',
+    en: 'Payment gateway integration',
+    ru: 'Интеграция платежного шлюза'
+  },
+  roadmapQuarter3Item3: {
+    ka: 'CRM სისტემა აგენტებისთვის',
+    en: 'CRM system for agents',
+    ru: 'CRM-система для агентов'
+  },
+  roadmapQuarter3Item4: {
+    ka: 'მრავალენოვანი მხარდაჭერის გაფართოება',
+    en: 'Multi-language support expansion',
+    ru: 'Расширение многоязычной поддержки'
+  },
+  roadmapQuarter3ImageAlt: {
+    ka: 'მობილური აპის დიზაინი და ინტეგრაციები',
+    en: 'Mobile devices showcasing integrated real estate applications',
+    ru: 'Мобильные устройства с интегрированными приложениями недвижимости'
+  },
+  roadmapQuarter4Title: {
+    ka: 'გაფართოებული ანალიტიკა',
+    en: 'Advanced Analytics',
+    ru: 'Продвинутая аналитика'
+  },
+  roadmapQuarter4Item1: {
+    ka: 'AI-ზე დაფუძნებული ქონების რეკომენდაციები',
+    en: 'AI-powered property recommendations',
+    ru: 'Рекомендации объектов на базе AI'
+  },
+  roadmapQuarter4Item2: {
+    ka: 'ბაზრის ტენდენციების პროგნოზები',
+    en: 'Market trend predictions',
+    ru: 'Прогнозы рыночных трендов'
+  },
+  roadmapQuarter4Item3: {
+    ka: 'ინვესტიციის ROI კალკულატორი',
+    en: 'Investment ROI calculator',
+    ru: 'Калькулятор ROI инвестиций'
+  },
+  roadmapQuarter4Item4: {
+    ka: 'ვირტუალური ტურნეები ქონებაზე',
+    en: 'Virtual property tours',
+    ru: 'Виртуальные туры по объектам'
+  },
+  roadmapQuarter4ImageAlt: {
+    ka: 'მონაცემთა დაფა და AI ანალიტიკა',
+    en: 'Data dashboard with AI analytics for Lumina Estate insights',
+    ru: 'Панель данных с AI-аналитикой для Lumina Estate'
+  },
+  roadmapCtaTitle: {
+    ka: 'გაქვს ფუნქციის იდეა?',
+    en: 'Have a Feature Request?',
+    ru: 'Есть предложение по функции?'
+  },
+  roadmapCtaDescription: {
+    ka: 'მოხარული ვიქნებით შენი იდეების მოსმენით! გაგვიზიარე ხედვა და დაგვეხმარე Lumina Estate-ის განვითარებაში.',
+    en: 'We\'d love to hear your ideas! Share your suggestions and help shape the future of Lumina Estate.',
+    ru: 'Мы будем рады услышать ваши идеи! Поделитесь своим видением и помогите развивать Lumina Estate.'
+  },
+  roadmapCtaButton: {
+    ka: 'დაგვიკავშირდი',
+    en: 'Contact Us',
+    ru: 'Свяжитесь с нами'
+  },
   blog: {
     ka: 'ბლოგი',
     en: 'Blog',
     ru: 'Блог'
+  },
+  blogHeroTitle: {
+    ka: 'საქართველოს უძრავი ქონების ექსპერტული ანალიზი',
+    en: 'Expert Insights on Georgian Real Estate',
+    ru: 'Экспертная аналитика недвижимости Грузии'
+  },
+  blogHeroSubtitle: {
+    ka: 'გაეცანით ბაზრის ტენდენციებს, უბნების განვითარებასა და საინვესტიციო რჩევებს. ხვდით ინტერიერის ტრენდებს და პრაქტიკულ გზამკვლევებს ერთ სივრცეში.',
+    en: 'Explore market trends, neighbourhood growth, and investment advice. Discover interior trends and practical guides in one place.',
+    ru: 'Изучайте рыночные тренды, развитие районов и инвестиционные советы. Узнавайте интерьерные тренды и практические гиды в одном месте.'
+  },
+  blogHeroSlideMarketTitle: {
+    ka: 'თბილისის ცათამბჯენების პანორამა',
+    en: 'Skyline Panorama of Tbilisi',
+    ru: 'Панорама небоскрёбов Тбилиси'
+  },
+  blogHeroSlideMarketDescription: {
+    ka: 'სადღესასწაულო შუქები და მდინარისპირა დინამიკა, სადაც ბიზნეს ცენტრები და პრემიუმ საცხოვრებლები ერთ სივრცეში თავმოყრილია.',
+    en: 'Festive lights and riverside energy where business towers meet premium residences.',
+    ru: 'Праздничные огни и набережная, где деловые башни соседствуют с премиальным жильём.'
+  },
+  blogHeroSlideHistoricTitle: {
+    ka: 'ძველი თბილისის კულტურული კვარტალი',
+    en: 'Cultural Quarter of Old Tbilisi',
+    ru: 'Культурный квартал Старого Тбилиси'
+  },
+  blogHeroSlideHistoricDescription: {
+    ka: 'თბილი ქვაფენილი, ისტორიული აივნები და ქუჩის არტი, რომელიც ინვესტორებსა და სტუმრებს იზიდავს.',
+    en: 'Warm cobblestones, historic balconies, and street art that attracts investors and visitors alike.',
+    ru: 'Тёплая брусчатка, исторические балконы и стрит-арт, привлекающие инвесторов и гостей.'
+  },
+  blogHeroSlideInteriorTitle: {
+    ka: 'ინტერიერი მაღალი სილამაზის სტანდარტებით',
+    en: 'Interior with Elevated Aesthetics',
+    ru: 'Интерьер с высокими стандартами эстетики'
+  },
+  blogHeroSlideInteriorDescription: {
+    ka: 'მაქსიმალური ბუნებრივი შუქი, გონივრული ზონირება და ნატურალური ტექსტურები პრემიუმ ბინებისთვის.',
+    en: 'Maximum natural light, smart zoning, and natural textures for premium apartments.',
+    ru: 'Максимум естественного света, продуманное зонирование и натуральные фактуры для премиальных апартаментов.'
+  },
+  blogHeroSlideInvestmentTitle: {
+    ka: 'საინვესტიციო შესაძლებლობები სანაპიროზე',
+    en: 'Coastal Investment Opportunities',
+    ru: 'Инвестиционные возможности на побережье'
+  },
+  blogHeroSlideInvestmentDescription: {
+    ka: 'აპარტ-ჰოტელები და დასვენების ზონები მაღალი გაქირავების მაჩვენებლითა და სტაბილური მოთხოვნით.',
+    en: 'Aparthotels and leisure zones delivering high occupancy and consistent returns.',
+    ru: 'Апарт-отели и зоны отдыха с высокой заполняемостью и стабильной доходностью.'
+  },
+  blogHeroEyebrow: {
+    ka: 'LUMINA INSIGHTS',
+    en: 'LUMINA INSIGHTS',
+    ru: 'LUMINA INSIGHTS'
+  },
+  blogSearchPlaceholder: {
+    ka: 'სტატიების ძიება...',
+    en: 'Search articles...',
+    ru: 'Искать статьи...'
+  },
+  blogLastViewed: {
+    ka: 'ბოლოს ნანახი',
+    en: 'Last viewed',
+    ru: 'Последние'
+  },
+  blogAllArticles: {
+    ka: 'ყველა სტატია',
+    en: 'All articles',
+    ru: 'Все статьи'
+  },
+  blogFeatured: {
+    ka: 'რჩეული',
+    en: 'Featured',
+    ru: 'Избранное'
+  },
+  blogCategoryGuides: {
+    ka: 'გიდები',
+    en: 'Guides',
+    ru: 'Гайды'
+  },
+  blogCategoryInvestments: {
+    ka: 'ინვესტიციები',
+    en: 'Investments',
+    ru: 'Инвестиции'
+  },
+  blogCategoryInterior: {
+    ka: 'ინტერიერი',
+    en: 'Interior',
+    ru: 'Интерьер'
+  },
+  blogCategoryRenovation: {
+    ka: 'გადაკეთებები',
+    en: 'Renovations',
+    ru: 'Реновации'
+  },
+  blogCategoryMarket: {
+    ka: 'ბაზრის ანალიზი',
+    en: 'Market Analysis',
+    ru: 'Аналитика рынка'
+  },
+  blogReadTimeSuffix: {
+    ka: 'წთ',
+    en: 'min',
+    ru: 'мин'
+  },
+  blogStartReading: {
+    ka: 'კითხვის დაწყება',
+    en: 'Start reading',
+    ru: 'Читать'
+  },
+  blogEditorsPick: {
+    ka: 'რედაქტორის არჩევანი',
+    en: "Editor's Pick",
+    ru: 'Выбор редакции'
+  },
+  blogLoadMore: {
+    ka: 'მეტი სტატიები',
+    en: 'More articles',
+    ru: 'Больше статей'
+  },
+  blogShare: {
+    ka: 'გაზიარება',
+    en: 'Share',
+    ru: 'Поделиться'
+  },
+  blogCopyLink: {
+    ka: 'ბმულის კოპირება',
+    en: 'Copy link',
+    ru: 'Скопировать ссылку'
+  },
+  blogStatsArticles: {
+    ka: 'სტატიები',
+    en: 'Articles',
+    ru: 'Статьи'
+  },
+  blogStatsCategories: {
+    ka: 'კატეგორიები',
+    en: 'Categories',
+    ru: 'Категории'
+  },
+  blogStatsFeatured: {
+    ka: 'რჩეული',
+    en: 'Featured',
+    ru: 'Избранные'
+  },
+  blogConsultationCta: {
+    ka: 'გსურთ კონსულტაცია? დაუკავშირდით ჩვენს ექსპერტებს და მიიღეთ პერსონალური რჩევა რამდენიმე წუთში.',
+    en: 'Need consultation? Contact our experts for personalised advice in minutes.',
+    ru: 'Нужна консультация? Свяжитесь с нашими экспертами и получите персональный совет за несколько минут.'
+  },
+  blogConsultationButton: {
+    ka: 'კონსულტაციის დაჯავშნა',
+    en: 'Book consultation',
+    ru: 'Записаться на консультацию'
+  },
+  blogPopularArticles: {
+    ka: 'პოპულარული სტატიები',
+    en: 'Popular articles',
+    ru: 'Популярные статьи'
+  },
+  blogArticleBadgeNew: {
+    ka: 'ახალი',
+    en: 'New',
+    ru: 'Новое'
+  },
+  blogArticleBadgeInsight: {
+    ka: 'ინსაითი',
+    en: 'Insight',
+    ru: 'Инсайт'
+  },
+  blogOverlayLead: {
+    ka: 'მარტივად წასაკითხი, კარგად დამუშავებული აბზაცები, რომლებიც დაგეხმარებათ გადაწყვეტილების მიღებაში.',
+    en: 'Readable, well-structured paragraphs that help you make confident decisions.',
+    ru: 'Читаемые, структурированные абзацы, которые помогают принимать уверенные решения.'
+  },
+  blogOverlaySecondary: {
+    ka: 'გადახედეთ მნიშვნელოვან საკითხებს შეკუმშული სიების და მოკლე რჩევების სახით.',
+    en: 'Review key considerations distilled into concise checklists and quick tips.',
+    ru: 'Изучайте важные моменты, собранные в краткие чек-листы и советы.'
+  },
+  blogOverlayListOne: {
+    ka: 'შესაბამისი მონაცემები და მაგალითები რეალური ბაზრიდან',
+    en: 'Relevant data points with real-market examples',
+    ru: 'Актуальные данные и примеры с реального рынка'
+  },
+  blogOverlayListTwo: {
+    ka: 'მოქმედების შკალა — რა გააკეთოთ შემდეგი ნაბიჯისთვის',
+    en: 'Actionable checklist for your next steps',
+    ru: 'Практический чек-лист для следующих шагов'
+  },
+  blogOverlayListThree: {
+    ka: 'ექსპერტის რჩევები, რომლებსაც დაუყოვნებლივ გამოიყენებთ',
+    en: 'Expert tips you can apply immediately',
+    ru: 'Советы экспертов, которые можно применить сразу'
+  },
+  blogPost1Title: {
+    ka: 'რუხი, მოდერნული ბინა – ინტერიერის თანამედროვე მიდგომა',
+    en: 'Grey, Modern Apartment – A Contemporary Interior Approach',
+    ru: 'Серая современная квартира — актуальный подход к интерьеру'
+  },
+  blogPost1Excerpt: {
+    ka: 'მოდერნისტული გადაწყვეტები და თბილი ტექსტურების ბალანსი. როგორ შევქმნათ კომფორტული და ფუნქციური სივრცე მცირე ბიუჯეტით.',
+    en: 'Balancing modernist lines with warm textures: how to create a comfortable, functional space on a modest budget.',
+    ru: 'Баланс модернистских линий и тёплых текстур: как создать уютное и функциональное пространство при умеренном бюджете.'
+  },
+  blogPost1Author: {
+    ka: 'ანა სარაბაია',
+    en: 'Ana Sarabaia',
+    ru: 'Ана Сарабаия'
+  },
+  blogPost2Title: {
+    ka: 'ბაზრის ანალიზი: ფასების დინამიკა 2024 წელს',
+    en: 'Market Analysis: Price Dynamics in 2024',
+    ru: 'Анализ рынка: динамика цен в 2024 году'
+  },
+  blogPost2Excerpt: {
+    ka: 'რა ფაქტორები განსაზღვრავს ფასების ზრდას თბილისში და რეგიონებში. რომელი უბნები ინარჩუნებს ყველაზე მაღალ მოთხოვნას.',
+    en: 'Key factors behind price growth in Tbilisi and beyond, and the neighbourhoods that continue to lead demand.',
+    ru: 'Ключевые факторы роста цен в Тбилиси и регионах, а также районы с устойчивым спросом.'
+  },
+  blogPost2Author: {
+    ka: 'ლიკა ქავთარაძე',
+    en: 'Lika Kavtaradze',
+    ru: 'Лика Кавтарадзе'
+  },
+  blogPost3Title: {
+    ka: 'Airbnb თუ გრძელვადიანი ქირავნება – რომელი მოდელია მოგებიანი?',
+    en: 'Airbnb vs Long-Term Rentals – Which Model Wins?',
+    ru: 'Airbnb или долгосрочная аренда — какая модель выгоднее?'
+  },
+  blogPost3Excerpt: {
+    ka: 'შემოსავლიანობის შედარება, სეზონურობის ეფექტი და სამართლებრივი დეტალები. როდის სჯობს მოკლევადიანი გაქირავება და როდის — გრძელვადიანი.',
+    en: 'Compare profitability, seasonality, and legal nuances to decide when short-term or long-term rentals make more sense.',
+    ru: 'Сравниваем доходность, сезонность и правовые нюансы, чтобы понять, когда выгоднее краткосрочная или долгосрочная аренда.'
+  },
+  blogPost3Author: {
+    ka: 'ლევან თათარიშვილი',
+    en: 'Levan Tatarishvili',
+    ru: 'Леван Татаришвили'
+  },
+  blogPost4Title: {
+    ka: 'სახლის ყიდვის გზამკვლევი – ნაბიჯ-ნაბიჯ პროცესი',
+    en: 'Home Buying Guide – Step by Step',
+    ru: 'Покупка жилья: пошаговое руководство'
+  },
+  blogPost4Excerpt: {
+    ka: 'სესხის წინასწარი დამტკიცებიდან საბოლოო რეგისტრაციამდე. რას უნდა მიაქციოთ ყურადღება დათვალიერებისას და შესყიდვის კონტრაქტში.',
+    en: 'From pre-approval to final registration: what to inspect during viewings and the clauses to watch in your purchase agreement.',
+    ru: 'От предварительного одобрения кредита до регистрации: на что обратить внимание при осмотре и в договоре купли-продажи.'
+  },
+  blogPost4Author: {
+    ka: 'გიორგი მდივანი',
+    en: 'Giorgi Midivani',
+    ru: 'Гиорги Мдивани'
+  },
+  blogPost5Title: {
+    ka: 'ინტერიერის ტრენდები 2024: თბილი მიწისფერი პალიტრა',
+    en: 'Interior Trends 2024: Warm Earthy Palette',
+    ru: 'Тренды интерьера 2024: тёплая природная палитра'
+  },
+  blogPost5Excerpt: {
+    ka: 'ნატურალური ხე, ქვის ტექსტურები და სხივოვანი განათება — როგორ შევქმნათ მშვიდი, მყუდრო ატმოსფერო თანამედროვე ბინაში.',
+    en: 'Natural wood, stone textures, and layered lighting: creating a calm and cosy atmosphere in a contemporary home.',
+    ru: 'Натуральное дерево, каменные фактуры и слоистое освещение: как создать спокойную и уютную атмосферу в современном доме.'
+  },
+  blogPost5Author: {
+    ka: 'ელენე კოპაძე',
+    en: 'Elene Kopadze',
+    ru: 'Элене Копадзе'
+  },
+  blogPost6Title: {
+    ka: 'როგორ გავზარდოთ ქონების ღირებულება რემონტის გარეშე',
+    en: 'How to Increase Property Value Without Renovation',
+    ru: 'Как повысить стоимость недвижимости без ремонта'
+  },
+  blogPost6Excerpt: {
+    ka: 'სტაილინგი, განათება და ფოტოების ხარისხი — პატარა ცვლილებები, რომლებიც დიდ სხვაობას ქმნის გაყიდვებში.',
+    en: 'Styling, lighting, and strong photography: small changes that make a big difference when selling.',
+    ru: 'Стайлинг, освещение и качественные фото — небольшие изменения, которые сильно влияют на продажу.'
+  },
+  blogPost6Author: {
+    ka: 'ნინო ქავთარაძე',
+    en: 'Nino Kavtaradze',
+    ru: 'Нино Кавтарадзе'
   },
   // Short tagline under logo
   searchingHomes: {
@@ -98,10 +558,10 @@ const translations: Translations = {
     en: 'Agent Dashboard',
     ru: 'Панель агента'
   },
-  clientDashboard: {
-    ka: 'კლიენტის დეშბორდი',
-    en: 'Client Dashboard',
-    ru: 'Панель клиента'
+  profile: {
+    ka: 'ჩემი პროფილი',
+    en: 'My Profile',
+    ru: 'Мой профиль'
   },
   logout: {
     ka: 'გასვლა',

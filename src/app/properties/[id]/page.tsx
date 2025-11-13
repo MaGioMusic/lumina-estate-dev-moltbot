@@ -9,6 +9,7 @@ import SinglePropertyMap from '../components/SinglePropertyMap';
 import { getPropertyImages } from '@/lib/samplePropertyImages';
 import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis } from 'recharts';
 import PropertySnapshotEmitter from '../components/PropertySnapshotEmitter';
+import type { Property as ApiProperty, Agent as ApiAgent } from '@/types/models';
 
 interface PropertyDetailsProps {
   params: Promise<{ id: string }>;
@@ -28,6 +29,7 @@ interface PropertyDetailsData {
   coordinates: { lat: number; lng: number };
   agent: { name: string; phone: string; email: string };
   features: string[];
+  currency: string;
 }
 
 export default function PropertyDetails({ params }: PropertyDetailsProps) {
@@ -38,20 +40,57 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
 
   useEffect(() => {
     let active = true;
-    params.then(async (resolved) => {
+    Promise.resolve(params).then(async (resolved) => {
       try {
-        const res = await fetch('/api/mcp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tool: 'get_property_details', params: { propertyId: resolved.id } })
+        const res = await fetch(`/api/properties/${resolved.id}`);
+        const payload = await res.json();
+        if (!active) return;
+
+        if (!res.ok) {
+          throw new Error(payload?.error?.message ?? 'Property not found');
+        }
+
+        const property = payload.property as ApiProperty;
+        const agent = (payload.agent ?? null) as ApiAgent | null;
+
+        const imageUrls =
+          (property.images && property.images.length > 0
+            ? property.images.map((img) => ('url' in img ? (img as { url: string }).url : ''))
+            : undefined)?.filter(Boolean) ??
+          property.imageUrls ??
+          getPropertyImages(resolved.id);
+
+        const priceValue = Number(property.price ?? 0);
+        const areaValue = Number(property.area ?? 0);
+        const latitude = property.latitude ? Number(property.latitude) : 41.7151;
+        const longitude = property.longitude ? Number(property.longitude) : 44.7661;
+
+        setData({
+          id: property.id,
+          title: property.title ?? 'Property',
+          price: Number.isFinite(priceValue) ? priceValue : 0,
+          location:
+            property.location ||
+            [property.city, property.district].filter(Boolean).join(', ') ||
+            'Tbilisi, Georgia',
+          type: property.propertyType ?? 'apartment',
+          bedrooms: property.bedrooms ?? 0,
+          bathrooms: property.bathrooms ?? 0,
+          area: Number.isFinite(areaValue) ? areaValue : 0,
+          description: property.description ?? '',
+          images: imageUrls,
+          coordinates: { lat: latitude, lng: longitude },
+          agent: {
+            name: agent?.companyName ?? agent?.id ?? 'Agent',
+            phone: agent ? agent.userId ?? '+995 555 000 000' : '+995 555 000 000',
+            email: agent ? `${agent.id}@lumina.ge` : 'agent@lumina.ge',
+          },
+          features: property.amenities ?? [],
+          currency: property.currency ?? 'GEL',
         });
-        const json = await res.json();
-        if (!active) return;
-        const images = (json.images as string[])?.length ? json.images : getPropertyImages(resolved.id);
-        setData({ ...json, images } as PropertyDetailsData);
       } catch (e) {
-        // fallback minimal mock
         if (!active) return;
+        console.error('Failed to load property detail', e);
         setData({
           id: resolved.id,
           title: 'Property',
@@ -65,13 +104,16 @@ export default function PropertyDetails({ params }: PropertyDetailsProps) {
           images: getPropertyImages(resolved.id),
           coordinates: { lat: 41.7151, lng: 44.7661 },
           agent: { name: 'Agent', phone: '+995 555 000 000', email: 'agent@example.com' },
-          features: []
+          features: [],
+          currency: 'GEL',
         });
       } finally {
         if (active) setLoading(false);
       }
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [params]);
 
   const priceSeries = useMemo(() => {

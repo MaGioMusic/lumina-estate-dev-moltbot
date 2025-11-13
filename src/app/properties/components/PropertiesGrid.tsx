@@ -9,6 +9,7 @@ import { useLanguage, translations } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMockProperties } from '@/lib/mockProperties';
 import { logger } from '@/lib/logger';
+import type { Property as ApiProperty } from '@/types/models';
 
 interface FiltersState {
   priceRange: [number, number];
@@ -32,20 +33,45 @@ interface PropertiesGridProps {
 
 interface Property {
   id: number;
+  slug: string;
   title: string;
-  price: string;
+  price: number;
+  address: string;
   location: string;
   bedrooms: number;
   bathrooms: number;
-  area: number;
+  sqft: number;
   floor?: number;
   image: string;
   images?: string[];
   type: string;
+  status: string;
+  isNew?: boolean;
+  amenities: string[];
+  currency?: string;
 }
 
 // Shared mock properties util (deterministic for SSR/CSR parity)
 const mockProperties = getMockProperties(100);
+const fallbackProperties: Property[] = mockProperties.map((property) => ({
+  id: property.id,
+  slug: property.id.toString(),
+  title: `Property #${property.id}`,
+  price: property.price,
+  address: property.address,
+  location: property.address,
+  bedrooms: property.bedrooms,
+  bathrooms: property.bathrooms,
+  sqft: property.sqft,
+  floor: property.floor,
+  image: property.image,
+  images: property.images,
+  type: property.type,
+  status: property.status,
+  isNew: property.isNew,
+  amenities: property.amenities ?? [],
+  currency: 'GEL',
+}));
 
 const PROPERTIES_PER_PAGE = 25;
 
@@ -62,6 +88,56 @@ export default function PropertiesGrid({
   const pathname = usePathname();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [apiProperties, setApiProperties] = useState<Property[] | null>(null);
+  const [apiTotal, setApiTotal] = useState<number | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  
+  const convertProperty = (item: ApiProperty, index: number): Property => {
+    const priceValue = Number(item.price ?? 0);
+    const areaValue = Number(item.area ?? 0);
+    const fallbackImageIndex = ((index * 7 + 3) % 15) + 1;
+    const district = (item.district ?? item.city ?? 'tbilisi').toLowerCase();
+    return {
+      id: index + 1,
+      slug: item.id,
+      title: item.title ?? `${item.propertyType ?? 'property'} • ${item.city ?? 'Tbilisi'}`,
+      price: Number.isFinite(priceValue) ? priceValue : 0,
+      address: district,
+      location: (item.location ?? `${item.city ?? ''} ${item.district ?? ''}`).trim() || district,
+      bedrooms: item.bedrooms ?? 0,
+      bathrooms: item.bathrooms ?? 0,
+      sqft: Number.isFinite(areaValue) ? areaValue : 0,
+      floor: item.floor ?? undefined,
+      image:
+        item.imageUrls && item.imageUrls.length > 0
+          ? item.imageUrls[0]
+          : `/images/properties/property-${fallbackImageIndex}.jpg`,
+      images: item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls : undefined,
+      type: item.propertyType ?? 'apartment',
+      status: item.transactionType === 'rent' ? 'for-rent' : 'for-sale',
+      isNew: Boolean(item.isFeatured),
+      amenities: item.amenities ?? [],
+      currency: item.currency ?? 'GEL',
+    };
+  };
+
+  const formatPrice = (property: Property) => {
+    const symbol = (() => {
+      switch (property.currency) {
+        case 'USD':
+          return '$';
+        case 'EUR':
+          return '€';
+        case 'RUB':
+          return '₽';
+        case 'GEL':
+        default:
+          return '₾';
+      }
+    })();
+    return `${symbol}${Math.round(property.price).toLocaleString()}`;
+  };
   
   logger.log('PropertiesGrid received filters:', filters);
 
@@ -171,132 +247,66 @@ export default function PropertiesGrid({
     amenities: injectedFilters.amenities ?? filters.amenities,
   };
 
-  logger.debug('Starting filter with:', effectiveFilters);
-  logger.debug('Total properties before filter:', mockProperties.length);
-  
-  const filteredProperties = mockProperties
-    .filter(property => {
-      // Location filter (supports KA/EN/RU names and keys)
-      if (normalizedInput) {
-        if (normalizedLocationKey) {
-          if (property.address !== normalizedLocationKey) return false;
-        } else {
-          // Fallback: compare against translated address string contains
-          const translatedAddress = `${t('tbilisi')}, ${t(property.address)}`.toLowerCase();
-          if (!translatedAddress.includes(normalizedInput)) return false;
-        }
-      }
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    params.set('page', '1');
+    params.set('pageSize', '200');
 
-      // Status filter via URL (for-sale / for-rent)
-      if (statusParam === 'for-sale' || statusParam === 'for-rent') {
-        if (property.status !== statusParam) return false;
-      }
-      
-      // Price filter
-      if (property.price < effectiveFilters.priceRange[0] || property.price > effectiveFilters.priceRange[1]) {
-        if (property.id <= 5) {
-          logger.debug(`Property ${property.id}: price=${property.price}, range=[${effectiveFilters.priceRange[0]}, ${effectiveFilters.priceRange[1]}]`);
+    if (searchQuery.trim()) {
+      params.set('search', searchQuery.trim());
+    }
+
+    const [minPrice, maxPrice] = effectiveFilters.priceRange;
+    if (minPrice > 0) params.set('priceMin', Math.round(minPrice).toString());
+    if (maxPrice < 1_000_000) params.set('priceMax', Math.round(maxPrice).toString());
+
+    if (effectiveFilters.propertyTypes.length > 0) {
+      params.set('propertyType', effectiveFilters.propertyTypes[0]);
+    }
+
+    if (effectiveFilters.transactionType) {
+      params.set('transactionType', effectiveFilters.transactionType === 'for-rent' ? 'rent' : 'sale');
+    }
+
+    if (effectiveFilters.bedrooms.length > 0) {
+      const last = effectiveFilters.bedrooms[effectiveFilters.bedrooms.length - 1];
+      const parsed = last === '5+' ? 5 : parseInt(last, 10);
+      if (!Number.isNaN(parsed)) params.set('bedrooms', parsed.toString());
+    }
+
+    setIsFetching(true);
+    fetch(`/api/properties?${params.toString()}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('ვერ მოხერხდა უძრავი ქონების ჩამოტვირთვა');
         }
-        return false;
-      }
-      
-      // Property type filter - now checks if property type is in the selected types array
-      if (effectiveFilters.propertyTypes.length > 0 && !effectiveFilters.propertyTypes.includes(property.type)) {
-        return false;
-      }
-      
-      // Bedrooms filter - now handles array of selected bedroom counts
-      if (effectiveFilters.bedrooms.length > 0) {
-        const propertyMatches = effectiveFilters.bedrooms.some(bedroomFilter => {
-          const bedroomCount = bedroomFilter === '5+' ? 5 : parseInt(bedroomFilter);
-          if (bedroomFilter === '5+') {
-            return property.bedrooms >= 5;
-          } else {
-            return property.bedrooms === bedroomCount;
-          }
-        });
-        if (!propertyMatches) return false;
-      }
-      
-      // Bathrooms filter - now handles array of selected bathroom counts
-      if (effectiveFilters.bathrooms.length > 0) {
-        const propertyMatches = effectiveFilters.bathrooms.some(bathroomFilter => {
-          const bathroomCount = bathroomFilter === '4+' ? 4 : parseInt(bathroomFilter);
-          if (bathroomFilter === '4+') {
-            return property.bathrooms >= 4;
-          } else {
-            return property.bathrooms === bathroomCount;
-          }
-        });
-        if (!propertyMatches) return false;
-      }
-      
-      // Area filter
-      if (property.sqft < effectiveFilters.area[0] || property.sqft > effectiveFilters.area[1]) {
-        return false;
-      }
-      
-      // Amenities filter - property must have ALL selected amenities
-      if (effectiveFilters.amenities.length > 0) {
-        const hasAllAmenities = effectiveFilters.amenities.every(amenity => 
-          property.amenities.includes(amenity)
-        );
-        if (!hasAllAmenities) return false;
-      }
-      
-      // Floor filter
-      if (effectiveFilters.floor) {
-        const propertyFloor = property.floor || 0;
-        
-        // Debug log for first few properties
-        if (property.id <= 5) {
-          logger.debug(`Property ${property.id}: floor=${propertyFloor}, filter=${filters.floor}`);
-        }
-        
-        switch(effectiveFilters.floor) {
-          case 'first': 
-            if (propertyFloor !== 1) return false;
-            break;
-          case 'last': 
-            if (propertyFloor < 10) return false; // Assuming 10+ is last floor
-            break;
-          case 'middle': 
-            if (propertyFloor <= 1 || propertyFloor >= 10) return false;
-            break;
-          case '1-5': 
-            if (propertyFloor < 1 || propertyFloor > 5) return false;
-            break;
-          case '6-10': 
-            if (propertyFloor < 6 || propertyFloor > 10) return false;
-            break;
-          case '11-15': 
-            if (propertyFloor < 11 || propertyFloor > 15) return false;
-            break;
-          case '16+': 
-            if (propertyFloor < 16) return false;
-            break;
-        }
-      }
-      
-      return true;
-    })
-    .sort((a, b) => {
-      // First, prioritize highlighted property
-      if (highlightedPropertyId) {
-        if (a.id === highlightedPropertyId && b.id !== highlightedPropertyId) return -1;
-        if (b.id === highlightedPropertyId && a.id !== highlightedPropertyId) return 1;
-      }
-      
-      // Then apply regular sorting
-      switch (sortBy) {
-        case 'price-asc': return a.price - b.price;
-        case 'price-desc': return b.price - a.price;
-        case 'size': return b.sqft - a.sqft;
-        default: return a.price - b.price;
-      }
-    });
+        return res.json() as Promise<{ items: ApiProperty[]; total: number }>;
+      })
+      .then((payload) => {
+        const mapped = payload.items.map((item, index) => convertProperty(item, index));
+        setApiProperties(mapped);
+        setApiTotal(payload.total ?? mapped.length);
+        setFetchError(null);
+      })
+      .catch((error: unknown) => {
+        if ((error as Error)?.name === 'AbortError') return;
+        console.error('Failed to fetch properties', error);
+        setFetchError((error as Error)?.message ?? 'დაფიქსირდა პრობლემა მონაცემების მიღებისას');
+        setApiProperties(null);
+      })
+      .finally(() => setIsFetching(false));
+
+    return () => controller.abort();
+  }, [searchQuery, effectiveFilters.priceRange, effectiveFilters.propertyTypes, effectiveFilters.transactionType, effectiveFilters.bedrooms]);
+
+  const propertiesDataset = apiProperties ?? fallbackProperties;
+
+  logger.debug('Starting filter with:', effectiveFilters);
+  logger.debug('Total properties before filter:', propertiesDataset.length);
   
-  logger.debug('Total properties after filter:', filteredProperties.length);
+  const filteredProperties = propertiesDataset
+
   logger.debug('Floor filter value:', effectiveFilters.floor);
   
   // Calculate pagination based on filtered results
@@ -380,6 +390,12 @@ export default function PropertiesGrid({
           {t('page')} {currentPage} {t('of')} {totalPages}
         </p>
       </div>
+      {isFetching && (
+        <p className="text-xs text-orange-500 dark:text-orange-300">{t('loading')}...</p>
+      )}
+      {fetchError && (
+        <p className="text-xs text-red-500 dark:text-red-400">{fetchError}</p>
+      )}
 
       {/* Properties Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -392,21 +408,24 @@ export default function PropertiesGrid({
               isNew: property.isNew
             });
           }
-          
+
+          const addressLabel = property.location || `${t('tbilisi')}, ${t(property.address)}`;
+
           return (
           <PropertyCard
-            key={property.id}
+            key={property.slug || property.id}
             id={property.id.toString()}
+            slug={property.slug}
             image={property.image}
             images={property.images}
-            price={`$${property.price.toLocaleString()}`}
-            address={`${t('tbilisi')}, ${t(property.address)}`}
-            title={`${property.type} in ${t(property.address)}`}
+            price={formatPrice(property)}
+            address={addressLabel}
+            title={property.title || `${property.type} in ${addressLabel}`}
             bedrooms={property.bedrooms}
             bathrooms={property.bathrooms}
             sqft={property.sqft}
             floor={property.floor}
-            area={`${property.sqft} მ²`}
+            area={property.sqft ? `${property.sqft} მ²` : undefined}
             type={property.type}
             status={property.status}
             isNew={property.isNew}

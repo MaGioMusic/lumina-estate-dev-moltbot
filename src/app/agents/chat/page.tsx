@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -38,9 +38,12 @@ export default function ChatPage() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const searchParams = useSearchParams();
-  
-  const contact = searchParams.get('contact');
-  const [selectedChat, setSelectedChat] = useState<string>('giorgi-mamaladze');
+
+  const contactId = searchParams.get('contactId') || undefined;
+  const contactName = searchParams.get('contactName') || undefined;
+  const contactAvatar = searchParams.get('contactAvatar') || undefined;
+
+  const [selectedChat, setSelectedChat] = useState<string>(contactId ?? 'giorgi-mamaladze');
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesWrapRef = useRef<HTMLDivElement | null>(null);
@@ -75,16 +78,7 @@ export default function ChatPage() {
     { id: 'p3', title: `${t('vera')} • 1 ${t('rooms')} • 52 ${t('sqm')}`, url: '/properties/103' },
   ];
 
-  const buildMockReply = (text: string): string => {
-    const lower = text.toLowerCase();
-    if (lower.includes('ფას') || lower.includes('price')) return 'საწყისი ფასი იწყება 299₾-დან.';
-    if (lower.includes('მისამართ') || lower.includes('address')) return 'მისამართს გაგიზიარებთ.';
-    if (lower.includes('დათვალი') || lower.includes('view')) return 'შეხვედრის დაგეგმვა შეგვიძლია.';
-    return 'მოგწერ დეტალებს მოკლე დროში.';
-  };
-
-  // Mock data for chat users
-  const chatUsers: ChatUser[] = [
+  const baseUsers: ChatUser[] = [
     {
       id: 'giorgi-mamaladze',
       name: t('teamMember1Name'),
@@ -141,8 +135,26 @@ export default function ChatPage() {
     }
   ];
 
-  // Messages state by conversation id
-  const [messagesById, setMessagesById] = useState<MessagesById>({
+  const dynamicContact: ChatUser | null = useMemo(() => {
+    if (!contactId) return null;
+    return {
+      id: contactId,
+      name: contactName || 'Assigned Agent',
+      avatar: contactAvatar || '/images/photos/Agents/agent-2.jpg',
+      lastMessage: '',
+      timestamp: '',
+      unreadCount: 0,
+      isOnline: true,
+    };
+  }, [contactId, contactName, contactAvatar]);
+
+  const chatUsers: ChatUser[] = useMemo(
+    () => (dynamicContact ? [...baseUsers, dynamicContact] : baseUsers),
+    [baseUsers, dynamicContact]
+  );
+
+  type MessagesState = MessagesById;
+  const [messagesById, setMessagesById] = useState<MessagesState>({
     'giorgi-mamaladze': [
       {
         id: '1',
@@ -180,32 +192,10 @@ export default function ChatPage() {
         avatar: '/images/photos/contact-1.jpg'
       }
     ],
-    'nino-kvaratskhelia': [
-      {
-        id: '1',
-        text: 'გამარჯობა! მაინტერესებს ბინის დათვალიერება.',
-        timestamp: '09:42',
-        isOwn: false,
-        avatar: '/images/photos/contact-2.jpg'
-      }
-    ],
-    'davit-gurgenidze': [
-      {
-        id: '1',
-        text: 'გთხოვთ მომაწოდოთ მეტი ფოტო.',
-        timestamp: 'გუშინ',
-        isOwn: false,
-        avatar: '/images/photos/contact-3.jpg'
-      }
-    ],
-    'tamar-beridze': [],
-    'levan-kiknadze': [],
-    'mariam-gogoladze': []
   });
 
   const currentMessages = messagesById[selectedChat] ?? [];
 
-  // Mock transactions
   const transactions: Transaction[] = [
     { id: '1', date: '15/05/2023', amount: '299₾', status: t('completed') },
     { id: '2', date: '03/04/2023', amount: '149₾', status: t('completed') },
@@ -213,39 +203,37 @@ export default function ChatPage() {
   ];
 
   const selectedUser = chatUsers.find(user => user.id === selectedChat);
-  // isMuted check removed (not used)
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       const message: Message = {
-        id: Date.now().toString(),
-        text: newMessage,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        id: Math.random().toString(36).slice(2),
+        text: newMessage.trim(),
+        timestamp: new Date().toLocaleTimeString(),
         isOwn: true,
         avatar: '/images/photos/contact-4.jpg'
       };
-      setMessagesById(prev => {
-        const prevList = prev[selectedChat] ?? [];
-        return { ...prev, [selectedChat]: [...prevList, message] };
-      });
+      setMessagesById(prev => ({
+        ...prev,
+        [selectedChat]: [...(prev[selectedChat] || []), message]
+      }));
       setNewMessage('');
-      // Simulate assistant typing and simple mock auto-reply
       setIsAssistantTyping(true);
-      if (replyTimeoutRef.current) window.clearTimeout(replyTimeoutRef.current);
-      replyTimeoutRef.current = window.setTimeout(() => {
+
+      window.setTimeout(() => {
         const reply: Message = {
-          id: (Date.now() + 1).toString(),
-          text: buildMockReply(message.text),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          id: Math.random().toString(36).slice(2),
+          text: 'მოგწერ დეტალებს მოკლე დროში.',
+          timestamp: new Date().toLocaleTimeString(),
           isOwn: false,
           avatar: selectedUser?.avatar || '/images/photos/contact-1.jpg'
         };
-        setMessagesById(prev => {
-          const prevList = prev[selectedChat] ?? [];
-          return { ...prev, [selectedChat]: [...prevList, reply] };
-        });
+        setMessagesById(prev => ({
+          ...prev,
+          [selectedChat]: [...(prev[selectedChat] || []), reply]
+        }));
         setIsAssistantTyping(false);
-      }, 1000);
+      }, 800);
     }
   };
 
@@ -257,16 +245,27 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    if (contact) {
-      setSelectedChat(contact);
+    if (contactId) {
+      setSelectedChat(contactId);
     }
-  }, [contact]);
+  }, [contactId]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [selectedChat, currentMessages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [currentMessages.length]);
+
+  useEffect(() => {
+    const wrap = messagesWrapRef.current;
+    if (!wrap) return;
+    const onScroll = () => {
+      const threshold = 120;
+      const nearBottom = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < threshold;
+      setShowScrollToBottom(!nearBottom);
+    };
+    onScroll();
+    wrap.addEventListener('scroll', onScroll);
+    return () => wrap.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Track scroll position to toggle scroll-to-bottom chip
   useEffect(() => {

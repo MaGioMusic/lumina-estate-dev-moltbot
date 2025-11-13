@@ -1,6 +1,6 @@
 # ERD Audit Report
 
-Generated: 2025-11-04T15:14:07.516Z
+Generated: 2025-11-04T18:11:06.228Z
 
 ## Entities
 - users: id, email, first_name, last_name, avatar, role, phone, created_at, last_login, is_active, password_hash, email_verification_token, is_email_verified, updated_at
@@ -8,7 +8,7 @@ Generated: 2025-11-04T15:14:07.516Z
 - properties: id, agent_id, title, description, price, currency, location, district, city, country, property_type, transaction_type, bedrooms, bathrooms, area, floor, total_floors, construction_year, condition, furnished, latitude, longitude, status, created_at, updated_at, is_featured, featured_until, views_count
 - favorites: id, user_id, property_id, created_at
 - appointments: id, client_id, agent_id, property_id, scheduled_date, status, notes, type, created_at, updated_at, meeting_location
-- reviews: id, author_id, agent_id, property_id, rating, comment, review_type, created_at, is_verified, CHECK
+- reviews: id, author_id, agent_id, property_id, rating, comment, review_type, created_at, is_verified
 - inquiries: id, user_id, property_id, agent_id, message, contact_phone, contact_email, status, created_at, responded_at
 - search_history: id, user_id, search_criteria, results_count, search_date, search_name, is_saved
 - transactions: id, property_id, buyer_id, seller_id, agent_id, sale_price, currency, transaction_date, status, commission, notes
@@ -19,10 +19,10 @@ Generated: 2025-11-04T15:14:07.516Z
 - audit_log: id, table_name, operation, old_values, new_values, user_id, timestamp
 
 ## Relationships
-- 1:N agents.user_id -> users.id
+- 1:1 agents.user_id -> users.id
 - 1:N properties.agent_id -> agents.id
-- 1:1 favorites.user_id -> users.id
-- 1:1 favorites.property_id -> properties.id
+- 1:N favorites.user_id -> users.id
+- 1:N favorites.property_id -> properties.id
 - 1:N appointments.client_id -> users.id
 - 1:N appointments.agent_id -> agents.id
 - 1:N appointments.property_id -> properties.id
@@ -37,11 +37,11 @@ Generated: 2025-11-04T15:14:07.516Z
 - 1:N transactions.buyer_id -> users.id
 - 1:N transactions.seller_id -> users.id
 - 1:N transactions.agent_id -> agents.id
-- 1:1 property_analytics.property_id -> properties.id
+- 1:N property_analytics.property_id -> properties.id
 - 1:N notifications.user_id -> users.id
 - 1:N mortgage_calculations.user_id -> users.id
 - 1:N mortgage_calculations.property_id -> properties.id
-- 1:N user_preferences.user_id -> users.id
+- 1:1 user_preferences.user_id -> users.id
 - N:M favorites.user_id -> users.id (via favorites)
 - N:M favorites.property_id -> properties.id (via favorites)
 - N:M appointments.client_id -> users.id (via appointments)
@@ -147,7 +147,6 @@ erDiagram
     review_type_enum review_type
     timestamp created_at
     boolean is_verified
-    ( CHECK
   }
   inquiries {
     uuid id
@@ -234,10 +233,10 @@ erDiagram
     uuid user_id
     timestamp timestamp
   }
-  users ||--o{ agents : "agents.user_id->users.id"
+  users ||--|| agents : "agents.user_id->users.id"
   agents ||--o{ properties : "properties.agent_id->agents.id"
-  users ||--|| favorites : "favorites.user_id->users.id"
-  properties ||--|| favorites : "favorites.property_id->properties.id"
+  users ||--o{ favorites : "favorites.user_id->users.id"
+  properties ||--o{ favorites : "favorites.property_id->properties.id"
   users ||--o{ appointments : "appointments.client_id->users.id"
   agents ||--o{ appointments : "appointments.agent_id->agents.id"
   properties ||--o{ appointments : "appointments.property_id->properties.id"
@@ -252,14 +251,86 @@ erDiagram
   users ||--o{ transactions : "transactions.buyer_id->users.id"
   users ||--o{ transactions : "transactions.seller_id->users.id"
   agents ||--o{ transactions : "transactions.agent_id->agents.id"
-  properties ||--|| property_analytics : "property_analytics.property_id->properties.id"
+  properties ||--o{ property_analytics : "property_analytics.property_id->properties.id"
   users ||--o{ notifications : "notifications.user_id->users.id"
   users ||--o{ mortgage_calculations : "mortgage_calculations.user_id->users.id"
   properties ||--o{ mortgage_calculations : "mortgage_calculations.property_id->properties.id"
-  users ||--o{ user_preferences : "user_preferences.user_id->users.id"
+  users ||--|| user_preferences : "user_preferences.user_id->users.id"
   users }o--o{ favorites : "favorites via user_id (via favorites)"
   properties }o--o{ favorites : "favorites via property_id (via favorites)"
   users }o--o{ appointments : "appointments via client_id (via appointments)"
   agents }o--o{ appointments : "appointments via agent_id (via appointments)"
   properties }o--o{ appointments : "appointments via property_id (via appointments)"
+```
+## SQL Recommendations
+
+**Favorites (saved properties)**
+```sql
+ALTER TABLE favorites
+  ADD CONSTRAINT favorites_user_property_unique UNIQUE (user_id, property_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_property ON favorites(property_id);
+```
+
+**Appointments (viewings)**
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_unique_slot
+  ON appointments(client_id, agent_id, property_id, scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_appointments_client ON appointments(client_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_agent ON appointments(agent_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_property ON appointments(property_id);
+```
+
+**Property analytics (daily rollups)**
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_property_analytics_daily
+  ON property_analytics(property_id, analytics_date);
+```
+
+**Property search performance**
+```sql
+CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status);
+CREATE INDEX IF NOT EXISTS idx_properties_search
+  ON properties(city, property_type, transaction_type, status);
+CREATE INDEX IF NOT EXISTS idx_properties_price ON properties(price);
+CREATE INDEX IF NOT EXISTS idx_properties_created_at ON properties(created_at DESC);
+```
+
+
+## Optional Modules (enable if needed)
+
+**Images table** — richer metadata per property
+```sql
+CREATE TABLE images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  alt TEXT,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_images_property_sort
+  ON images(property_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_images_property ON images(property_id);
+```
+
+**Listings history** — re-list same property with new terms
+```sql
+CREATE TYPE listing_status AS ENUM ('active','expired','withdrawn','sold','rented');
+CREATE TABLE listings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  agent_id UUID REFERENCES agents(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  date_listed TIMESTAMP NOT NULL DEFAULT NOW(),
+  expiry_date TIMESTAMP,
+  price DECIMAL(12,2) NOT NULL,
+  currency currency_type DEFAULT 'GEL',
+  status listing_status DEFAULT 'active',
+  notes TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_listings_property_date
+  ON listings(property_id, date_listed DESC);
+CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
+CREATE INDEX IF NOT EXISTS idx_listings_price ON listings(price);
 ```

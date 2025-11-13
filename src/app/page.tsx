@@ -5,7 +5,6 @@ import ContactSection from '@/components/ContactSection';
 import Footer from '@/components/Footer';
 import ScrollToTop from '@/components/ScrollToTop';
 import PageSnapshotEmitter from '@/app/components/PageSnapshotEmitter';
-import HomeSnapshotButton from '@/app/components/HomeSnapshotButton';
 
 export default function Home() {
   return (
@@ -23,9 +22,6 @@ export default function Home() {
       <ContactSection />
       <Footer />
       <ScrollToTop />
-      <div className="container mx-auto px-6 max-w-6xl py-6">
-        <HomeSnapshotButton />
-      </div>
     </main>
   );
 }

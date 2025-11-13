@@ -13,6 +13,7 @@ import GlowingShadow from '@/components/GlowingShadow';
 
 interface PropertyCardProps {
   id: string;
+  slug?: string;
   image: string;
   images?: string[]; // New prop for multiple images
   price: string;
@@ -32,6 +33,7 @@ interface PropertyCardProps {
 
 export default function PropertyCard({
   id,
+  slug,
   image,
   images,
   price,
@@ -57,12 +59,13 @@ export default function PropertyCard({
   const [heartClick, setHeartClick] = useState(false);
   const [detailsClick] = useState(false);
   const [imageLoaded] = useState(false);
+  const propertyId = slug ?? id;
   
   // Generate multiple images for carousel if not provided
   const propertyImages = images || [image, ...getPropertyImages(id).slice(0, 4)];
 
   // Check if this property is in favorites
-  const isPropertyFavorite = isFavorite(id);
+  const isPropertyFavorite = isFavorite(propertyId);
 
   // Scroll to this property when it becomes highlighted
   useEffect(() => {
@@ -87,7 +90,7 @@ export default function PropertyCard({
     
     // Create property object for favorites
     const propertyData: FavoriteProperty = {
-      id,
+      id: propertyId,
       title: title || address,
       price,
       location: address,
@@ -99,11 +102,11 @@ export default function PropertyCard({
     };
     
     if (isPropertyFavorite) {
-      removeFromFavorites(id);
-      console.log(`Property ${id}: წაშლილია ფავორიტებიდან!`);
+      removeFromFavorites(propertyId);
+      console.log(`Property ${propertyId}: წაშლილია ფავორიტებიდან!`);
     } else {
       addToFavorites(propertyData);
-      console.log(`Property ${id}: დამატებულია ფავორიტებში!`);
+      console.log(`Property ${propertyId}: დამატებულია ფავორიტებში!`);
     }
   };
 
@@ -117,8 +120,8 @@ export default function PropertyCard({
   };
 
   const handleCardClick = () => {
-    console.log(`Card clicked for property ${id}`);
-    router.push(`/properties/${id}`);
+    console.log(`Card clicked for property ${propertyId}`);
+    router.push(`/properties/${propertyId}`);
   };
 
   // Prevent hydration mismatch by not applying dynamic classes until hydrated

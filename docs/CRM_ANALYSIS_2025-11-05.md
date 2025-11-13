@@ -1,0 +1,75 @@
+# CRM არქიტექტურის ანალიზი — 2025-11-05
+
+## შეჯამება
+- არსებული Lumina Estate პლატფორმა უკვე ფარავს უძრავი ქონების კატალოგს, აგენტის პროფილებსა და ძირითად API ფენას, თუმცა CRM მოდული ჯერ არ არის იმპლემენტირებული.
+- შემუშავებული CRM გეგმა სწორი მიმართულებით მიდის (მრავალტენანტურობა, RLS, soft delete, audit, idempotency), მაგრამ საჭიროებს დამატებით დაზუსტებას, რათა თავიდან ავიცილოთ cross-tenant რისკები, მონაცემთა დაკარგვა და მიგრაციის დროს downtime.
+- ქვემოთ ჩამოთვლილი კრიტიკული და მაღალი რისკების მოგვარება სავალდებულოა, სანამ სქემის ცვლილებებს და RLS პოლიტიკებს დავიწყებთ.
+
+## არსებული არქიტექტურის გადამოწმება
+- `prisma/schema.prisma` ამჟამად არ შეიცავს CRM ცხრილებს (`Organization`, `Lead`, `Contact`, `Deal`, `Task`, `Communication` და სხვ.), თუმცა თითქმის ყველა არსებულ მოდელში `updatedAt` კვლავ `@default(now())`-ზეა დაყენებული და არ გამოიყენება `@updatedAt`.
+- მოქმედ სქემაში არ არსებობს `organization_id` სვეტი არც `User`-სა და არც `Property`-ზე, ამიტომ მრავალტენანტური RLS ლოგიკა პირდაპირ ვერ იმუშავებს.
+- API ფენა (`src/app/api/**`) ამჟამად უზრუნველყოფს მხოლოდ უძრავი ქონების, ფავორიტების, შეხვედრების, inquiries და სხვა დომენების REST endpoint-ებს; CRM რესურსები არ არსებობს, რაც ნიშნავს, რომ ახალი მოდულისთვის მოგვიწევს სრული repository/API შრის დამატება.
+- Supabase ინტეგრაცია ჯერ კიდევ მხოლოდ თეორიულია: RLS პოლიტიკები, JWT-ში `org_id` claim და trigger-ები ამჟამად არ არის კონფიგურირებული.
+
+## აღმოჩენილი რისკები და ხარვეზები
+
+### კრიტიკული
+1. **მომხმარებლის ორგანიზაციული კუთვნილება** – `User` მოდელში არ არსებობს `organizationId` ან `organization_membership` ცხრილი. RLS პოლიტიკები ვერ იმუშავებს, თუ JWT-დან მიღებული `org_id` ვერ იქნება დაკავშირებული მომხმარებელთან.
+2. **Property-ს მრავალტენანტურობა** – `Property` მოდელი არ იცნობს ორგანიზაციას. CRM-ის ონლაინ გარიგებები და ტასქები რომ მივაბათ კონკრეტულ ქონებას, აუცილებელია `organization_id` აქაც.
+3. **Cross-tenant ტრიგერები** – გეგმაში მითითებულია `enforce_same_org()` trigger, თუმცა ფუნქცია ვერ იმუშავებს, სანამ ყველა parent ცხრილს არ ექნება `organization_id`. წინააღმდეგ შემთხვევაში მივიღებთ `NULL` შედარებებს ან trigger exception-ს უკვე არსებულ მონაცემებზე.
+
+### მაღალი
+1. **JWT/RLS ინფრასტრუქტურა** – Supabase-ში ჯერ არ არის კონფიგურირებული `jwt_org_id()` ან სხვა helper ფუნქციები. ასევე გასარკვევია, როგორ შეივსება `org_id` claim (`auth.users` custom claim? `app_metadata`?).
+2. **Soft delete-ის გავლენა კოდის ბაზაზე** – Prisma queriebi ამჟამად არ ფილტრავენ `deleted_at IS NULL`. ახალი სვეტის დამატება frontend/backend ლოგიკაში ცვლილებებს მოითხოვს, რათა არქივირებული ჩანაწერები UI-ში არ გამოჩნდეს.
+3. **Stage history trigger-ის ჩანაწერი** – `DealStageHistory` trigger გეგმაში ეყრდნობა `request.jwt.claims`. Supabase Edge Functions-იდან/RT-ში ეს ნახტომი იმუშავებს, თუმცა სუფთა Prisma-დან (CLI, script) გაშვებისას `request.jwt.claims` ცარიელი იქნება – საჭიროა fallback მექანიზმი ან admin script-ებისთვის განთავისუფლება.
+4. **Migration-ის სირთულე** – `timestamptz`-ზე გადასვლა და `@updatedAt`-ის დანერგვა ყველა მოდელზე ერთ საფეხურში შეიძლება გართულდეს, რადგან Prisma auto-generated მიგრაცია update statement-ს არ ქმნის. საჭიროა დამატებითი raw SQL, რათა არსებული `updated_at` მნიშვნელობები არ დაიკარგოს.
+
+### საშუალო
+1. **Idempotency storage** – `idempotency_keys` ცხრილი საჭიროებს TTL/cleanup პოლიტიკას; სხვაგვარად გასაზრდის Postgres storage-ს.
+2. **FTS და Materialized View** – `to_tsvector('simple', ...)` კარგია, მაგრამ refresh სქემა (cron, CONCURRENT refresh) წინასწარ უნდა განისაზღვროს, თორემ ძიება შეიძლება ძვირი აღმოჩნდეს.
+3. **Recurring tasks და დროის ზონები** – RRULE parser სერვერზე უნდა გაითვალისწინოს აგენტის/ორგანიზაციის timezone; წინააღმდეგ შემთხვევაში შემდგომი რიცხვი არასწორად დაიგეგმება.
+4. **Contact merge flow** – დუპლების გაერთიანების პროცესი ჯერ არ არის გაწერილი (UI/logic). ნაწილობრივ ეს რისკი მინიმუმამდე დაიყვანება normalization-ით, მაგრამ მაინც საჭიროა პროცესის განსაზღვრა.
+
+### დაბალი
+1. **Tags storage** – array ტიპიდან m2m ცხრილზე გადასვლა მოგვიანებითაც შეიძლება, თუმცა სჯობს ახლავე დაიგეგმოს, თუ ფილტრაციას აქტიურად გამოვიყენებთ.
+2. **Attachment checksum enforcement** – checksum სავალდებულო უნდა გახდეს გაფუჭებული ჩამოტვირთვების თავიდან ასაცილებლად.
+3. **Audit log archiving** – ლოგების ხანგრძლივი შენახვის პოლიტიკა საჭიროებს განსაზღვრას, რათა ბაზა არ გაიზარდოს უკონტროლოდ.
+
+## დამოკიდებულებები და წინაპირობები
+- Supabase-ში JWT custom claim-ების და RLS helper ფუნქციების წინასწარი კონფიგურაცია.
+- `Organization` მოდელისა და მომხმარებლის/აგენტის კუთვნილების სქემა (შესაძლოა `organization_members` დამატებითი ცხრილით).
+- არსებული მონაცემების backfill სქემა (`organization_id`, `email_normalized`, `phone_normalized`).
+- DevOps მხარდაჭერა cron/queue ინფრასტრუქტურისთვის (task reminders, materialized view refresh, idempotency cleanup).
+
+## რეკომენდირებული მოქმედებების თანმიმდევრობა
+1. **მონაცემთა მოდელის საფუძვლები**
+   - დაამატე `Organization` და `organization_membership` სქემა.
+   - `User`, `Agent`, `Property` (და სხვა ძირითადი ცხრილები) გააფართოვე `organization_id` სვეტით.
+   - განაახლე ყველა datetime ველი `@db.Timestamptz(6)`-ზე და ჩართე `@updatedAt`.
+2. **მიგრაციები და მონაცემთა დაბალანსება**
+   - Backfill არსებული ჩანაწერებისთვის (default organization).
+   - შექმენი partial unique ინდექსები `deleted_at`-ის გათვალისწინებით.
+   - გაუშვი normalize triggers (`email_normalized`, `phone_normalized`).
+3. **უსაფრთხოება და პოლიტიკები**
+   - გააქტიურე cross-tenant constraint trigger-ები.
+   - შექმენი `enforce_same_org`, `add_stage_history`, `audit_log` triggers.
+   - ჩართე RLS პოლიტიკები და დატესტე admin/agent როლებით.
+4. **CRM მოდულის გაფართოება**
+   - დაამატე ახალი ცხრილები (Lead, Contact, Deal, Task, Communication, Document, FileAttachment, Invoice, Payment, DealStageHistory, IdempotencyKey).
+   - გადაიტანე ბიზნეს-ლოგიკა (conversion, pipeline, reminders, webhooks).
+5. **API და სერვისები**
+   - შექმენი `/api/crm/**` endpoint-ები pagination/filter/idempotency მხარდაჭერით.
+   - დაამატე queue/cron jobs recurring tasks და reminders-სთვის.
+6. **ტესტები და მონიტორინგი**
+   - Repository/unit ტესტები (`Vitest`), Integration (Supabase RLS), E2E (Playwright CRM). 
+   - Semgrep + Design/Documentation audits, telemetry და alert-ები.
+
+## ღია საკითხები
+- როგორ განხორციელდება მომხმარებლისა და ორგანიზაციის კავშირი Supabase auth-თან? (ეს აბსოლუტურად აუცილებელია JWT-ში სწორი claim-ის მისაღებად.)
+- საჭიროა თუ არა მრავალვალუტიანი ანგარიშსწორება და FX rates პირველი ეტაპისთვის, თუ ეტაპობრივად დავამატოთ?
+- რა SLA/Retention სჭირდება audit ლოგებსა და კომუნიკაციების შინაარსს?
+- უნდა დავნერგოთ თუ არა PII მონაცემების encryption-at-rest (pgcrypto) პირველივე ეტაპზე?
+
+## დასკვნა
+გადამოწმებულმა CRM გეგმამ მეტწილად მოიცვა ყველა საჭირო კომპონენტი, თუმცა არსებული სქემისა და ინფრასტრუქტურის მდგომარეობა გვაიძულებს, რომ პირველ რიგში საყრდენი ცვლილებები (organization ownership, timestamptz, triggers, RLS setup) დავასრულოთ, შემდეგ კი დავამატოთ CRM-ის ახალი ცხრილები და API. ზემოთ ჩამოთვლილი ნაბიჯების შესრულების შემდეგ პლატფორმა მზად იქნება CRM მოდულის უსაფრთხო და მასშტაბირებადი დანერგვისთვის.
+

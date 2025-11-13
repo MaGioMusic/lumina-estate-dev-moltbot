@@ -1,6 +1,6 @@
 // Authentication Types for Lumina Estate
 
-export type UserRole = 'guest' | 'client' | 'agent' | 'investor' | 'admin';
+export type UserRole = 'guest' | 'user' | 'client' | 'agent' | 'investor' | 'admin';
 
 export interface Permission {
   resource: string;

@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 import { 
   List, X, House, Buildings, /* Users, */ AddressBook, Info,
   /* MagnifyingGlass, */ Heart, Moon, Sun, SignIn, SignOut, Globe, Gear,
-  /* Bell, */ EnvelopeSimple, ChartLine, UserList, GridFour, CaretDown
+  /* Bell, */ EnvelopeSimple, ChartLine, UserList, GridFour, CaretDown, MapTrifold
 } from '@phosphor-icons/react';
 import IOSToggle from '@/app/properties/components/IOSToggle';
 import LoginModal from '@/components/LoginModal';
@@ -59,7 +59,8 @@ export default function Header() {
       { name: t('properties'), href: '/properties', icon: Buildings, hasDropdown: true },
       { name: t('pages'), href: '/about', icon: Info, hasDropdown: true },
       { name: t('blog'), href: '/blog', icon: AddressBook, hasDropdown: true },
-      { name: t('contact'), href: '/contact', icon: AddressBook, hasDropdown: true }
+      { name: t('contact'), href: '/contact', icon: AddressBook, hasDropdown: true },
+      { name: t('roadmap'), href: '/roadmap', icon: MapTrifold }
     ];
   };
 
@@ -93,7 +94,7 @@ export default function Header() {
         baseItems.splice(1, 0, { name: 'Agent Chat', icon: EnvelopeSimple, action: 'agentChat' });
       }
       if (user?.role === 'client') {
-        baseItems.splice(1, 0, { name: t('clientDashboard'), icon: GridFour, action: 'clientDashboard' });
+        baseItems.splice(1, 0, { name: t('profile'), icon: GridFour, action: 'profile' });
       }
       // Add logout (single entry, routes to /logout for robust clear + redirect)
       baseItems.push({ name: t('logout'), icon: SignOut, action: 'logout' });
@@ -139,8 +140,8 @@ export default function Header() {
       case 'agentChat':
         router.push('/agents/chat');
         break;
-      case 'clientDashboard':
-        router.push('/client/dashboard');
+      case 'profile':
+        router.push('/profile');
         break;
       case 'settings':
         router.push('/settings');

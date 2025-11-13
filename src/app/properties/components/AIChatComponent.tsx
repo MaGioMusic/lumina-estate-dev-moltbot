@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { z } from 'zod';
-import { Microphone } from '@phosphor-icons/react';
 import { GeminiVoiceButton } from './GeminiVoiceButton';
+import { Microphone } from '@phosphor-icons/react';
+import { AIVoiceInput } from '@/components/ui/ai-voice-input';
 import { getMockProperties, MockProperty } from '@/lib/mockProperties';
 
 const ChatMessageSchema = z.object({
@@ -1008,7 +1009,7 @@ export default function AIChatComponent() {
                     const pt = (argsObj.property_type || argsObj.propertyType || argsObj.type || '').toString().toLowerCase();
                     if (['apartment','house','villa','studio','penthouse'].includes(pt)) u.searchParams.set('property_type', pt);
                   } catch {}
-                  window.location.href = u.pathname + u.search;
+                  router.push(u.pathname + u.search);
                 } catch {
                   window.location.href = '/properties';
                 }
@@ -1402,15 +1403,19 @@ export default function AIChatComponent() {
           --perspective: 1000px;
           --translateY: 45px;
           position: fixed;
-          bottom: -200px;
-          right: -200px;
-          width: 600px;
-          height: 600px;
+          bottom: -100px;
+          right: -110px;
+          width: 320px;
+          height: 320px;
           z-index: 9999;
           display: grid;
           grid-template-columns: repeat(5, 1fr);
           transform-style: preserve-3d;
-          pointer-events: none; /* prevent overlay from blocking clicks */
+          pointer-events: auto; /* enable hover tracking grid */
+        }
+
+        .container-ai-input.is-open {
+          pointer-events: none; /* release interactions when chat window is open */
         }
 
         .container-wrap {
@@ -1418,8 +1423,8 @@ export default function AIChatComponent() {
           align-items: center;
           justify-items: center;
           position: absolute;
-          left: 300px;
-          top: 340px; /* lowered to avoid overlapping property cards */
+          left: 160px;
+          top: 182px; /* proportional to reduced container */
           transform: translateX(-50%) translateY(-50%);
           z-index: 9;
           transform-style: preserve-3d;
@@ -1443,8 +1448,8 @@ export default function AIChatComponent() {
           left: 50%;
           top: 50%;
           transform: translateX(-50%) translateY(-55%);
-          width: 3.9rem;
-          height: 3.5rem;
+          width: 3.2rem;
+          height: 3.0rem;
           background-image: linear-gradient(135deg, rgba(240,131,54,0.22), rgba(212,175,55,0.18));
           border-radius: 1.2rem;
           transition: all 0.3s ease;
@@ -1452,7 +1457,7 @@ export default function AIChatComponent() {
 
         .container-wrap:hover:after {
           transform: translateX(-50%) translateY(-50%);
-          height: 4.2rem;
+          height: 3.3rem;
         }
 
         .card {
@@ -1535,8 +1540,8 @@ export default function AIChatComponent() {
         }
 
         .content-card {
-          width: 3.6rem;
-          height: 3.6rem;
+          width: 3.0rem;
+          height: 3.0rem;
           display: flex;
           border-radius: 1.2rem;
           transition: all 0.3s ease;
@@ -1590,8 +1595,8 @@ export default function AIChatComponent() {
           position: fixed;
           bottom: 120px;
           right: 24px;
-          width: 300px;
-          height: 400px;
+          width: 240px;
+          height: 320px;
           padding: 6px;
           opacity: 0;
           visibility: hidden;
@@ -1615,9 +1620,18 @@ export default function AIChatComponent() {
           height: 100%;
           padding: 4px;
           overflow: hidden;
-          background-color: #ffffff;
+          background-color: rgba(255, 255, 255, 0.92);
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
           position: relative; /* for center visualizer */
+        }
+
+        @supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
+          .chat {
+            background-color: rgba(255, 255, 255, 0.70);
+            -webkit-backdrop-filter: blur(8px) saturate(120%);
+            backdrop-filter: blur(8px) saturate(120%);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+          }
         }
 
         .chat-header {
@@ -1733,8 +1747,8 @@ export default function AIChatComponent() {
         /* Voice mic visual (compact adaptation of Uiverse.io by Spacious74) */
         .voice-mic {
           position: relative;
-          width: 36px;
-          height: 36px;
+          width: 30px;
+          height: 30px;
           border-radius: 999px;
           display: inline-flex;
           align-items: center;
@@ -1765,7 +1779,7 @@ export default function AIChatComponent() {
 
         @keyframes voice-echo {
           0% { width: 0px; height: 0px; opacity: 0.9; }
-          100% { width: 54px; height: 54px; opacity: 0; }
+          100% { width: 46px; height: 46px; opacity: 0; }
         }
 
         .voice-mic .mic {
@@ -1832,7 +1846,7 @@ export default function AIChatComponent() {
           width: 20%;
           height: 33.33%;
           z-index: 2;
-          pointer-events: none; /* do not capture clicks */
+          pointer-events: auto; /* allow hover targeting for tilt effect */
         }
 
         .area:nth-child(1) { top: 0; left: 0; }
@@ -2029,7 +2043,7 @@ export default function AIChatComponent() {
 
       
 
-      <div className="container-ai-input">
+      <div className={`container-ai-input ${isOpen ? 'is-open' : ''}`}>
         {/* Mouse tracking areas */}
         {Array.from({ length: 15 }, (_, i) => (
           <div key={i} className="area" />
@@ -2142,68 +2156,96 @@ export default function AIChatComponent() {
           )}
           <div className="options">
             <div className="btns-add">
-              {/* Simple VU meters for mic (left) and AI (right) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div title="Mic level" style={{ width: 54, height: 6, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.round(micLevel * 100)}%`, height: '100%', background: '#F08336' }} />
-                </div>
-                <div title="AI level" style={{ width: 54, height: 6, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.round(aiLevel * 100)}%`, height: '100%', background: '#D4AF37' }} />
-              </div>
-                {/* Force button removed per UX — rely on VAD/auto responses */}
-                <button type="button" title={isMuted ? 'Unmute mic' : 'Mute mic'} onClick={(e) => { e.stopPropagation(); toggleMute(); }} style={{
-                  border: '1px solid #eee', background: isMuted ? '#fee' : '#fff', borderRadius: 6, padding: '2px 6px', cursor: 'pointer'
-                }}>{isMuted ? 'unmute' : 'mute'}</button>
-              </div>
-              {/* If ?gemini=1 use Gemini voice button (text STT + TTS), else use OpenAI WebRTC */}
-              {isGeminiEnabled ? (
-                useGeminiFallback ? (
-                  <GeminiVoiceButton locale="ka-GE" />
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {isGeminiEnabled ? (
+                  useGeminiFallback ? (
+                    <GeminiVoiceButton locale="ka-GE" />
+                  ) : (
+                    <button
+                      type="button"
+                      aria-label={isListening ? 'ხმის შეწყვეტა' : 'ხმის ჩართვა'}
+                      title={isListening ? 'ხმის შეწყვეტა' : 'ხმის ჩართვა'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isListening) {
+                          void stopGemini();
+                        } else {
+                          void startGemini();
+                        }
+                      }}
+                    >
+                      <div className="voice-mic" aria-hidden="true">
+                        <div className="echo">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                        <Microphone className="mic" size={14} weight="fill" />
+                      </div>
+                    </button>
+                  )
                 ) : (
-              <button
+                  <button
                     type="button"
-                    aria-label={isListening ? 'ხმის შეწყვეტა' : 'Gemini Live - ხმის ჩართვა'}
-                    title={isListening ? 'ხმის შეწყვეტა' : 'Gemini Live - ხმის ჩართვა'}
-                    onClick={(e) => { e.stopPropagation(); isListening ? stopGemini() : startGemini(); }}
+                    aria-label={isListening ? 'ხმის შეწყვეტა' : 'ხმის ჩართვა'}
+                    title={isListening ? 'ხმის შეწყვეტა' : 'ხმის ჩართვა'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isListening) {
+                        void stopVoice();
+                      } else {
+                        void startVoice();
+                      }
+                    }}
                   >
                     <div className="voice-mic" aria-hidden="true">
                       <div className="echo">
                         <span></span>
                         <span></span>
                         <span></span>
-                </div>
-                      <Microphone className="mic" size={16} weight="fill" />
-              </div>
+                      </div>
+                      <Microphone className="mic" size={14} weight="fill" />
+                    </div>
                   </button>
-                )
-              ) : (
-              <button
-                type="button"
-                aria-label={isVoiceEnabled ? (isListening ? 'ხმის შეწყვეტა' : 'ხმის ჩართვა') : 'ტესტ რეჟიმი — URL-ში ?voice=1'}
-                title={isVoiceEnabled ? (isListening ? 'ხმის შეწყვეტა' : 'ხმის ჩართვა') : 'ტესტ რეჟიმი — URL-ში ?voice=1'}
-                onClick={(e) => { e.stopPropagation(); isListening ? stopVoice() : startVoice(); }}
-              >
-                <div className="voice-mic" aria-hidden="true">
-                  <div className="echo">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                  <Microphone className="mic" size={16} weight="fill" />
-                </div>
-              </button>
-              )}
-              <button type="button" onClick={(e) => e.stopPropagation()}>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                  </svg>
-              </button>
-              <button type="button" onClick={(e) => e.stopPropagation()}>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-              </button>
+                )}
+
+                {!(isGeminiEnabled && useGeminiFallback) && (
+                  <AIVoiceInput
+                    controlled
+                    listening={isListening && !isMuted}
+                    variant="compact"
+                    visualizerBars={24}
+                    showTimer={false}
+                    showLabel={false}
+                    className="pointer-events-none select-none"
+                  />
+                )}
+
+                <button
+                  type="button"
+                  title={isMuted ? 'Unmute mic' : 'Mute mic'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleMute();
+                  }}
+                  style={{
+                    border: '1px solid #eee',
+                    background: isMuted ? '#fee' : '#fff',
+                    borderRadius: 6,
+                    padding: '1px 6px',
+                    fontSize: 12,
+                    lineHeight: '18px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isMuted ? 'unmute' : 'mute'}
+                </button>
               </div>
+            </div>
             <button 
               type="submit" 
               className="btn-submit"

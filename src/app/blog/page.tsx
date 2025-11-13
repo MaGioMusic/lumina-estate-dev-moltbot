@@ -3,7 +3,9 @@
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { MagnifyingGlass, TrendUp, BookmarkSimple, ChartLine, House, Wrench, ArrowRight, X } from '@phosphor-icons/react';
+import { ProgressSlider, SliderBtnGroup, SliderBtn, SliderContent, SliderWrapper } from '@/components/ui/progressive-carousel';
 import PageSnapshotEmitter, { emitPageSnapshotNow } from '@/app/components/PageSnapshotEmitter';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type BlogPost = {
   id: string;
@@ -17,6 +19,42 @@ type BlogPost = {
   readTime: string; // e.g., '6 წთ'
   featured?: boolean;
 };
+
+type HeroSlide = {
+  id: string;
+  image: string;
+  titleKey: string;
+  descriptionKey: string;
+};
+
+const HERO_SLIDES: HeroSlide[] = [
+  {
+    id: 'market',
+    image: '/images/properties/property-14.jpg',
+    titleKey: 'blogHeroSlideMarketTitle',
+    descriptionKey: 'blogHeroSlideMarketDescription'
+  },
+  {
+    id: 'historic',
+    image: '/images/properties/property-2.jpg',
+    titleKey: 'blogHeroSlideHistoricTitle',
+    descriptionKey: 'blogHeroSlideHistoricDescription'
+  },
+  {
+    id: 'interior',
+    image: '/images/properties/property-8.jpg',
+    titleKey: 'blogHeroSlideInteriorTitle',
+    descriptionKey: 'blogHeroSlideInteriorDescription'
+  },
+  {
+    id: 'investment',
+    image: '/images/properties/property-5.jpg',
+    titleKey: 'blogHeroSlideInvestmentTitle',
+    descriptionKey: 'blogHeroSlideInvestmentDescription'
+  }
+];
+
+const HERO_INITIAL_SLIDE = HERO_SLIDES[0]?.id ?? 'hero-slide-market';
 
 const POSTS: BlogPost[] = [
   {
@@ -96,6 +134,7 @@ export default function BlogPage() {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('ყველა სტატია');
   const [activePost, setActivePost] = useState<BlogPost | null>(null);
+  const { t } = useLanguage();
 
   const categoryIcon = (name: string) => {
     switch (name) {
@@ -138,65 +177,107 @@ export default function BlogPage() {
     <main className="min-h-screen bg-white dark:bg-gray-900">
       <PageSnapshotEmitter
         page="blog"
-        title="Blog — Lumina Insights"
-        summary="სტატიების სია და რედაქტორის არჩევანი."
+        title={`${t('blog')} — Lumina Insights`}
+        summary={t('blogHeroSubtitle')}
         data={{
           total: POSTS.length,
           categories: Object.keys(POSTS.reduce((acc, p) => (acc[p.category] = (acc[p.category] || 0) + 1, acc), {} as Record<string, number>)),
-          hero: 'საქართველოს უძრავი ქონების ექსპერტული ანალიზი'
+          hero: t('blogHeroTitle')
         }}
         auto
       />
       {/* Hero */}
       <section className="relative">
         <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-900 pointer-events-none" />
-        <div className="mx-auto max-w-7xl px-4 pt-12 pb-8 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            {/* Left copy */}
-            <div>
-              <div className="text-sm font-semibold text-gray-500 flex items-center gap-2">
-                <span className="inline-block w-2 h-2 rounded-full bg-[#F08336]"></span>
-                LUMINA INSIGHTS
-              </div>
-              <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                საქართველოს უძრავი ქონების ექსპერტული ანალიზი
-              </h1>
-              <p className="mt-6 text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
-                გაეცანით ბაზრის უახლეს ტენდენციებს, უბნების განვითარებასა და ფასების დინამიკას. აქვე იპოვით საინვესტიციო რჩევებს,
-                ინტერიერის იდეებს და პრაქტიკულ გზამკვლევებს.
-              </p>
-
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <div className="flex-1 min-w-[240px] relative">
-                  <MagnifyingGlass className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="სტატიის ძიება..."
-                    className="w-full pl-12 pr-4 py-3 rounded-full bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F08336]/40"
-                  />
-                </div>
-                <button className="px-5 py-3 rounded-full bg-[#F08336] hover:bg-[#e0743a] text-white font-semibold transition flex items-center gap-2" onClick={() => emitPageSnapshotNow({ page: 'blog', title: 'Blog — Lumina Insights', summary: 'ამჟამინდელი ფილტრი და სტატიების სექციები', data: { activeCategory, query, visibleCount: filtered.length } })}>
-                  ბოლოს ნანახი
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+        <div className="mx-auto max-w-7xl px-4 pt-12 pb-10 relative">
+          <div className="max-w-3xl">
+            <div className="text-sm font-semibold text-gray-500 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#F08336]" />
+              {t('blogHeroEyebrow')}
             </div>
+            <h1 className="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+              {t('blogHeroTitle')}
+            </h1>
+            <p className="mt-6 text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
+              {t('blogHeroSubtitle')}
+            </p>
+          </div>
 
-            {/* Right image */}
-            <div className="relative rounded-3xl overflow-hidden shadow-xl ring-1 ring-black/5 h-[260px] md:h-[520px]">
-              <Image
-                src="/images/properties/property-14.jpg"
-                alt="blog-hero"
-                width={2000}
-                height={1200}
-                className="w-full h-full object-cover"
-                priority
+          <div className="relative mt-8 pb-28">
+            <ProgressSlider activeSlider={HERO_INITIAL_SLIDE} className="relative">
+              <SliderContent className="rounded-3xl overflow-hidden shadow-xl ring-1 ring-black/10 dark:ring-white/10">
+                {HERO_SLIDES.map((slide) => (
+                  <SliderWrapper key={slide.id} value={slide.id}>
+                    <div className="relative h-[260px] md:h-[520px]">
+                      <Image
+                        src={slide.image}
+                        alt={t(slide.titleKey)}
+                        width={2000}
+                        height={1200}
+                        className="w-full h-full object-cover"
+                        priority={slide.id === HERO_INITIAL_SLIDE}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-gray-900/15 to-transparent" aria-hidden />
+                      <div className="absolute inset-0 flex items-end pb-24 sm:pb-28 lg:pb-32">
+                        <div className="w-full p-6 md:p-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 text-white">
+                          <div className="max-w-2xl space-y-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#F6B372]">
+                              {t('blogHeroEyebrow')}
+                            </p>
+                            <h2 className="text-2xl md:text-4xl font-semibold leading-tight">
+                              {t(slide.titleKey)}
+                            </h2>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </SliderWrapper>
+                ))}
+              </SliderContent>
+
+              <SliderBtnGroup className="absolute left-1/2 bottom-6 sm:bottom-5 lg:bottom-6 z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-gray-900/70 backdrop-blur-md shadow-xl -translate-x-1/2">
+                {HERO_SLIDES.map((slide) => (
+                  <SliderBtn
+                    key={`indicator-${slide.id}`}
+                    value={slide.id}
+                    className="text-left px-4 py-3 text-sm font-medium text-gray-900 dark:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F08336]/60 focus-visible:ring-offset-transparent"
+                    progressBarClass="bg-gradient-to-r from-[#F08336] to-[#F6B372] h-full top-0 left-0"
+                  >
+                    <span>{t(slide.titleKey)}</span>
+                  </SliderBtn>
+                ))}
+              </SliderBtnGroup>
+            </ProgressSlider>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[240px] relative">
+              <MagnifyingGlass className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('blogSearchPlaceholder')}
+                className="w-full h-12 pl-12 pr-4 rounded-full bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F08336]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900"
               />
             </div>
+            <button
+              className="h-12 px-5 rounded-full bg-[#F08336] hover:bg-[#e0743a] text-white font-semibold transition flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F08336]/50 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900"
+              onClick={() =>
+                emitPageSnapshotNow({
+                  page: 'blog',
+                  title: `${t('blog')} — Lumina Insights`,
+                  summary: t('blogHeroSubtitle'),
+                  data: { activeCategory, query, visibleCount: filtered.length }
+                })
+              }
+            >
+              {t('blogLastViewed')}
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
+
           {/* Filter chips */}
-          <div className="mt-8 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="mt-7 flex items-center gap-2 overflow-x-auto no-scrollbar">
             {[
               { name: 'ყველა სტატია', count: POSTS.length },
               { name: 'რჩეული', count: POSTS.filter((p) => p.featured).length },
@@ -205,7 +286,7 @@ export default function BlogPage() {
               <button
                 key={chip.name}
                 onClick={() => setActiveCategory(chip.name)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm border transition flex items-center gap-2 ${
+                className={`whitespace-nowrap h-11 px-4 rounded-full text-sm border transition flex items-center gap-2 ${
                   activeCategory === chip.name
                     ? 'bg-gray-900 text-white border-gray-900'
                     : 'bg-white text-gray-700 border-black/10 dark:bg-gray-800 dark:text-gray-200 dark:border-white/10'

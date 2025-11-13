@@ -46,6 +46,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           router.push('/agents/dashboard');
         } else if (email === 'admin@lumina.ge') {
           router.push('/admin/dashboard');
+        } else {
+          router.push('/profile');
         }
         onClose();
         setCredentials({ email: '', password: '' });
@@ -76,7 +78,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       // Mock Google user data
       const success = await login('google.user@gmail.com', 'google_oauth_token');
       if (success) {
-        router.push('/properties');
+        router.push('/profile');
         onClose();
         setCredentials({ email: '', password: '' });
       } else {
@@ -101,7 +103,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       // Mock Facebook user data
       const success = await login('facebook.user@facebook.com', 'facebook_oauth_token');
       if (success) {
-        router.push('/properties');
+        router.push('/profile');
         onClose();
         setCredentials({ email: '', password: '' });
       } else {

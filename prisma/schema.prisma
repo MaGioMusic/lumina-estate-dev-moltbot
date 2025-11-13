@@ -1,0 +1,507 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  guest
+  client
+  agent
+  investor
+  admin
+}
+
+enum CurrencyType {
+  GEL
+  USD
+  EUR
+  RUB
+}
+
+enum PropertyType {
+  apartment
+  house
+  villa
+  commercial
+  land
+  office
+}
+
+enum TransactionType {
+  sale
+  rent
+  lease
+}
+
+enum PropertyCondition {
+  new
+  excellent
+  good
+  needs_renovation
+}
+
+enum FurnishedType {
+  furnished
+  partially_furnished
+  unfurnished
+}
+
+enum PropertyStatus {
+  active
+  pending
+  sold
+  rented
+  inactive
+}
+
+enum AppointmentStatus {
+  scheduled
+  confirmed
+  completed
+  cancelled
+  no_show
+}
+
+enum AppointmentType {
+  viewing
+  consultation
+  signing
+  inspection
+}
+
+enum ReviewType {
+  agent
+  property
+}
+
+enum InquiryStatus {
+  new
+  in_progress
+  responded
+  closed
+}
+
+enum NotificationType {
+  new_property
+  price_change
+  appointment
+  review
+  system
+}
+
+enum ThemeType {
+  light
+  dark
+}
+
+enum ListingStatus {
+  active
+  expired
+  withdrawn
+  sold
+  rented
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  cancelled
+}
+
+// --- Pre-Supabase: Organization Models ---
+enum OrgRole {
+  owner
+  admin
+  agent
+  member
+  viewer
+}
+
+model User {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                  String    @unique @db.VarChar(255)
+  firstName              String    @map("first_name") @db.VarChar(100)
+  lastName               String    @map("last_name") @db.VarChar(100)
+  avatar                 String?   @db.VarChar(500)
+  role                   UserRole  @default(client)
+  phone                  String?   @db.VarChar(20)
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLogin              DateTime? @map("last_login") @db.Timestamptz(6)
+  isActive               Boolean   @default(true) @map("is_active")
+  passwordHash           String    @map("password_hash") @db.VarChar(255)
+  emailVerificationToken String?   @map("email_verification_token") @db.VarChar(100)
+  isEmailVerified        Boolean   @default(false) @map("is_email_verified")
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  agent                Agent?
+  favorites            Favorite[]
+  appointments         Appointment[]         @relation("AppointmentClient")
+  reviews              Review[]              @relation("ReviewAuthor")
+  inquiries            Inquiry[]
+  searchHistory        SearchHistory[]
+  transactionsAsBuyer  Transaction[]         @relation("TransactionBuyer")
+  transactionsAsSeller Transaction[]         @relation("TransactionSeller")
+  mortgageCalculations MortgageCalculation[]
+  preferences          UserPreference?
+  notifications        Notification[]
+  listingsCreated      Listing[]             @relation("ListingCreator")
+  AuditLog             AuditLog[]
+
+  @@map("users")
+}
+
+model Agent {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String    @unique @map("user_id") @db.Uuid
+  licenseNumber    String    @unique @map("license_number") @db.VarChar(50)
+  experienceYears  Int?      @default(0) @map("experience_years")
+  rating           Decimal?  @db.Decimal(3, 2)
+  specialization   String[]  @default([])
+  bio              String?
+  languages        String[]  @default(["ქართული"])
+  companyName      String?   @map("company_name") @db.VarChar(200)
+  companyLogo      String?   @map("company_logo") @db.VarChar(500)
+  isVerified       Boolean   @default(false) @map("is_verified")
+  verificationDate DateTime? @map("verification_date") @db.Timestamptz(6)
+  commissionRate   Decimal?  @default(3.00) @map("commission_rate") @db.Decimal(5, 2)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  properties   Property[]
+  appointments Appointment[] @relation("AppointmentAgent")
+  inquiries    Inquiry[]
+  reviews      Review[]
+  transactions Transaction[] @relation("TransactionAgent")
+  listings     Listing[]
+
+  @@map("agents")
+}
+
+model Property {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agentId          String?           @map("agent_id") @db.Uuid
+  title            String            @db.VarChar(300)
+  description      String?
+  price            Decimal           @db.Decimal(12, 2)
+  currency         CurrencyType      @default(GEL)
+  location         String            @db.VarChar(300)
+  district         String?           @db.VarChar(100)
+  city             String            @default("თბილისი") @db.VarChar(100)
+  country          String            @default("საქართველო") @db.VarChar(100)
+  propertyType     PropertyType      @map("property_type")
+  transactionType  TransactionType   @map("transaction_type")
+  bedrooms         Int?
+  bathrooms        Int?
+  area             Decimal           @db.Decimal(8, 2)
+  floor            Int?
+  totalFloors      Int?              @map("total_floors")
+  constructionYear Int?              @map("construction_year")
+  condition        PropertyCondition @default(good)
+  furnished        FurnishedType     @default(unfurnished)
+  amenities        String[]          @default([])
+  imageUrls        String[]          @default([]) @map("images")
+  latitude         Decimal?          @db.Decimal(10, 8)
+  longitude        Decimal?          @db.Decimal(11, 8)
+  status           PropertyStatus    @default(active)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isFeatured       Boolean           @default(false) @map("is_featured")
+  featuredUntil    DateTime?         @map("featured_until") @db.Timestamptz(6)
+  viewsCount       Int               @default(0) @map("views_count")
+
+  agent                Agent?                @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  favorites            Favorite[]
+  appointments         Appointment[]
+  reviews              Review[]
+  inquiries            Inquiry[]
+  transactions         Transaction[]
+  analytics            PropertyAnalytics[]
+  mortgageCalculations MortgageCalculation[]
+  images               Image[]
+  listings             Listing[]
+
+  @@index([status], name: "idx_properties_status")
+  @@index([city, propertyType, transactionType, status], name: "idx_properties_search")
+  @@index([price], name: "idx_properties_price")
+  @@index([createdAt], name: "idx_properties_created_at")
+  @@map("properties")
+}
+
+model Favorite {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId], name: "favorites_user_property_unique")
+  @@index([userId], name: "idx_favorites_user")
+  @@index([propertyId], name: "idx_favorites_property")
+  @@map("favorites")
+}
+
+model Appointment {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId        String            @map("client_id") @db.Uuid
+  agentId         String?           @map("agent_id") @db.Uuid
+  propertyId      String            @map("property_id") @db.Uuid
+  scheduledDate   DateTime          @map("scheduled_date") @db.Timestamptz(6)
+  status          AppointmentStatus @default(scheduled)
+  notes           String?
+  type            AppointmentType   @default(viewing)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  meetingLocation String?           @map("meeting_location") @db.VarChar(300)
+
+  client   User     @relation("AppointmentClient", fields: [clientId], references: [id], onDelete: Cascade)
+  agent    Agent?   @relation("AppointmentAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, agentId, propertyId, scheduledDate], name: "idx_appointments_unique_slot")
+  @@index([clientId], name: "idx_appointments_client")
+  @@index([agentId], name: "idx_appointments_agent")
+  @@index([propertyId], name: "idx_appointments_property")
+  @@map("appointments")
+}
+
+model Review {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authorId   String     @map("author_id") @db.Uuid
+  agentId    String?    @map("agent_id") @db.Uuid
+  propertyId String?    @map("property_id") @db.Uuid
+  rating     Int
+  comment    String?
+  reviewType ReviewType @map("review_type")
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  isVerified Boolean    @default(false) @map("is_verified")
+
+  author   User      @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  agent    Agent?    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([agentId], name: "idx_reviews_agent")
+  @@index([propertyId], name: "idx_reviews_property")
+  @@map("reviews")
+}
+
+model Inquiry {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String?       @map("user_id") @db.Uuid
+  propertyId   String        @map("property_id") @db.Uuid
+  agentId      String?       @map("agent_id") @db.Uuid
+  message      String
+  contactPhone String?       @map("contact_phone") @db.VarChar(20)
+  contactEmail String?       @map("contact_email") @db.VarChar(255)
+  status       InquiryStatus @default(new)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  respondedAt  DateTime?     @map("responded_at") @db.Timestamptz(6)
+
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  agent    Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([userId], name: "idx_inquiries_user")
+  @@index([propertyId], name: "idx_inquiries_property")
+  @@index([agentId], name: "idx_inquiries_agent")
+  @@map("inquiries")
+}
+
+model SearchHistory {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  searchCriteria Json     @map("search_criteria")
+  resultsCount   Int      @default(0) @map("results_count")
+  searchDate     DateTime @default(now()) @map("search_date") @db.Timestamptz(6)
+  searchName     String?  @map("search_name") @db.VarChar(200)
+  isSaved        Boolean  @default(false) @map("is_saved")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "idx_search_history_user")
+  @@map("search_history")
+}
+
+model Transaction {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  propertyId      String            @map("property_id") @db.Uuid
+  buyerId         String?           @map("buyer_id") @db.Uuid
+  sellerId        String?           @map("seller_id") @db.Uuid
+  agentId         String?           @map("agent_id") @db.Uuid
+  salePrice       Decimal           @map("sale_price") @db.Decimal(12, 2)
+  currency        CurrencyType      @default(GEL)
+  transactionDate DateTime          @default(now()) @map("transaction_date") @db.Timestamptz(6)
+  status          TransactionStatus @default(pending)
+  commission      Decimal?          @db.Decimal(8, 2)
+  notes           String?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  buyer    User?    @relation("TransactionBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
+  seller   User?    @relation("TransactionSeller", fields: [sellerId], references: [id], onDelete: SetNull)
+  agent    Agent?   @relation("TransactionAgent", fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId], name: "idx_transactions_property")
+  @@index([buyerId], name: "idx_transactions_buyer")
+  @@index([sellerId], name: "idx_transactions_seller")
+  @@index([agentId], name: "idx_transactions_agent")
+  @@map("transactions")
+}
+
+model PropertyAnalytics {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  propertyId       String   @map("property_id") @db.Uuid
+  viewCount        Int      @default(0) @map("view_count")
+  favoriteCount    Int      @default(0) @map("favorite_count")
+  inquiryCount     Int      @default(0) @map("inquiry_count")
+  appointmentCount Int      @default(0) @map("appointment_count")
+  analyticsDate    DateTime @default(now()) @map("analytics_date") @db.Date
+  viewSources      Json     @default("{}") @map("view_sources")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, analyticsDate], name: "idx_property_analytics_daily")
+  @@map("property_analytics")
+}
+
+model Notification {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  title     String           @db.VarChar(200)
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  metadata  Json             @default("{}")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "idx_notifications_user")
+  @@map("notifications")
+}
+
+model MortgageCalculation {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  propertyId     String?  @map("property_id") @db.Uuid
+  loanAmount     Decimal  @map("loan_amount") @db.Decimal(12, 2)
+  interestRate   Decimal  @map("interest_rate") @db.Decimal(5, 2)
+  loanTermYears  Int      @map("loan_term_years")
+  downPayment    Decimal  @map("down_payment") @db.Decimal(12, 2)
+  monthlyPayment Decimal  @map("monthly_payment") @db.Decimal(10, 2)
+  calculatedAt   DateTime @default(now()) @map("calculated_at") @db.Timestamptz(6)
+  isSaved        Boolean  @default(false) @map("is_saved")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([userId], name: "idx_mortgage_user")
+  @@index([propertyId], name: "idx_mortgage_property")
+  @@map("mortgage_calculations")
+}
+
+model UserPreference {
+  id                   String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String       @unique @map("user_id") @db.Uuid
+  searchPreferences    Json         @default("{}") @map("search_preferences")
+  notificationSettings Json         @default("{}") @map("notification_settings")
+  preferredLanguage    String       @default("ka") @map("preferred_language") @db.VarChar(5)
+  theme                ThemeType    @default(light)
+  currency             CurrencyType @default(GEL)
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model AuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tableName String   @map("table_name") @db.VarChar(50)
+  operation String   @db.VarChar(10)
+  oldValues Json?
+  newValues Json?
+  userId    String?  @map("user_id") @db.Uuid
+  timestamp DateTime @default(now()) @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_log")
+}
+
+model Image {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  url        String
+  alt        String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, sortOrder], name: "idx_images_property_sort")
+  @@index([propertyId], name: "idx_images_property")
+  @@map("images")
+}
+
+model Listing {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  propertyId String        @map("property_id") @db.Uuid
+  agentId    String?       @map("agent_id") @db.Uuid
+  userId     String?       @map("user_id") @db.Uuid
+  dateListed DateTime      @default(now()) @map("date_listed") @db.Timestamptz(6)
+  expiryDate DateTime?     @map("expiry_date") @db.Timestamptz(6)
+  price      Decimal       @db.Decimal(12, 2)
+  currency   CurrencyType  @default(GEL)
+  status     ListingStatus @default(active)
+  notes      String?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  agent    Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  creator  User?    @relation("ListingCreator", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId, dateListed], name: "idx_listings_property_date")
+  @@index([status], name: "idx_listings_status")
+  @@index([price], name: "idx_listings_price")
+  @@map("listings")
+}
+
+/// Organization represents a tenant/account (pre-Supabase)
+model Organization {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(200)
+  slug        String   @unique @db.VarChar(120)
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  members OrganizationMembership[]
+
+  @@map("organizations")
+}
+
+/// Link between users and organizations with role
+model OrganizationMembership {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  role           OrgRole  @default(member)
+  invitedAt      DateTime @default(now()) @map("invited_at") @db.Timestamptz(6)
+  joinedAt       DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId], name: "organization_membership_unique")
+  @@index([organizationId], name: "idx_membership_org")
+  @@index([userId], name: "idx_membership_user")
+  @@map("organization_memberships")
+}
