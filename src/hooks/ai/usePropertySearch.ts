@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMockProperties, MockProperty } from '@/lib/mockProperties';
+import { runtimeFlags } from '@/lib/flags';
 
 type ToolCallTransport = 'realtime' | 'websocket';
 
@@ -19,8 +20,10 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
   const router = useRouter();
   const [searchResults, setSearchResults] = useState<MockProperty[]>([]);
   const [lastSearchSummary, setLastSearchSummary] = useState('');
+  const isDemoMode = runtimeFlags.demoModeOn;
 
   const runPropertySearch = useCallback((rawArgs: unknown): MockProperty[] => {
+    if (!isDemoMode) return [];
     try {
       const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : (rawArgs || {});
       const all = getMockProperties(100);
@@ -43,11 +46,37 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
       if (typeof args.is_new === 'boolean') list = list.filter((p) => Boolean(p.isNew) === Boolean(args.is_new));
       if (args.sort_by === 'price_asc') list.sort((a, b) => a.price - b.price);
       if (args.sort_by === 'price_desc') list.sort((a, b) => b.price - a.price);
-      const limit = Number.isFinite(args.limit) ? Math.max(1, Math.min(20, Number(args.limit))) : 6;
-      return list.slice(0, limit);
+      // IMPORTANT:
+      // - Return the FULL filtered list (so tools like open_nth_result can work for any index)
+      // - We'll only return a compact preview to the model in toolResponse to avoid token bloat.
+      return list;
     } catch {
-      return getMockProperties(6);
+      return getMockProperties(100);
     }
+  }, [isDemoMode]);
+
+  const buildResultsPreview = useCallback((results: MockProperty[], rawArgs: unknown) => {
+    const args = (() => {
+      try {
+        return typeof rawArgs === 'string' ? JSON.parse(rawArgs) : (rawArgs || {});
+      } catch {
+        return {};
+      }
+    })() as Record<string, unknown>;
+    const limitRaw = Number(args.limit);
+    const previewLimit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(10, limitRaw)) : 6;
+    const preview = results.slice(0, previewLimit).map((p) => ({
+      id: String(p.id),
+      price: p.price,
+      address: p.address,
+      bedrooms: p.bedrooms,
+      bathrooms: p.bathrooms,
+      area: p.sqft,
+      type: p.type,
+      status: p.status,
+      isNew: Boolean(p.isNew),
+    }));
+    return { previewLimit, preview };
   }, []);
 
   const rememberAutostart = useCallback(() => {
@@ -58,23 +87,49 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
     }
   }, [isChatOpen]);
 
+  const getCid = useCallback((): string => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      return sp.get('cid') || window.sessionStorage.getItem('lumina_cid') || '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const withCid = useCallback(
+    (pathOrUrl: string) => {
+      try {
+        const cid = getCid();
+        if (!cid) return pathOrUrl;
+        const u = new URL(pathOrUrl, window.location.origin);
+        if (!u.searchParams.get('cid')) u.searchParams.set('cid', cid);
+        return u.pathname + u.search;
+      } catch {
+        return pathOrUrl;
+      }
+    },
+    [getCid],
+  );
+
   const navigateWithRouter = useCallback(
     (path: string) => {
       rememberAutostart();
-      router.push(path);
+      router.push(withCid(path));
     },
-    [rememberAutostart, router],
+    [rememberAutostart, router, withCid],
   );
 
   const navigateWithLocation = useCallback((path: string) => {
     rememberAutostart();
     if (typeof window !== 'undefined') {
-      window.location.href = path;
+      window.location.href = withCid(path);
     }
-  }, [rememberAutostart]);
+  }, [rememberAutostart, withCid]);
 
   const buildPropertiesUrl = useCallback((argsObj: Record<string, unknown>) => {
     const u = new URL('/properties', window.location.origin);
+    const cid = getCid();
+    if (cid) u.searchParams.set('cid', cid);
     const loc = (argsObj.district || argsObj.location || argsObj.q || '').toString();
     if (loc) u.searchParams.set('location', loc);
     const min = Number(argsObj.priceMin ?? argsObj.min_price ?? argsObj.minPrice ?? argsObj.price_min);
@@ -92,7 +147,7 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
       if (propertyTypes.includes(pt)) u.searchParams.set('property_type', pt);
     } catch {}
     return u;
-  }, []);
+  }, [getCid]);
 
   const setFilterSummary = useCallback((argsObj: Record<string, unknown>) => {
     try {
@@ -121,14 +176,27 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
         const argsObj = JSON.parse(argsText || '{}');
 
         if (fnName === 'search_properties') {
-          const results = runPropertySearch(argsObj);
-          setSearchResults(results);
+          if (!isDemoMode) {
+            return { handled: true, payload: { ok: false, error: 'demo_mode_disabled' } };
+          }
+          const full = runPropertySearch(argsObj);
+          setSearchResults(full);
           setFilterSummary(argsObj);
           try {
             const u = buildPropertiesUrl(argsObj);
             ensureNavigation(u);
           } catch {}
-          return { handled: true, payload: { ok: true, count: results.length, results } };
+          const { previewLimit, preview } = buildResultsPreview(full, argsObj);
+          return {
+            handled: true,
+            payload: {
+              ok: true,
+              total_count: full.length,
+              returned_count: preview.length,
+              results_preview: preview,
+              preview_limit: previewLimit,
+            },
+          };
         }
 
         if (fnName === 'open_page') {
@@ -186,6 +254,9 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
         }
 
         if (fnName === 'open_first_property') {
+          if (!isDemoMode) {
+            return { handled: true, payload: { ok: false, error: 'demo_mode_disabled' } };
+          }
           const first = searchResults[0];
           if (first && first.id) {
             ensureNavigation(`/properties/${first.id}`);
@@ -193,6 +264,52 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
           }
           ensureNavigation('/properties');
           return { handled: true, payload: { ok: false, error: 'no_results' } };
+        }
+
+        if (fnName === 'open_nth_result') {
+          if (!isDemoMode) {
+            return { handled: true, payload: { ok: false, error: 'demo_mode_disabled' } };
+          }
+          const indexRaw = Number(argsObj.index);
+          const idx = Number.isFinite(indexRaw) ? Math.floor(indexRaw) - 1 : -1; // 1-based -> 0-based
+          if (idx < 0) return { handled: true, payload: { ok: false, error: 'bad_index' } };
+          const item = searchResults[idx];
+          if (item?.id) {
+            ensureNavigation(`/properties/${item.id}`);
+            return { handled: true, payload: { ok: true, id: String(item.id), index: idx + 1 } };
+          }
+          return { handled: true, payload: { ok: false, error: 'index_out_of_range', index: idx + 1, total_count: searchResults.length } };
+        }
+
+        if (fnName === 'list_results') {
+          if (!isDemoMode) {
+            return { handled: true, payload: { ok: false, error: 'demo_mode_disabled' } };
+          }
+          const offsetRaw = Number(argsObj.offset);
+          const limitRaw = Number(argsObj.limit);
+          const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.floor(offsetRaw)) : 0;
+          const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(10, Math.floor(limitRaw))) : 6;
+          const slice = searchResults.slice(offset, offset + limit).map((p) => ({
+            id: String(p.id),
+            price: p.price,
+            address: p.address,
+            bedrooms: p.bedrooms,
+            bathrooms: p.bathrooms,
+            area: p.sqft,
+            type: p.type,
+            status: p.status,
+            isNew: Boolean(p.isNew),
+          }));
+          return {
+            handled: true,
+            payload: {
+              ok: true,
+              total_count: searchResults.length,
+              offset,
+              returned_count: slice.length,
+              results_preview: slice,
+            },
+          };
         }
 
         if (fnName === 'open_property_detail') {
@@ -217,6 +334,7 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
       runPropertySearch,
       searchResults,
       setFilterSummary,
+      isDemoMode,
     ],
   );
 

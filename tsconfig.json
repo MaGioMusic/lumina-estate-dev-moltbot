@@ -18,7 +18,7 @@
         "name": "next"
       }
     ],
-    "types": ["google.maps"],
+    "types": ["google.maps", "next-auth"],
     "paths": {
       "@/*": ["./src/*"]
     },

@@ -28,10 +28,20 @@ OPENAI_API_KEY=...
 DEFAULT_VOICE_LANG=ka
 NEXT_PUBLIC_VOICE_DEFAULT=1
 NEXT_PUBLIC_FC_DEFAULT=1
+NEXT_PUBLIC_DEMO_MODE=1
+NEXT_PUBLIC_GA4_ID= (optional)
 VOICE_MODEL=gpt-4o-realtime-preview-2024-12-17
 NEXT_PUBLIC_ENABLE_GEMINI=0
+# Gemini Live (Vertex AI)
+GCP_PROJECT_ID=gen-lang-client-0216641365
+GCP_REGION=us-central1
+GEMINI_LIVE_MODEL=gemini-live-2.5-flash-native-audio
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/gen-lang-client-0216641365-e304c87b4d01.json
+NEXT_PUBLIC_VOICE_PROVIDER=gemini
+NEXT_PUBLIC_FALLBACK_PROVIDER=openai
 ```
 `NEXT_PUBLIC_ENABLE_GEMINI` უნდა დარჩეს `0`-ზე production გარემოში. თუ საჭიროა Gemini-ის ექსპერიმენტული ხმა (GA-ს შემდეგ), მიიღებ შესაბამის მოდულს `src/experimental/gemini/**` დირექტორიიდან და ამ ფლაგის `1`-ზე გადართვა ჩატვირთავს მას client bundle-ში.
+`NEXT_PUBLIC_DEMO_MODE=0` გამორთავს mock მონაცემებს (AI chat property search/inline შედეგები) production გარემოში.
 4) Dev
 ```bash
 npm run dev

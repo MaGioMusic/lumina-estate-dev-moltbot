@@ -5,9 +5,9 @@
 | Area | File(s) | Notes |
 | --- | --- | --- |
 | Hook implementation | `src/experimental/gemini/useGeminiVoice.ts` | Fetches env vars `NEXT_PUBLIC_GEMINI_LIVE_MODEL`, `NEXT_PUBLIC_GEMINI_PROXY_WS`, `NEXT_PUBLIC_GEMINI_API_KEY`, prompts user for key, manages WebSocket/audio worklet. |
-| UI entry point | `src/app/properties/components/AIChatComponent.tsx` | Imports `useGeminiVoice`; uses query param `?gemini=1` to enable; toggles fallback + microphone controls. |
-| UI subcomponent | `src/app/properties/components/chatWindow.tsx` | Displays `GeminiVoiceButton`, handles Gemini start/stop buttons, fallback label, and `AIVoiceInput` gating logic. |
-| Gemini UI control | `src/app/properties/components/GeminiVoiceButton.tsx` | Standalone button that can talk to Gemini (text mode); stores API key in sessionStorage. |
+| UI entry point | `src/app/(marketing)/properties/components/AIChatComponent.tsx` | Imports `useGeminiVoice`; uses query param `?gemini=1` to enable; toggles fallback + microphone controls. |
+| UI subcomponent | `src/app/(marketing)/properties/components/chatWindow.tsx` | Displays `GeminiVoiceButton`, handles Gemini start/stop buttons, fallback label, and `AIVoiceInput` gating logic. |
+| Gemini UI control | `src/app/(marketing)/properties/components/GeminiVoiceButton.tsx` | Standalone button that can talk to Gemini (text mode); stores API key in sessionStorage. |
 | Dev proxy | `live-proxy.js` | Uses `GEMINI_LIVE_PROXY_PORT`, `GEMINI_LIVE_MODEL`, `GEMINI_API_KEY`. |
 | Experimental backups | `backup/experimental-20251022/**` | Historical copies of Gemini voice/generation routes. Not loaded in production but worth keeping in mind when reorganizing. |
 

@@ -21,6 +21,6 @@ interface PropertyCardProps {
 
 export default function PropertyCard(props: PropertyCardProps) {
   // Delegate to the canonical card implementation used on properties page
-  const Impl = require('@/app/properties/components/PropertyCard').default;
+  const Impl = require('@/app/(marketing)/properties/components/PropertyCard').default;
   return <Impl {...(props as any)} />;
 }

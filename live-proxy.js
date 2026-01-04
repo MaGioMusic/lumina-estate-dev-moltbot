@@ -1,170 +1,153 @@
-// Lightweight WS proxy: ws://localhost:3001 -> wss://generativelanguage.googleapis.com/...:live
-// Adds x-goog-api-key header and pipes binary audio in both directions
-// Load env from .env.local first (Next.js style), then .env as fallback
-try { require('dotenv').config({ path: '.env.local' }); } catch {}
+// Lightweight WS proxy: ws://localhost:3001 -> Vertex AI Live API (BidiGenerateContent)
+// Browsers can't set Authorization headers on WS upgrades, so this proxy mints an
+// OAuth token (ADC/service account) and attaches it server-side.
+const path = require('path');
+try { require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') }); } catch {}
+// Also support monorepo/workspace layouts where secrets live one level up
+try { require('dotenv').config({ path: path.resolve(process.cwd(), '..', '.env.local') }); } catch {}
 try { require('dotenv').config(); } catch {}
 const http = require('http');
 const WebSocket = require('ws');
 const url = require('url');
+const { GoogleAuth } = require('google-auth-library');
 
 const PORT = process.env.GEMINI_LIVE_PROXY_PORT ? Number(process.env.GEMINI_LIVE_PROXY_PORT) : 3001;
-const DEFAULT_MODEL = process.env.GEMINI_LIVE_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const SERVER_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || null;
+const PROJECT_ID = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || '';
+const REGION = process.env.GCP_REGION || 'us-central1';
+const DEFAULT_MODEL_ID = process.env.GEMINI_LIVE_MODEL || 'gemini-live-2.5-flash-native-audio';
+
+const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
 
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
+wss.on('listening', () => {
+  console.log('[proxy] listening', {
+    port: PORT,
+    region: REGION,
+    hasProjectId: Boolean(PROJECT_ID),
+    defaultModelId: DEFAULT_MODEL_ID,
+  });
+});
+
 wss.on('connection', (client, req) => {
-  // Connect upstream
+  // Connect upstream (Vertex AI Live)
   const parsed = url.parse(req.url || '', true);
   const qp = parsed.query || {};
-  const model = (qp.model && String(qp.model)) || DEFAULT_MODEL;
-  const apiKey = (qp.key && String(qp.key)) || SERVER_KEY;
-  if (!apiKey) {
-    try { client.close(1011, 'missing api key'); } catch {}
+  const modelIdRaw = (qp.model && String(qp.model)) || DEFAULT_MODEL_ID;
+  // Vertex Live expects a full resource name.
+  // Format: projects/{PROJECT}/locations/{REGION}/publishers/google/models/{MODEL_ID}
+  const modelPath = `projects/${PROJECT_ID}/locations/${REGION}/publishers/google/models/${modelIdRaw}`;
+  console.log(`[proxy] ⇄ client connected → modelId=${modelIdRaw}`);
+
+  if (!PROJECT_ID) {
+    console.error('[proxy] missing GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT)');
+    try { client.close(1011, 'missing project id'); } catch {}
     return;
   }
-  const headers = { 'x-goog-api-key': apiKey };
-  console.log(`[proxy] ⇄ client connected → model=${model}`);
 
   let upstream = null;
+  let upstreamOpen = false;
+  const pending = [];
 
   const closeBoth = (code, reason) => {
     try { client.close(code || 1000, reason); } catch {}
     try { upstream && upstream.close(code || 1000, reason); } catch {}
   };
 
-  const bindPipes = (onFail, opts) => {
-    if (!upstream) return;
-    const isBidi = !!(opts && opts.isBidi);
-    upstream.on('open', () => {
-      console.log('[proxy] upstream open');
-      if (isBidi) {
-        // Translate our client JSON into Bidi JSON
-        client.on('message', (raw) => {
-          try {
-            let text = null;
-            if (typeof raw === 'string') text = raw;
-            else if (Buffer.isBuffer(raw)) text = raw.toString('utf8');
-            if (text) {
-              let msg;
-              try { msg = JSON.parse(text); } catch { msg = null; }
-                if (msg && typeof msg === 'object') {
-                const mapKeysDeep = (val) => {
-                  if (!val || typeof val !== 'object') return val;
-                  if (Array.isArray(val)) return val.map(mapKeysDeep);
-                  const out = {};
-                  Object.keys(val).forEach((k) => {
-                    const v = mapKeysDeep(val[k]);
-                    let nk = k;
-                    if (k === 'client_content') nk = 'clientContent';
-                    if (k === 'inline_data') nk = 'inlineData';
-                    if (k === 'mime_type') nk = 'mimeType';
-                    if (k === 'generation_config') nk = 'generationConfig';
-                    if (k === 'response_modalities') nk = 'responseModalities';
-                    if (k === 'response_mime_type') nk = 'responseMimeType';
-                    if (k === 'language_code') nk = 'languageCode';
-                    // Drop unsupported role fields
-                    if (nk === 'role') return;
-                    out[nk] = v;
-                  });
-                  return out;
-                };
-                msg = mapKeysDeep(msg);
-                if (msg.type === 'session.start') {
-                  const sys = (msg.config && msg.config.systemInstruction) || '';
-                  const setup = {
-                    setup: {
-                      model: `models/${(opts && opts.model) || 'gemini-2.0-flash'}`,
-                      generationConfig: {
-                        responseModalities: ['AUDIO'],
-                        responseMimeType: 'audio/pcm;rate=16000',
-                        languageCode: 'ka-GE',
-                      },
-                      systemInstruction: sys ? { parts: [{ text: String(sys) }] } : undefined,
-                    },
-                  };
-                  upstream.send(JSON.stringify(setup));
-                  return;
-                }
-                if (msg.type === 'input_audio_buffer.commit' || msg.type === 'response.create') {
-                  const evt = { clientEvent: 'GENERATION_START' };
-                  upstream.send(JSON.stringify(evt));
-                  return;
-                }
-                if (msg.type === 'input_audio_buffer.append' && msg.audio && msg.audio.data) {
-                  const inline = {
-                    clientContent: {
-                      parts: [{ inlineData: { mimeType: 'audio/pcm;rate=16000', data: String(msg.audio.data) } }],
-                    },
-                  };
-                  upstream.send(JSON.stringify(inline));
-                  return;
-                }
-                // If message already uses client_content from other sources, normalize and forward
-                if (msg.client_content || msg.clientContent) {
-                  const normalized = mapKeysDeep(msg);
-                  try { upstream.send(JSON.stringify(normalized)); } catch {}
-                  return;
-                }
-              }
-            }
-            // pass-through as last resort
-            upstream.send(raw);
-          } catch {}
-        });
-      } else {
-        client.on('message', (data) => { try { upstream.send(data); } catch {} });
-      }
-      upstream.on('message', (data) => { try { client.send(data); } catch {} });
-    });
-    upstream.on('error', (e) => {
-      const msg = e?.message || String(e || 'error');
-      console.warn('[proxy] upstream error', msg);
-      onFail && onFail('error', { message: msg });
-    });
-    upstream.on('close', (code, reason) => {
-      const r = reason?.toString();
-      console.warn('[proxy] upstream close', code, r);
-      onFail && onFail('close', { code, reason: r });
-    });
-    client.on('error', () => closeBoth(1011, 'client error'));
-    client.on('close', (code, reason) => { console.log('[proxy] client close', code, reason?.toString()); closeBoth(code, reason); });
-  };
-
-  // Candidate endpoints: Bidi first, then model connect/live on v1beta→v1alpha
-  const urls = [
-    `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(apiKey)}`,
-    `wss://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:connect?key=${encodeURIComponent(apiKey)}`,
-    `wss://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:live?key=${encodeURIComponent(apiKey)}`,
-    `wss://generativelanguage.googleapis.com/v1alpha/models/${encodeURIComponent(model)}:connect?key=${encodeURIComponent(apiKey)}`,
-    `wss://generativelanguage.googleapis.com/v1alpha/models/${encodeURIComponent(model)}:live?key=${encodeURIComponent(apiKey)}`,
-  ];
-
-  let idx = 0;
-  const connectNext = () => {
-    if (idx >= urls.length) { closeBoth(1011, 'no upstream available'); return; }
-    const upstreamUrl = urls[idx++];
-    console.log('[proxy] connecting upstream →', upstreamUrl);
+  const transformClientMessage = (raw) => {
+    // Inject model into setup if missing and ensure JSON is sent as TEXT frames.
     try {
-      upstream = new WebSocket(upstreamUrl, { headers });
-      const isBidi = /\/ws\/google\.ai\.generativelanguage\./.test(upstreamUrl);
-      bindPipes((_type, info) => {
-        const msg = (info && (info.reason || info.message)) || '';
-        if (/1011|404|closed|before the connection/i.test(msg) || _type === 'close' || _type === 'error') {
-          // try next candidate
-          connectNext();
-        } else {
-          closeBoth(1011, 'upstream error');
-        }
-      }, { isBidi, model });
-    } catch (err) {
-      console.warn('[proxy] upstream construct error', err?.message || err);
-      connectNext();
+      let text = null;
+      if (typeof raw === 'string') text = raw;
+      else if (Buffer.isBuffer(raw)) text = raw.toString('utf8');
+      if (!text) return raw;
+      // If it looks like JSON, keep it as a string to send upstream as text.
+      const trimmed = text.trimStart();
+      const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[');
+      if (!looksJson) return raw;
+      const msg = JSON.parse(trimmed);
+      if (msg && typeof msg === 'object' && msg.setup && !msg.setup.model) {
+        msg.setup.model = modelPath;
+        console.log('[proxy] injected setup.model', modelPath);
+        return JSON.stringify(msg);
+      }
+      return trimmed;
+    } catch {
+      return raw;
     }
   };
 
-  connectNext();
+  const connectUpstream = async () => {
+    try {
+      const authClient = await auth.getClient();
+      const tokenResp = await authClient.getAccessToken();
+      const accessToken = typeof tokenResp === 'string' ? tokenResp : tokenResp?.token;
+      if (!accessToken) throw new Error('failed to mint access token');
+
+      const upstreamUrl = `wss://${REGION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`;
+      console.log('[proxy] connecting upstream →', upstreamUrl);
+
+      upstream = new WebSocket(upstreamUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      upstream.on('open', () => {
+        console.log('[proxy] upstream open');
+        upstreamOpen = true;
+        // flush buffered messages
+        while (pending.length) {
+          const msg = pending.shift();
+          try { upstream.send(msg); } catch {}
+        }
+      });
+
+      upstream.on('message', (data) => {
+        try {
+          // If upstream sends JSON as a Buffer, forward as text to the browser
+          // to avoid ArrayBuffer JSON.parse issues.
+          if (Buffer.isBuffer(data)) {
+            const text = data.toString('utf8');
+            if (text.startsWith('{') || text.startsWith('[')) {
+              client.send(text);
+              return;
+            }
+          }
+          client.send(data);
+        } catch {}
+      });
+
+      upstream.on('error', (e) => {
+        console.warn('[proxy] upstream error', e?.message || String(e || 'error'));
+        closeBoth(1011, 'upstream error');
+      });
+      upstream.on('close', (code, reason) => {
+        console.warn('[proxy] upstream close', code, reason?.toString());
+        upstreamOpen = false;
+        closeBoth(code, reason);
+      });
+    } catch (err) {
+      console.error('[proxy] failed to connect upstream', err?.message || err);
+      try { client.close(1011, 'upstream connect failed'); } catch {}
+    }
+  };
+
+  // IMPORTANT: attach client handlers immediately, so we never miss early setup messages.
+  client.on('error', () => closeBoth(1011, 'client error'));
+  client.on('message', (raw) => {
+    const msg = transformClientMessage(raw);
+    if (!upstreamOpen) {
+      pending.push(msg);
+      return;
+    }
+    try { upstream && upstream.send(msg); } catch {}
+  });
+  client.on('close', (code, reason) => {
+    console.log('[proxy] client close', code, reason?.toString());
+    closeBoth(code, reason);
+  });
+
+  void connectUpstream();
 });
 
 server.listen(PORT, () => {

@@ -13,7 +13,7 @@ import {
   /* MagnifyingGlass, */ Heart, Moon, Sun, SignIn, SignOut, Globe, Gear,
   /* Bell, */ EnvelopeSimple, ChartLine, UserList, GridFour, CaretDown, MapTrifold
 } from '@phosphor-icons/react';
-import IOSToggle from '@/app/properties/components/IOSToggle';
+import IOSToggle from '@/app/(marketing)/properties/components/IOSToggle';
 import LoginModal from '@/components/LoginModal';
 import PropertySubmitModal from '@/components/PropertySubmitModal';
 

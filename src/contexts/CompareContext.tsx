@@ -19,41 +19,58 @@ const CompareContext = createContext<CompareContextValue | undefined>(undefined)
 
 export function CompareProvider({ children }: { children: React.ReactNode }) {
   const [ids, setIds] = useState<number[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  const readIdsFromStorage = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((n) => typeof n === 'number').slice(0, MAX_COMPARE);
+      }
+    } catch (error) {
+      console.error('Compare: unable to parse storage', error);
+      try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+    }
+    return [];
+  };
 
   // Load from localStorage
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          setIds(parsed.filter((n) => typeof n === 'number').slice(0, MAX_COMPARE));
-        }
-      }
-    } catch {}
+    setIds(readIdsFromStorage());
+    setHydrated(true);
   }, []);
 
   // Persist to localStorage
   useEffect(() => {
+    if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
     } catch {}
-  }, [ids]);
+  }, [hydrated, ids]);
 
   // Cross-tab sync
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let syncTimer: number | null = null;
+    const scheduleSync = () => {
+      if (syncTimer) window.clearTimeout(syncTimer);
+      syncTimer = window.setTimeout(() => {
+        setIds(readIdsFromStorage());
+      }, 50);
+    };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setIds(parsed.filter((n) => typeof n === 'number').slice(0, MAX_COMPARE));
-          }
-        } catch {}
+      if (!e.key || e.key === STORAGE_KEY) {
+        scheduleSync();
       }
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => {
+      if (syncTimer) window.clearTimeout(syncTimer);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const isSelected = (id: number) => ids.includes(id);
@@ -88,7 +105,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CompareContext.Provider value={value}>
-      {children}
+      {hydrated ? children : null}
     </CompareContext.Provider>
   );
 }

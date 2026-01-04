@@ -19,61 +19,77 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const STORAGE_KEY = 'lumina_user';
+
+const readUserFromStorage = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) as User : null;
+  } catch (error) {
+    console.error('Error parsing saved user:', error);
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+    return null;
+  }
+};
+
+const writeUserToStorage = (value: User | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch (error) {
+    console.error('Error persisting user:', error);
+  }
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
   // Check if user is logged in on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('lumina_user');
+    const savedUser = readUserFromStorage();
     if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('lumina_user');
-      }
+      setUser(savedUser);
     }
     setIsLoading(false);
+    setHydrated(true);
   }, []);
 
   // Keep auth state in sync across tabs and after manual storage changes
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let syncTimer: number | null = null;
+    const scheduleSync = () => {
+      if (syncTimer) window.clearTimeout(syncTimer);
+      syncTimer = window.setTimeout(() => {
+        setUser(readUserFromStorage());
+      }, 50);
+    };
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'lumina_user') {
-        if (!e.newValue) {
-          setUser(null);
-        } else {
-          try {
-            setUser(JSON.parse(e.newValue));
-          } catch {
-            setUser(null);
-          }
-        }
+      if (!e.key || e.key === STORAGE_KEY) {
+        scheduleSync();
       }
     };
-    const handleLogoutEvent = () => setUser(null);
+    const handleLogoutEvent = () => {
+      setUser(null);
+      try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+    };
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        try {
-          const current = localStorage.getItem('lumina_user');
-          if (!current) {
-            setUser(null);
-          } else {
-            try {
-              setUser(JSON.parse(current));
-            } catch {
-              setUser(null);
-            }
-          }
-        } catch {}
+        scheduleSync();
       }
     };
     window.addEventListener('storage', handleStorage);
     window.addEventListener('lumina:logout', handleLogoutEvent as EventListener);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
+      if (syncTimer) window.clearTimeout(syncTimer);
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('lumina:logout', handleLogoutEvent as EventListener);
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -81,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    if (typeof window === 'undefined') return false;
     try {
       // Simulate API call - in real app this would be actual API
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -122,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       
       setUser(mockUser);
-      localStorage.setItem('lumina_user', JSON.stringify(mockUser));
+      writeUserToStorage(mockUser);
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -131,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
+    if (typeof window === 'undefined') return false;
     try {
       // Simulate API call - in real app this would be actual API
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -144,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       
       setUser(mockUser);
-      localStorage.setItem('lumina_user', JSON.stringify(mockUser));
+      writeUserToStorage(mockUser);
       return true;
     } catch (error) {
       console.error('Register error:', error);
@@ -154,11 +172,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      localStorage.removeItem('lumina_user');
-      // Clear potential admin session leftovers
-      localStorage.removeItem('adminAuth');
-      localStorage.removeItem('adminUser');
-      try { sessionStorage.removeItem('lumina_session'); } catch {}
+      if (typeof window !== 'undefined') {
+        writeUserToStorage(null);
+        // Clear potential admin session leftovers
+        localStorage.removeItem('adminAuth');
+        localStorage.removeItem('adminUser');
+        try { sessionStorage.removeItem('lumina_session'); } catch {}
+      }
     } catch {}
     setUser(null);
     try {
@@ -177,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{hydrated ? children : null}</AuthContext.Provider>;
 }
 
 export function useAuth() {

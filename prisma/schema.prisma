@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -13,6 +14,13 @@ enum UserRole {
   agent
   investor
   admin
+}
+
+enum AccountRole {
+  USER
+  AGENT
+  ADMIN
+  DEVELOPER
 }
 
 enum CurrencyType {
@@ -124,34 +132,38 @@ enum OrgRole {
 }
 
 model User {
-  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email                  String    @unique @db.VarChar(255)
-  firstName              String    @map("first_name") @db.VarChar(100)
-  lastName               String    @map("last_name") @db.VarChar(100)
-  avatar                 String?   @db.VarChar(500)
-  role                   UserRole  @default(client)
-  phone                  String?   @db.VarChar(20)
-  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  lastLogin              DateTime? @map("last_login") @db.Timestamptz(6)
-  isActive               Boolean   @default(true) @map("is_active")
-  passwordHash           String    @map("password_hash") @db.VarChar(255)
-  emailVerificationToken String?   @map("email_verification_token") @db.VarChar(100)
-  isEmailVerified        Boolean   @default(false) @map("is_email_verified")
-  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                     String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                  String      @unique @db.VarChar(255)
+  firstName              String      @map("first_name") @db.VarChar(100)
+  lastName               String      @map("last_name") @db.VarChar(100)
+  avatar                 String?     @db.VarChar(500)
+  role                   UserRole    @default(client)
+  accountRole            AccountRole @default(USER) @map("account_role")
+  phone                  String?     @db.VarChar(20)
+  createdAt              DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLogin              DateTime?   @map("last_login") @db.Timestamptz(6)
+  isActive               Boolean     @default(true) @map("is_active")
+  passwordHash           String      @map("password_hash") @db.VarChar(255)
+  emailVerificationToken String?     @map("email_verification_token") @db.VarChar(100)
+  isEmailVerified        Boolean     @default(false) @map("is_email_verified")
+  updatedAt              DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   agent                Agent?
   favorites            Favorite[]
-  appointments         Appointment[]         @relation("AppointmentClient")
-  reviews              Review[]              @relation("ReviewAuthor")
+  appointments         Appointment[]            @relation("AppointmentClient")
+  reviews              Review[]                 @relation("ReviewAuthor")
   inquiries            Inquiry[]
   searchHistory        SearchHistory[]
-  transactionsAsBuyer  Transaction[]         @relation("TransactionBuyer")
-  transactionsAsSeller Transaction[]         @relation("TransactionSeller")
+  transactionsAsBuyer  Transaction[]            @relation("TransactionBuyer")
+  transactionsAsSeller Transaction[]            @relation("TransactionSeller")
   mortgageCalculations MortgageCalculation[]
   preferences          UserPreference?
   notifications        Notification[]
-  listingsCreated      Listing[]             @relation("ListingCreator")
+  listingsCreated      Listing[]                @relation("ListingCreator")
   AuditLog             AuditLog[]
+  memberships          OrganizationMembership[]
+  accounts             Account[]
+  sessions             Session[]
 
   @@map("users")
 }
@@ -187,6 +199,7 @@ model Agent {
 model Property {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   agentId          String?           @map("agent_id") @db.Uuid
+  organizationId   String?           @map("organization_id") @db.Uuid
   title            String            @db.VarChar(300)
   description      String?
   price            Decimal           @db.Decimal(12, 2)
@@ -217,6 +230,7 @@ model Property {
   viewsCount       Int               @default(0) @map("views_count")
 
   agent                Agent?                @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  organization         Organization?         @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   favorites            Favorite[]
   appointments         Appointment[]
   reviews              Review[]
@@ -228,6 +242,7 @@ model Property {
   listings             Listing[]
 
   @@index([status], name: "idx_properties_status")
+  @@index([organizationId], name: "idx_properties_organization")
   @@index([city, propertyType, transactionType, status], name: "idx_properties_search")
   @@index([price], name: "idx_properties_price")
   @@index([createdAt], name: "idx_properties_created_at")
@@ -452,24 +467,27 @@ model Image {
 }
 
 model Listing {
-  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  propertyId String        @map("property_id") @db.Uuid
-  agentId    String?       @map("agent_id") @db.Uuid
-  userId     String?       @map("user_id") @db.Uuid
-  dateListed DateTime      @default(now()) @map("date_listed") @db.Timestamptz(6)
-  expiryDate DateTime?     @map("expiry_date") @db.Timestamptz(6)
-  price      Decimal       @db.Decimal(12, 2)
-  currency   CurrencyType  @default(GEL)
-  status     ListingStatus @default(active)
-  notes      String?
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  propertyId     String        @map("property_id") @db.Uuid
+  agentId        String?       @map("agent_id") @db.Uuid
+  userId         String?       @map("user_id") @db.Uuid
+  organizationId String?       @map("organization_id") @db.Uuid
+  dateListed     DateTime      @default(now()) @map("date_listed") @db.Timestamptz(6)
+  expiryDate     DateTime?     @map("expiry_date") @db.Timestamptz(6)
+  price          Decimal       @db.Decimal(12, 2)
+  currency       CurrencyType  @default(GEL)
+  status         ListingStatus @default(active)
+  notes          String?
 
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  agent    Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  creator  User?    @relation("ListingCreator", fields: [userId], references: [id], onDelete: SetNull)
+  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  agent        Agent?        @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  creator      User?         @relation("ListingCreator", fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([propertyId, dateListed], name: "idx_listings_property_date")
   @@index([status], name: "idx_listings_status")
   @@index([price], name: "idx_listings_price")
+  @@index([organizationId], name: "idx_listings_organization")
   @@map("listings")
 }
 
@@ -483,7 +501,9 @@ model Organization {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  members OrganizationMembership[]
+  members    OrganizationMembership[]
+  properties Property[]
+  listings   Listing[]
 
   @@map("organizations")
 }
@@ -506,4 +526,52 @@ model OrganizationMembership {
   @@index([organizationId], name: "idx_membership_org")
   @@index([userId], name: "idx_membership_user")
   @@map("organization_memberships")
+}
+
+model Account {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id") @db.Uuid
+  type               String   @db.VarChar(50)
+  provider           String   @db.VarChar(100)
+  providerAccountId  String   @map("provider_account_id") @db.VarChar(255)
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?  @db.VarChar(50)
+  scope              String?  @db.VarChar(255)
+  id_token           String?  @db.Text
+  session_state      String?  @db.VarChar(255)
+  oauth_token_secret String?  @db.VarChar(255)
+  oauth_token        String?  @db.VarChar(255)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String   @db.VarChar(255)
+  token      String   @unique @db.VarChar(255)
+  expires    DateTime @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }

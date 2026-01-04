@@ -86,7 +86,7 @@ function parseTables(markdown: string): { entities: Entity[]; fks: Array<{ fromT
   return { entities, fks, uniques };
 }
 
-function buildRelations(entities: Entity[], fks: Array<{ fromTable: string; fromField: string; toTable: string; toField: string }>, uniques: Record<string, string[]>): Relationship[] {
+function buildRelations(_entities: Entity[], fks: Array<{ fromTable: string; fromField: string; toTable: string; toField: string }>, uniques: Record<string, string[]>): Relationship[] {
   const rels: Relationship[] = [];
 
   // Detect join tables (two or more FKs to two distinct parents)

@@ -40,8 +40,8 @@ npm run dev
 
 ## Recover Specific Files
 ```bash
-git log -- src/app/properties/components/AIChatComponent.tsx
-git restore --source=<COMMIT_SHA> -- src/app/properties/components/AIChatComponent.tsx
+git log -- "src/app/(marketing)/properties/components/AIChatComponent.tsx"
+git restore --source=<COMMIT_SHA> -- "src/app/(marketing)/properties/components/AIChatComponent.tsx"
 ```
 
 ## Revert a Bad Commit

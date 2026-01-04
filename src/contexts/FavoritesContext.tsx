@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 
 // Property interface (simplified version for favorites)
 export interface FavoriteProperty {
@@ -94,36 +94,71 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 // Local storage key
 const FAVORITES_STORAGE_KEY = 'lumina_estate_favorites';
 
+const readFavoritesFromStorage = (): FavoriteProperty[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const savedFavorites = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
+    if (!savedFavorites) return [];
+    const parsed = JSON.parse(savedFavorites);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item) => item && typeof item.id === 'string');
+    }
+    return [];
+  } catch (error) {
+    console.error('Error loading favorites from localStorage:', error);
+    try { window.localStorage.removeItem(FAVORITES_STORAGE_KEY); } catch {}
+    return [];
+  }
+};
+
 // Provider component
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(favoritesReducer, initialState);
+  const [hydrated, setHydrated] = useState(false);
 
   // Load favorites from localStorage on mount
   useEffect(() => {
-    try {
-      const savedFavorites = localStorage.getItem(FAVORITES_STORAGE_KEY);
-      if (savedFavorites) {
-        const favorites = JSON.parse(savedFavorites) as FavoriteProperty[];
-        dispatch({ type: 'LOAD_FAVORITES', payload: favorites });
-      } else {
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }
-    } catch (error) {
-      console.error('Error loading favorites from localStorage:', error);
+    const favorites = readFavoritesFromStorage();
+    if (favorites.length > 0) {
+      dispatch({ type: 'LOAD_FAVORITES', payload: favorites });
+    } else {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
+    setHydrated(true);
+  }, []);
+
+  // Cross-tab sync with lightweight debounce
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let syncTimer: number | null = null;
+    const scheduleSync = () => {
+      if (syncTimer) window.clearTimeout(syncTimer);
+      syncTimer = window.setTimeout(() => {
+        dispatch({ type: 'LOAD_FAVORITES', payload: readFavoritesFromStorage() });
+      }, 50);
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || event.key === FAVORITES_STORAGE_KEY) {
+        scheduleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      if (syncTimer) window.clearTimeout(syncTimer);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   // Save favorites to localStorage whenever favorites change
   useEffect(() => {
-    if (!state.isLoading) {
+    if (!state.isLoading && hydrated) {
       try {
         localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(state.favorites));
       } catch (error) {
         console.error('Error saving favorites to localStorage:', error);
       }
     }
-  }, [state.favorites, state.isLoading]);
+  }, [hydrated, state.favorites, state.isLoading]);
 
   // Add property to favorites
   const addToFavorites = (property: FavoriteProperty) => {
@@ -163,7 +198,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <FavoritesContext.Provider value={value}>
-      {children}
+      {hydrated ? children : null}
     </FavoritesContext.Provider>
   );
 }

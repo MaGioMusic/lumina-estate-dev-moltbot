@@ -5,11 +5,10 @@ import "./globals.css";
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import ConditionalLayout from './ConditionalLayout';
-import { CompareProvider } from '@/contexts/CompareContext';
 import GlobalAIChat from '@/app/components/GlobalAIChat';
+import { ClientProviders } from './ClientProviders';
+import { runtimeFlags } from '@/lib/flags';
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -74,15 +73,16 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const langCookie = cookieStore.get('lumina_language')?.value as 'ka' | 'en' | 'ru' | undefined;
   const initialLang = langCookie && ['ka','en','ru'].includes(langCookie) ? langCookie : 'ka';
+  const gaId = runtimeFlags.ga4Id;
   return (
     <html lang={initialLang} suppressHydrationWarning>
       <head>
-        {process.env.NEXT_PUBLIC_GA4_ID ? (
+        {gaId ? (
           <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA4_ID}`}></script>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
             <script
               dangerouslySetInnerHTML={{
-                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${process.env.NEXT_PUBLIC_GA4_ID}',{anonymize_ip:true});`,
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{anonymize_ip:true});`,
               }}
             />
           </>
@@ -114,14 +114,10 @@ export default async function RootLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <LanguageProvider initialLanguage={initialLang}>
-              <AuthProvider>
-                <FavoritesProvider>
-                  <CompareProvider>
-                    <ConditionalLayout>{children}</ConditionalLayout>
-                    <GlobalAIChat />
-                  </CompareProvider>
-                </FavoritesProvider>
-              </AuthProvider>
+              <ClientProviders>
+                <ConditionalLayout>{children}</ConditionalLayout>
+                <GlobalAIChat />
+              </ClientProviders>
             </LanguageProvider>
           </ThemeProvider>
         </ErrorBoundary>
