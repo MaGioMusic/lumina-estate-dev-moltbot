@@ -1,6 +1,6 @@
-# Lumina Estate — Backup (2025-10-25)
+# Luminia Estate — Agents Mode (Snapshot: 2026-01-20)
 
-Private backup repository for the Lumina Estate site. This repo mirrors the codebase and includes documentation to help anyone set up, run, and restore.
+Private working repository for agent-driven development. This repo mirrors the Lumina Estate codebase and is the **only** place where automated agents should make changes.
 
 —
 
@@ -108,10 +108,10 @@ Lumina Estate is a modern real estate platform built with Next.js 15, TypeScript
 
 ```bash
 # Clone the repository
-git clone https://github.com/MaGioMusic/Luminia-Estate-Motiff-Edition-Private.git
+git clone https://github.com/MaGioMusic/Luminia-Estate-AgentsMode.git
 
 # Navigate to project directory
-cd lumina-estate
+cd lumina-agents
 
 # Install dependencies
 npm install
