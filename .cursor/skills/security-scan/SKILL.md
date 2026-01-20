@@ -1,23 +1,31 @@
 ---
 name: security-scan
-description: Performs security checks on dependencies and code and reports vulnerabilities. Use when the user asks for a security scan, audit, or hardening review.
+description: Identify security risks (auth, input validation, data exposure, XSS/CSRF). Use before merge and for auth/DB changes.
+license: Complete terms in LICENSE.txt
 ---
 
-# Security Scan
+This skill performs a manual security review.
 
-## Dependency audit
-- Run: `npm audit --audit-level=high`
-- Summarize high/critical issues with package names and fixes.
+## Security Thinking
 
-## Code review checks
-- Look for unsafe user input handling, missing sanitization, and auth gaps.
-- Confirm DOMPurify usage where user input is rendered.
+- **Auth**: Are routes protected?
+- **Input**: Is validation and sanitization present?
+- **Data**: Any leakage of private data?
+- **Client**: Any secrets in client bundle?
 
-## Optional tools
-- If a Semgrep MCP tool is configured, run it and include the report.
-- If unavailable, state the limitation explicitly.
+## Review Steps
 
-## Report format
-- Vulnerabilities by severity
-- Recommended fixes or upgrades
-- Any blocked items or missing tooling
+1) Review auth guards for protected routes.
+2) Check input validation for API.
+3) Confirm no secrets in client code.
+4) Identify XSS/CSRF risks.
+5) Summarize with severity.
+
+## Output Format
+- Blockers
+- High/Medium/Low risks
+- Mitigations
+
+## Guardrails
+- Do not modify code.
+- Ask before auth/permissions change.

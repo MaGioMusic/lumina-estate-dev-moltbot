@@ -1,18 +1,20 @@
 ---
 name: prisma-migrate
-description: Runs Prisma generate and migration workflows safely. Use when the user asks to migrate the database, update Prisma Client, or change the schema.
+description: Handle Prisma schema changes safely (generate, migrate, verify). Use only with approval.
+license: Complete terms in LICENSE.txt
 ---
 
-# Prisma Migrate
+This skill applies Prisma schema changes safely.
 
-## Preconditions
-- Ensure `DATABASE_URL` is set in `.env` or `.env.local`.
+## Steps
+1) Validate schema
+2) Run generate
+3) Check migration status
+4) Summarize changes
 
-## Workflow
-1. Update Prisma Client: `npm run prisma:generate`
-2. Apply migrations: `npm run prisma:migrate`
-3. Restart the dev server after schema changes.
+## Output Format
+- Schema changes
+- Migration status
 
-## Notes
-- If `prisma migrate dev` prompts for a migration name, provide a short, descriptive name.
-- Report any migration files created under `prisma/migrations/`.
+## Guardrails
+- Must ask before applying migrations.

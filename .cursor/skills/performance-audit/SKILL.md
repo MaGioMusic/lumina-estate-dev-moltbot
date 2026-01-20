@@ -1,21 +1,26 @@
 ---
 name: performance-audit
-description: Audits performance and bundle health for Next.js apps and reports bottlenecks. Use when the user asks for a performance audit or optimization review.
+description: Audit performance risks and propose optimizations. Use after large UI or data changes.
+license: Complete terms in LICENSE.txt
 ---
 
-# Performance Audit
+This skill finds rendering, data, and bundle bottlenecks.
 
-## Build checks
-- Run `npm run build` and report any warnings.
-- If bundle analyzer is configured, run it only when requested.
+## Performance Thinking
+- **Rendering**: expensive components, re-renders
+- **Data**: over-fetching, blocking requests
+- **Bundle**: large client imports, unused code
 
-## Code checks
-- Identify large client components and suggest dynamic imports.
-- Ensure expensive components use `React.memo` where appropriate.
-- Verify images use Next.js `Image` with sizing.
-- Look for heavy dependencies on initial routes.
+## Audit Steps
+1) Identify heavy components.
+2) Review data-fetch patterns.
+3) Suggest memoization/lazy loading.
+4) Provide optimization list.
 
-## Report format
-- Bottlenecks and their locations
-- Suggested optimizations
-- Any build-time warnings
+## Output Format
+- Bottlenecks
+- Recommended fixes
+- Risk rating
+
+## Guardrails
+- No refactors without approval.

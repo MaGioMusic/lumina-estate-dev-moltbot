@@ -1,21 +1,23 @@
 ---
 name: lint-and-format
-description: Runs linting and formatting checks and applies safe fixes when requested. Use when the user asks to lint, format, or fix style issues.
+description: Run lint/format checks and report violations with prioritized fixes. Use after code changes or before merge.
+license: Complete terms in LICENSE.txt
 ---
 
-# Lint and Format
+This skill enforces code quality. It reports errors and provides fix steps without editing code.
 
-## Quick start
-1. Run the repo lint script if present.
-2. If a format script exists and the user asked for formatting, run it.
-3. Only run auto-fix when explicitly requested.
+## Workflow
 
-## Commands
-- Lint: `npm run lint`
-- Format (only if script exists): `npm run format`
-- Auto-fix (only if requested and ESLint is configured): `npx eslint . --fix`
+1) Run `npm run lint`
+2) If formatters exist, run them (or report missing)
+3) Group issues by severity
+4) Provide quick fixes
 
-## Report format
-- Lint results summary
-- Files auto-fixed (if any)
-- Any remaining errors with file paths
+## Output Format
+- Lint summary
+- Errors (blockers)
+- Warnings (non-blockers)
+- Quick fix suggestions
+
+## Guardrails
+- Never auto-fix unless explicitly asked.

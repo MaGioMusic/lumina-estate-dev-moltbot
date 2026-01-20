@@ -1,21 +1,21 @@
 ---
 name: release-checklist
-description: Runs a release readiness checklist for this repo. Use when the user asks for release prep, go-live checks, or pre-deploy validation.
+description: Provide release checklist: tests, security, performance, docs.
+license: Complete terms in LICENSE.txt
 ---
 
-# Release Checklist
+This skill validates readiness for merge or release.
 
-## Required checks
-1. Install deps: `npm install`
-2. Lint: `npm run lint`
-3. Prisma client: `npm run prisma:generate`
-4. Build: `npm run build`
-5. Verify migrations if schema changed: `npm run prisma:migrate`
+## Checklist
+- All tests pass
+- Security review done
+- Performance audit done
+- No destructive changes
+- Docs updated
 
-## Optional checks
-- CI verify: `npm run ci:verify`
-- Dependency audit: `npm audit --audit-level=high`
+## Output Format
+- Pass/Fail checklist
+- Blockers
 
-## Report format
-- Pass/fail status per step
-- Any blocking issues with file paths or logs
+## Guardrails
+- No code edits.

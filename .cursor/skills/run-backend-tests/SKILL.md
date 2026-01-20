@@ -1,20 +1,35 @@
 ---
 name: run-backend-tests
-description: Runs server-side or API test suites and reports results. Use when the user asks to run backend tests, API tests, or server-side coverage.
+description: Run backend tests and API checks; validate Prisma schema, migrations, and server routes. Use after API or DB changes.
+license: Complete terms in LICENSE.txt
 ---
 
-# Run Backend Tests
+This skill validates backend integrity: API routes, schema, and migrations.
 
-## Quick start
-1. Check `package.json` scripts for backend test commands (`test`, `test:backend`, `api:test`, `vitest`, `jest`).
-2. Run the most specific backend test script.
-3. If no script exists, identify the test runner from dependencies, then run it directly.
+## Pre-Check Thinking
 
-## Commands
-- Preferred: `npm run test:backend` or `npm run test`
-- If the repo uses Vitest or Jest (confirm in `package.json`), run `npx vitest` or `npx jest`
+- **Database dependencies**: Is DATABASE_URL valid?
+- **Schema changes**: Any Prisma migrations needed?
+- **Auth impact**: Any protected routes touched?
 
-## Report format
-- Passing/failing counts
-- Failing test names and file paths
-- If nothing runs, state: "No backend test scripts configured."
+## Backend Test Workflow
+
+1) **Install Dependencies**
+2) **Prisma Generate**
+   - Run `npx prisma generate` if needed.
+3) **Migrations**
+   - Run `npx prisma migrate status`
+4) **API Tests**
+   - Run `npm run test:api` if available (or note missing).
+5) **Summarize Failures**
+   - Provide failing endpoints + error categories.
+
+## Output Format
+- Summary (pass/fail)
+- Prisma status
+- Failing routes/tests
+- Suggested fixes
+
+## Guardrails
+- Do not apply migrations without approval.
+- Ask before touching schema.
