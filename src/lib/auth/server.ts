@@ -1,12 +1,13 @@
 import type { NextRequest } from 'next/server';
 import type { UserRole } from '@prisma/client';
+import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
 import { ForbiddenError, HttpError } from '@/lib/repo/errors';
 
 export interface AuthenticatedUser {
   id: string;
   role: UserRole;
-  mode: 'dev' | 'mock';
+  mode: 'session';
 }
 
 export interface RequireUserOptions {
@@ -14,43 +15,49 @@ export interface RequireUserOptions {
 }
 
 /**
- * Resolve the current user from the incoming request.
+ * Resolve the current user from the incoming request using NextAuth JWT session.
  *
- * Dev mode permits a small set of mock identities (header/cookie-based).
- * Production currently returns null until Supabase/real auth is wired.
- *
- * TODO: Replace with real session-based auth (Supabase/NextAuth) before production launch.
+ * Production-ready: Validates JWT token and retrieves user from database.
+ * Falls back to null only if no valid session exists.
  */
-export const getCurrentUser = (request: NextRequest): AuthenticatedUser | null => {
-  const isDev = process.env.NODE_ENV !== 'production';
+export const getCurrentUser = async (request: NextRequest): Promise<AuthenticatedUser | null> => {
+  try {
+    // Extract JWT token from the request using NextAuth
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
 
-  if (!isDev) {
-    // სანამ რეალურ სესიებს არ დავამატებთ, პროდაქშენში treated as unauthenticated.
+    if (!token?.sub) {
+      return null;
+    }
+
+    // Verify user still exists in database
+    const user = await prisma.user.findUnique({
+      where: { id: token.sub },
+      select: { id: true, accountRole: true },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      role: user.accountRole as UserRole,
+      mode: 'session',
+    };
+  } catch (error) {
+    console.error('[auth/server] Error getting current user:', error);
     return null;
   }
-
-  const headerUser = request.headers.get('x-lumina-dev-user');
-  const cookieUser = request.cookies.get('lumina_dev_token')?.value;
-  const userId = headerUser ?? cookieUser ?? null;
-  if (!userId) {
-    return null;
-  }
-
-  const headerRole = request.headers.get('x-lumina-dev-role') as UserRole | null;
-  const role = headerRole ?? 'client';
-
-  return {
-    id: userId,
-    role,
-    mode: 'dev',
-  };
 };
 
-export const requireUser = (
+export const requireUser = async (
   request: NextRequest,
   options?: RequireUserOptions,
-): AuthenticatedUser => {
-  const user = getCurrentUser(request);
+): Promise<AuthenticatedUser> => {
+  const user = await getCurrentUser(request);
   if (!user) {
     throw new HttpError('Unauthorized', 401, 'UNAUTHORIZED');
   }
@@ -84,5 +91,3 @@ export const resolveActorContext = async (user: AuthenticatedUser): Promise<Acto
     isAdmin,
   };
 };
-
-

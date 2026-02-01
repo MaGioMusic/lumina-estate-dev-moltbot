@@ -359,8 +359,9 @@ class LuminaEstateMCPServer {
 // Export for use in other parts of the application
 export { LuminaEstateMCPServer, type Property, type Agent };
 
-// Start the server if this file is run directly
-if (require.main === module) {
+// Start the server if this file is run directly (ESM-compatible check)
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
   const server = new LuminaEstateMCPServer();
   server.start().catch(console.error);
 } 

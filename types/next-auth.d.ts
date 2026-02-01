@@ -20,3 +20,14 @@ declare module 'next-auth/jwt' {
   }
 }
 
+// Image type declarations for static imports
+declare module '@/../public/images/photos/Roadmap Photos/Lumina App Preview.png' {
+  const content: import('next/image').StaticImageData;
+  export default content;
+}
+
+declare module '@/../public/images/photos/Roadmap Photos/Advanced Analytics.png' {
+  const content: import('next/image').StaticImageData;
+  export default content;
+}
+

@@ -96,11 +96,11 @@ const ProSidebarPropertiesPage: React.FC = () => {
   // Initialize from URL query params (location, type, minPrice, maxPrice)
   useEffect(() => {
     if (!searchParams) return;
-    const locationParam = searchParams.get('location') || '';
-    const typeParam = searchParams.get('type') || '';
-    const minParam = Number(searchParams.get('minPrice') || '0');
-    const maxParam = Number(searchParams.get('maxPrice') || '1000000');
-    const viewParam = (searchParams.get('view') || '').toLowerCase();
+    const locationParam = searchParams?.get('location') || '';
+    const typeParam = searchParams?.get('type') || '';
+    const minParam = Number(searchParams?.get('minPrice') || '0');
+    const maxParam = Number(searchParams?.get('maxPrice') || '1000000');
+    const viewParam = (searchParams?.get('view') || '').toLowerCase();
 
     // Update search query if provided
     if (locationParam) {
@@ -152,7 +152,7 @@ const ProSidebarPropertiesPage: React.FC = () => {
   useEffect(() => {
     try {
       const u = new URL(window.location.href);
-      const qpView = (u.searchParams.get('view') || '').toLowerCase();
+      const qpView = (u.searchParams?.get('view') || '').toLowerCase();
       if (!qpView) {
         const saved = window.localStorage.getItem('lumina_view');
         if (saved === 'map' || saved === 'grid') {

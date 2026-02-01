@@ -24,13 +24,13 @@ test('ChatWindow renders closed state without throwing', () => {
     <ChatWindow
       {...baseProps}
       isOpen={false}
-      chatRef={{ current: null }}
+      chatRef={{ current: null as HTMLDivElement | null }}
       message=""
       onMessageChange={() => {}}
       onSubmit={(e) => e.preventDefault()}
       onClose={() => {}}
-      centerCircleRef={{ current: null }}
-      audioRef={{ current: null }}
+      centerCircleRef={{ current: null as HTMLDivElement | null }}
+      audioRef={{ current: null as HTMLAudioElement | null }}
     />,
   );
   assert.ok(markup.includes('AI Assistant'));
@@ -53,15 +53,15 @@ test('ChatWindow renders inline results snapshot', () => {
   const markup = renderToString(
     <ChatWindow
       {...baseProps}
-      isOpen
-      chatRef={{ current: null }}
+      isOpen={true}
+      chatRef={{ current: null as HTMLDivElement | null }}
       message="test"
       onMessageChange={() => {}}
       onSubmit={(e) => e.preventDefault()}
       onClose={() => {}}
-      centerCircleRef={{ current: null }}
-      audioRef={{ current: null }}
-      showInlineResults
+      centerCircleRef={{ current: null as HTMLDivElement | null }}
+      audioRef={{ current: null as HTMLAudioElement | null }}
+      showInlineResults={true}
       searchResults={[mockResult]}
       lastSearchSummary="1 result"
     />,
