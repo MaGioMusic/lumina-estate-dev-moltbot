@@ -3,16 +3,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { sanitizeFields } from '@/lib/sanitize';
 
 const dealSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
   contactId: z.string().uuid('Invalid contact ID'),
   stage: z.enum(['lead', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']).default('lead'),
   value: z.number().min(0).optional(),
   currency: z.enum(['GEL', 'USD', 'EUR', 'RUB']).default('GEL'),
   probability: z.number().min(0).max(100).optional(),
   expectedCloseDate: z.string().datetime().optional(),
-  description: z.string().optional(),
+  description: z.string().max(5000, 'Description too long').optional(),
 });
 
 // GET /api/deals - List all deals for the agent
@@ -27,6 +28,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const stage = searchParams.get('stage');
     const contactId = searchParams.get('contactId');
+    
+    // SECURITY FIX: Add pagination to prevent DoS
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
+    const skip = (page - 1) * limit;
 
     const where: any = {
       agentId: session.user.id,
@@ -40,21 +46,26 @@ export async function GET(req: NextRequest) {
       where.contactId = contactId;
     }
 
-    const deals = await prisma.deal.findMany({
-      where,
-      include: {
-        contact: {
-          select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+    const [deals, total] = await Promise.all([
+      prisma.deal.findMany({
+        where,
+        include: {
+          contact: {
+            select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+          },
+          agent: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          _count: {
+            select: { tasks: true, notes: true },
+          },
         },
-        agent: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        _count: {
-          select: { tasks: true, notes: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.deal.count({ where }),
+    ]);
 
     // Group by stage for pipeline view
     const pipeline = {
@@ -67,14 +78,25 @@ export async function GET(req: NextRequest) {
     };
 
     const stats = {
-      total: deals.length,
+      total,
       totalValue: deals.reduce((sum, d) => sum + (d.value?.toNumber() || 0), 0),
       wonValue: deals
         .filter(d => d.stage === 'closed_won')
         .reduce((sum, d) => sum + (d.value?.toNumber() || 0), 0),
     };
 
-    return NextResponse.json({ success: true, deals, pipeline, stats });
+    return NextResponse.json({ 
+      success: true, 
+      deals, 
+      pipeline, 
+      stats,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      }
+    });
   } catch (error) {
     console.error('Error fetching deals:', error);
     return NextResponse.json(
@@ -95,6 +117,9 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const validatedData = dealSchema.parse(body);
+    
+    // SECURITY FIX: Sanitize string inputs to prevent XSS
+    const sanitizedData = sanitizeFields(validatedData, ['title', 'description']);
 
     // Verify contact belongs to agent
     const contact = await prisma.contact.findFirst({
@@ -113,9 +138,9 @@ export async function POST(req: NextRequest) {
 
     const deal = await prisma.deal.create({
       data: {
-        ...validatedData,
+        ...sanitizedData,
         agentId: session.user.id,
-        expectedCloseDate: validatedData.expectedCloseDate
+        expectedCloseDate: sanitizedData.expectedCloseDate
           ? new Date(validatedData.expectedCloseDate)
           : undefined,
       },

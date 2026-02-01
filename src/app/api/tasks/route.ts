@@ -3,10 +3,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { sanitizeFields } from '@/lib/sanitize';
 
 const taskSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().optional(),
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
+  description: z.string().max(2000, 'Description too long').optional(),
   assignedToId: z.string().uuid(),
   dealId: z.string().uuid().optional(),
   contactId: z.string().uuid().optional(),
@@ -24,23 +25,46 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
     const assignedToMe = searchParams.get('assignedToMe') === 'true';
+    
+    // SECURITY FIX: Add pagination to prevent DoS
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
+    const skip = (page - 1) * limit;
 
-    const where: any = {};
+    // SECURITY FIX: Always filter by user's tasks - prevent unauthorized access
+    const where: any = {
+      assignedToId: session.user.id,
+    };
+    
     if (status) where.status = status;
     if (priority) where.priority = priority;
-    if (assignedToMe) where.assignedToId = session.user.id;
+    // Note: assignedToMe is now redundant since we always filter by assignedToId
 
-    const tasks = await prisma.task.findMany({
-      where,
-      include: {
-        assignedTo: { select: { id: true, firstName: true, lastName: true } },
-        deal: { select: { id: true, title: true } },
-        contact: { select: { id: true, firstName: true, lastName: true } },
-      },
-      orderBy: { dueDate: 'asc' },
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        include: {
+          assignedTo: { select: { id: true, firstName: true, lastName: true } },
+          deal: { select: { id: true, title: true } },
+          contact: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: { dueDate: 'asc' },
+        skip,
+        take: limit,
+      }),
+      prisma.task.count({ where }),
+    ]);
+
+    return NextResponse.json({ 
+      success: true, 
+      tasks,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      }
     });
-
-    return NextResponse.json({ success: true, tasks });
   } catch (error) {
     console.error('Error fetching tasks:', error);
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
@@ -54,11 +78,14 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const validatedData = taskSchema.parse(body);
+    
+    // SECURITY FIX: Sanitize string inputs to prevent XSS
+    const sanitizedData = sanitizeFields(validatedData, ['title', 'description']);
 
     const task = await prisma.task.create({
       data: {
-        ...validatedData,
-        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : undefined,
+        ...sanitizedData,
+        dueDate: sanitizedData.dueDate ? new Date(sanitizedData.dueDate) : undefined,
       },
       include: {
         assignedTo: { select: { id: true, firstName: true, lastName: true } },

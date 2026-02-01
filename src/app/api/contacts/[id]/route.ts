@@ -3,15 +3,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { sanitizeFields } from '@/lib/sanitize';
 
 const contactUpdateSchema = z.object({
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  email: z.string().email().optional().nullable(),
-  phone: z.string().optional().nullable(),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  email: z.string().email().max(255).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
   status: z.enum(['lead', 'prospect', 'client']).optional(),
-  source: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
+  source: z.string().max(100).optional().nullable(),
+  notes: z.string().max(5000).optional().nullable(),
 });
 
 // GET /api/contacts/[id] - Get single contact
@@ -91,10 +92,15 @@ export async function PATCH(
 
     const body = await req.json();
     const validatedData = contactUpdateSchema.parse(body);
+    
+    // SECURITY FIX: Sanitize string inputs to prevent XSS
+    const sanitizedData = sanitizeFields(validatedData, [
+      'firstName', 'lastName', 'email', 'phone', 'source', 'notes'
+    ]);
 
     const contact = await prisma.contact.update({
       where: { id: params.id },
-      data: validatedData,
+      data: sanitizedData,
       include: {
         assignedAgent: {
           select: { id: true, firstName: true, lastName: true },
