@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChatMessage, MessageType } from '@/types/chat';
+import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
 
 interface UseChatMessagesOptions {
   roomId: string | null;
@@ -141,10 +142,20 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
         fileSize = data.file.size;
       }
       
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       // Send message
       const response = await fetch('/api/chat/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify({
           roomId,
           content: data.content,

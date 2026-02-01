@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields } from '@/lib/sanitize';
+import { enforceRateLimit } from '@/lib/security/rateLimiter';
 
 // Validation schema for contact
 const contactSchema = z.object({
@@ -20,10 +21,17 @@ const contactSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    enforceRateLimit(`contacts:get:${session.user.id}`, {
+      limit: 100,
+      windowMs: 60_000,
+      feature: 'contacts list'
+    });
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
@@ -99,10 +107,17 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    enforceRateLimit(`contacts:create:${session.user.id}`, {
+      limit: 20,
+      windowMs: 60_000,
+      feature: 'contact creation'
+    });
 
     const body = await req.json();
     const validatedData = contactSchema.parse(body);

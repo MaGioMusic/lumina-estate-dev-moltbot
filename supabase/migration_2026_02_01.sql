@@ -1,216 +1,687 @@
--- Lumina Estate Database Migration
--- Run this SQL in your Supabase SQL Editor
--- This creates all tables including the new CRM and Chat tables
+-- ============================================================================
+-- LUMINA ESTATE - ROW LEVEL SECURITY (RLS) POLICIES
+-- Migration Date: 2026-02-01
+-- Purpose: Implement comprehensive RLS policies for all CRM and Chat tables
+-- ============================================================================
 
--- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('guest', 'client', 'agent', 'investor', 'admin');
-CREATE TYPE "AccountRole" AS ENUM ('USER', 'AGENT', 'ADMIN', 'DEVELOPER');
-CREATE TYPE "CurrencyType" AS ENUM ('GEL', 'USD', 'EUR', 'RUB');
-CREATE TYPE "PropertyType" AS ENUM ('apartment', 'house', 'villa', 'studio', 'penthouse', 'commercial', 'land', 'office');
-CREATE TYPE "TransactionType" AS ENUM ('sale', 'rent', 'lease');
-CREATE TYPE "PropertyCondition" AS ENUM ('new', 'excellent', 'good', 'needs_renovation');
-CREATE TYPE "FurnishedType" AS ENUM ('furnished', 'partially_furnished', 'unfurnished');
-CREATE TYPE "PropertyStatus" AS ENUM ('active', 'pending', 'sold', 'rented', 'inactive');
-CREATE TYPE "AppointmentStatus" AS ENUM ('scheduled', 'confirmed', 'completed', 'cancelled', 'no_show');
-CREATE TYPE "AppointmentType" AS ENUM ('viewing', 'consultation', 'signing', 'inspection');
-CREATE TYPE "ReviewType" AS ENUM ('agent', 'property');
-CREATE TYPE "InquiryStatus" AS ENUM ('new', 'in_progress', 'responded', 'closed');
-CREATE TYPE "NotificationType" AS ENUM ('new_property', 'price_change', 'appointment', 'review', 'system');
-CREATE TYPE "ThemeType" AS ENUM ('light', 'dark');
-CREATE TYPE "ContactStatus" AS ENUM ('lead', 'prospect', 'client');
-CREATE TYPE "DealStage" AS ENUM ('lead', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost');
-CREATE TYPE "TaskPriority" AS ENUM ('low', 'medium', 'high');
-CREATE TYPE "TaskStatus" AS ENUM ('pending', 'in_progress', 'completed');
-CREATE TYPE "ChatRoomType" AS ENUM ('direct', 'group');
-CREATE TYPE "ChatMessageType" AS ENUM ('text', 'image', 'file');
-CREATE TYPE "ChatRoomMemberRole" AS ENUM ('admin', 'member');
-CREATE TYPE "ListingStatus" AS ENUM ('active', 'expired', 'withdrawn', 'sold', 'rented');
-CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'completed', 'cancelled');
-CREATE TYPE "OrgRole" AS ENUM ('owner', 'admin', 'agent', 'member', 'viewer');
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
 
--- CreateTable: users (existing)
-CREATE TABLE "users" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "email" VARCHAR(255) NOT NULL,
-    "first_name" VARCHAR(100) NOT NULL,
-    "last_name" VARCHAR(100) NOT NULL,
-    "avatar" VARCHAR(500),
-    "role" "UserRole" NOT NULL DEFAULT 'client',
-    "account_role" "AccountRole" NOT NULL DEFAULT 'USER',
-    "phone" VARCHAR(20),
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "last_login" TIMESTAMPTZ(6),
-    "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "password_hash" VARCHAR(255) NOT NULL,
-    "email_verification_token" VARCHAR(100),
-    "is_email_verified" BOOLEAN NOT NULL DEFAULT false,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+-- Function to check if current user is an admin
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM users 
+    WHERE id = auth.uid() 
+    AND (account_role = 'ADMIN' OR account_role = 'DEVELOPER' OR role = 'admin')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to check if user is a member of a chat room
+CREATE OR REPLACE FUNCTION public.is_chat_room_member(room_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM chat_room_members 
+    WHERE room_id = room_uuid 
+    AND user_id = auth.uid()
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to check if user is an admin of a chat room
+CREATE OR REPLACE FUNCTION public.is_chat_room_admin(room_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM chat_room_members 
+    WHERE room_id = room_uuid 
+    AND user_id = auth.uid()
+    AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get agent_id for a contact
+CREATE OR REPLACE FUNCTION public.get_contact_agent_id(contact_uuid UUID)
+RETURNS UUID AS $$
+DECLARE
+  agent_uuid UUID;
+BEGIN
+  SELECT assigned_agent_id INTO agent_uuid 
+  FROM contacts 
+  WHERE id = contact_uuid;
+  RETURN agent_uuid;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- 1. CONTACTS TABLE RLS POLICIES
+-- ============================================================================
+
+-- Enable RLS
+ALTER TABLE "contacts" ENABLE ROW LEVEL SECURITY;
+
+-- Force RLS for table owners (bypass only for admins)
+ALTER TABLE "contacts" FORCE ROW LEVEL SECURITY;
+
+-- DROP existing policies if any (for idempotency)
+DROP POLICY IF EXISTS "contacts_select_own" ON contacts;
+DROP POLICY IF EXISTS "contacts_insert_own" ON contacts;
+DROP POLICY IF EXISTS "contacts_update_own" ON contacts;
+DROP POLICY IF EXISTS "contacts_delete_own" ON contacts;
+DROP POLICY IF EXISTS "contacts_admin_bypass" ON contacts;
+
+-- SELECT: Users can view contacts assigned to them
+CREATE POLICY "contacts_select_own"
+ON contacts FOR SELECT
+USING (
+  assigned_agent_id = auth.uid() 
+  OR is_admin()
 );
 
--- CreateTable: CRM Tables (NEW)
-CREATE TABLE "contacts" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "first_name" VARCHAR(100) NOT NULL,
-    "last_name" VARCHAR(100) NOT NULL,
-    "email" VARCHAR(255),
-    "phone" VARCHAR(20),
-    "status" "ContactStatus" NOT NULL DEFAULT 'lead',
-    "source" VARCHAR(100),
-    "assigned_agent_id" UUID,
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    CONSTRAINT "contacts_pkey" PRIMARY KEY ("id")
+-- INSERT: Users can create contacts and assign to themselves or leave unassigned
+CREATE POLICY "contacts_insert_own"
+ON contacts FOR INSERT
+WITH CHECK (
+  assigned_agent_id = auth.uid() 
+  OR assigned_agent_id IS NULL
+  OR is_admin()
 );
 
-CREATE TABLE "deals" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "title" VARCHAR(300) NOT NULL,
-    "contact_id" UUID NOT NULL,
-    "agent_id" UUID,
-    "stage" "DealStage" NOT NULL DEFAULT 'lead',
-    "value" DECIMAL(12,2),
-    "currency" "CurrencyType" NOT NULL DEFAULT 'GEL',
-    "probability" INTEGER DEFAULT 0,
-    "expected_close_date" TIMESTAMPTZ(6),
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    CONSTRAINT "deals_pkey" PRIMARY KEY ("id")
+-- UPDATE: Users can update contacts assigned to them, admins can update any
+CREATE POLICY "contacts_update_own"
+ON contacts FOR UPDATE
+USING (
+  assigned_agent_id = auth.uid() 
+  OR is_admin()
+)
+WITH CHECK (
+  assigned_agent_id = auth.uid() 
+  OR is_admin()
 );
 
-CREATE TABLE "tasks" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "title" VARCHAR(300) NOT NULL,
-    "description" TEXT,
-    "assigned_to_id" UUID NOT NULL,
-    "deal_id" UUID,
-    "contact_id" UUID,
-    "due_date" TIMESTAMPTZ(6),
-    "priority" "TaskPriority" NOT NULL DEFAULT 'medium',
-    "status" "TaskStatus" NOT NULL DEFAULT 'pending',
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
+-- DELETE: Users can delete contacts assigned to them, admins can delete any
+CREATE POLICY "contacts_delete_own"
+ON contacts FOR DELETE
+USING (
+  assigned_agent_id = auth.uid() 
+  OR is_admin()
 );
 
-CREATE TABLE "notes" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "content" TEXT NOT NULL,
-    "contact_id" UUID,
-    "deal_id" UUID,
-    "created_by_id" UUID NOT NULL,
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    CONSTRAINT "notes_pkey" PRIMARY KEY ("id")
+-- ADMIN BYPASS: Full access for admin users (redundant with above but explicit)
+CREATE POLICY "contacts_admin_bypass"
+ON contacts FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
+
+-- ============================================================================
+-- 2. DEALS TABLE RLS POLICIES
+-- ============================================================================
+
+-- Enable RLS
+ALTER TABLE "deals" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "deals" FORCE ROW LEVEL SECURITY;
+
+-- DROP existing policies if any
+DROP POLICY IF EXISTS "deals_select_own" ON deals;
+DROP POLICY IF EXISTS "deals_insert_own" ON deals;
+DROP POLICY IF EXISTS "deals_update_own" ON deals;
+DROP POLICY IF EXISTS "deals_delete_own" ON deals;
+DROP POLICY IF EXISTS "deals_admin_bypass" ON deals;
+
+-- SELECT: Agents can view deals where they are the agent OR deals for their contacts
+CREATE POLICY "deals_select_own"
+ON deals FOR SELECT
+USING (
+  agent_id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM contacts 
+    WHERE contacts.id = deals.contact_id 
+    AND contacts.assigned_agent_id = auth.uid()
+  )
+  OR is_admin()
 );
 
--- CreateTable: Chat Tables (NEW)
-CREATE TABLE "chat_rooms" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "name" VARCHAR(200),
-    "type" "ChatRoomType" NOT NULL DEFAULT 'direct',
-    "created_by_id" UUID NOT NULL,
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    CONSTRAINT "chat_rooms_pkey" PRIMARY KEY ("id")
+-- INSERT: Agents can create deals for themselves or their contacts
+CREATE POLICY "deals_insert_own"
+ON deals FOR INSERT
+WITH CHECK (
+  agent_id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM contacts 
+    WHERE contacts.id = deals.contact_id 
+    AND contacts.assigned_agent_id = auth.uid()
+  )
+  OR is_admin()
 );
 
-CREATE TABLE "chat_messages" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "room_id" UUID NOT NULL,
-    "sender_id" UUID NOT NULL,
-    "content" TEXT NOT NULL,
-    "type" "ChatMessageType" NOT NULL DEFAULT 'text',
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
-    CONSTRAINT "chat_messages_pkey" PRIMARY KEY ("id")
+-- UPDATE: Agents can update their own deals, or deals for their contacts
+CREATE POLICY "deals_update_own"
+ON deals FOR UPDATE
+USING (
+  agent_id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM contacts 
+    WHERE contacts.id = deals.contact_id 
+    AND contacts.assigned_agent_id = auth.uid()
+  )
+  OR is_admin()
+)
+WITH CHECK (
+  agent_id = auth.uid() 
+  OR is_admin()
 );
 
-CREATE TABLE "chat_room_members" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "room_id" UUID NOT NULL,
-    "user_id" UUID NOT NULL,
-    "role" "ChatRoomMemberRole" NOT NULL DEFAULT 'member',
-    "joined_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "chat_room_members_pkey" PRIMARY KEY ("id")
+-- DELETE: Agents can delete their own deals, admins can delete any
+CREATE POLICY "deals_delete_own"
+ON deals FOR DELETE
+USING (
+  agent_id = auth.uid() 
+  OR is_admin()
 );
 
--- Indexes for CRM tables
-CREATE INDEX "idx_contacts_status" ON "contacts"("status");
-CREATE INDEX "idx_contacts_assigned_agent" ON "contacts"("assigned_agent_id");
-CREATE INDEX "idx_contacts_email" ON "contacts"("email");
-CREATE INDEX "idx_contacts_created_at" ON "contacts"("created_at");
+-- ADMIN BYPASS: Full access for admin users
+CREATE POLICY "deals_admin_bypass"
+ON deals FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
 
-CREATE INDEX "idx_deals_contact" ON "deals"("contact_id");
-CREATE INDEX "idx_deals_agent" ON "deals"("agent_id");
-CREATE INDEX "idx_deals_stage" ON "deals"("stage");
-CREATE INDEX "idx_deals_expected_close" ON "deals"("expected_close_date");
-CREATE INDEX "idx_deals_created_at" ON "deals"("created_at");
+-- ============================================================================
+-- 3. TASKS TABLE RLS POLICIES
+-- ============================================================================
 
-CREATE INDEX "idx_tasks_assigned_to" ON "tasks"("assigned_to_id");
-CREATE INDEX "idx_tasks_deal" ON "tasks"("deal_id");
-CREATE INDEX "idx_tasks_contact" ON "tasks"("contact_id");
-CREATE INDEX "idx_tasks_status" ON "tasks"("status");
-CREATE INDEX "idx_tasks_priority" ON "tasks"("priority");
-CREATE INDEX "idx_tasks_due_date" ON "tasks"("due_date");
+-- Enable RLS
+ALTER TABLE "tasks" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "tasks" FORCE ROW LEVEL SECURITY;
 
-CREATE INDEX "idx_notes_contact" ON "notes"("contact_id");
-CREATE INDEX "idx_notes_deal" ON "notes"("deal_id");
-CREATE INDEX "idx_notes_created_by" ON "notes"("created_by_id");
-CREATE INDEX "idx_notes_created_at" ON "notes"("created_at");
+-- DROP existing policies if any
+DROP POLICY IF EXISTS "tasks_select_own" ON tasks;
+DROP POLICY IF EXISTS "tasks_insert_own" ON tasks;
+DROP POLICY IF EXISTS "tasks_update_own" ON tasks;
+DROP POLICY IF EXISTS "tasks_delete_own" ON tasks;
+DROP POLICY IF EXISTS "tasks_admin_bypass" ON tasks;
 
--- Indexes for Chat tables
-CREATE INDEX "idx_chat_rooms_type" ON "chat_rooms"("type");
-CREATE INDEX "idx_chat_rooms_created_by" ON "chat_rooms"("created_by_id");
-CREATE INDEX "idx_chat_rooms_created_at" ON "chat_rooms"("created_at");
+-- SELECT: Users can view tasks assigned to them OR tasks for their deals/contacts
+CREATE POLICY "tasks_select_own"
+ON tasks FOR SELECT
+USING (
+  assigned_to_id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM deals 
+    WHERE deals.id = tasks.deal_id 
+    AND (deals.agent_id = auth.uid() OR is_admin())
+  )
+  OR EXISTS (
+    SELECT 1 FROM contacts 
+    WHERE contacts.id = tasks.contact_id 
+    AND contacts.assigned_agent_id = auth.uid()
+  )
+  OR is_admin()
+);
 
-CREATE INDEX "idx_chat_messages_room" ON "chat_messages"("room_id");
-CREATE INDEX "idx_chat_messages_sender" ON "chat_messages"("sender_id");
-CREATE INDEX "idx_chat_messages_created_at" ON "chat_messages"("created_at");
-CREATE INDEX "idx_chat_messages_room_created" ON "chat_messages"("room_id", "created_at");
+-- INSERT: Users can create tasks for themselves or their deals/contacts
+CREATE POLICY "tasks_insert_own"
+ON tasks FOR INSERT
+WITH CHECK (
+  assigned_to_id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM deals 
+    WHERE deals.id = tasks.deal_id 
+    AND deals.agent_id = auth.uid()
+  )
+  OR EXISTS (
+    SELECT 1 FROM contacts 
+    WHERE contacts.id = tasks.contact_id 
+    AND contacts.assigned_agent_id = auth.uid()
+  )
+  OR is_admin()
+);
 
-CREATE INDEX "idx_chat_room_members_room" ON "chat_room_members"("room_id");
-CREATE INDEX "idx_chat_room_members_user" ON "chat_room_members"("user_id");
-CREATE UNIQUE INDEX "chat_room_members_room_id_user_id_key" ON "chat_room_members"("room_id", "user_id");
+-- UPDATE: Users can update tasks assigned to them, or their own created tasks
+CREATE POLICY "tasks_update_own"
+ON tasks FOR UPDATE
+USING (
+  assigned_to_id = auth.uid() 
+  OR is_admin()
+)
+WITH CHECK (
+  assigned_to_id = auth.uid() 
+  OR is_admin()
+);
 
--- Foreign Keys for CRM tables
-ALTER TABLE "contacts" ADD CONSTRAINT "contacts_assigned_agent_id_fkey" FOREIGN KEY ("assigned_agent_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- DELETE: Users can delete tasks assigned to them, admins can delete any
+CREATE POLICY "tasks_delete_own"
+ON tasks FOR DELETE
+USING (
+  assigned_to_id = auth.uid() 
+  OR is_admin()
+);
 
-ALTER TABLE "deals" ADD CONSTRAINT "deals_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "deals" ADD CONSTRAINT "deals_agent_id_fkey" FOREIGN KEY ("agent_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- ADMIN BYPASS: Full access for admin users
+CREATE POLICY "tasks_admin_bypass"
+ON tasks FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
 
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_assigned_to_id_fkey" FOREIGN KEY ("assigned_to_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_deal_id_fkey" FOREIGN KEY ("deal_id") REFERENCES "deals"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- ============================================================================
+-- 4. NOTES TABLE RLS POLICIES
+-- ============================================================================
 
-ALTER TABLE "notes" ADD CONSTRAINT "notes_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "notes" ADD CONSTRAINT "notes_deal_id_fkey" FOREIGN KEY ("deal_id") REFERENCES "deals"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "notes" ADD CONSTRAINT "notes_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- Enable RLS
+ALTER TABLE "notes" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "notes" FORCE ROW LEVEL SECURITY;
 
--- Foreign Keys for Chat tables
-ALTER TABLE "chat_rooms" ADD CONSTRAINT "chat_rooms_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- DROP existing policies if any
+DROP POLICY IF EXISTS "notes_select_own" ON notes;
+DROP POLICY IF EXISTS "notes_insert_own" ON notes;
+DROP POLICY IF EXISTS "notes_update_own" ON notes;
+DROP POLICY IF EXISTS "notes_delete_own" ON notes;
+DROP POLICY IF EXISTS "notes_admin_bypass" ON notes;
 
-ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_room_id_fkey" FOREIGN KEY ("room_id") REFERENCES "chat_rooms"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- SELECT: Users can view notes on their contacts/deals OR notes they created
+CREATE POLICY "notes_select_own"
+ON notes FOR SELECT
+USING (
+  created_by_id = auth.uid() 
+  OR EXISTS (
+    SELECT 1 FROM contacts 
+    WHERE contacts.id = notes.contact_id 
+    AND contacts.assigned_agent_id = auth.uid()
+  )
+  OR EXISTS (
+    SELECT 1 FROM deals 
+    WHERE deals.id = notes.deal_id 
+    AND deals.agent_id = auth.uid()
+  )
+  OR is_admin()
+);
 
-ALTER TABLE "chat_room_members" ADD CONSTRAINT "chat_room_members_room_id_fkey" FOREIGN KEY ("room_id") REFERENCES "chat_rooms"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "chat_room_members" ADD CONSTRAINT "chat_room_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- INSERT: Users can create notes on their contacts/deals
+CREATE POLICY "notes_insert_own"
+ON notes FOR INSERT
+WITH CHECK (
+  created_by_id = auth.uid() 
+  AND (
+    contact_id IS NULL 
+    OR EXISTS (
+      SELECT 1 FROM contacts 
+      WHERE contacts.id = notes.contact_id 
+      AND (contacts.assigned_agent_id = auth.uid() OR is_admin())
+    )
+  )
+  AND (
+    deal_id IS NULL 
+    OR EXISTS (
+      SELECT 1 FROM deals 
+      WHERE deals.id = notes.deal_id 
+      AND (deals.agent_id = auth.uid() OR is_admin())
+    )
+  )
+  OR is_admin()
+);
 
--- Enable RLS (Row Level Security) - Optional but recommended
--- ALTER TABLE "contacts" ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE "deals" ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE "tasks" ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE "notes" ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE "chat_rooms" ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE "chat_messages" ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE "chat_room_members" ENABLE ROW LEVEL SECURITY;
+-- UPDATE: Only note creator can update their notes
+CREATE POLICY "notes_update_own"
+ON notes FOR UPDATE
+USING (
+  created_by_id = auth.uid() 
+  OR is_admin()
+)
+WITH CHECK (
+  created_by_id = auth.uid() 
+  OR is_admin()
+);
 
--- Add comments for documentation
-COMMENT ON TABLE "contacts" IS 'CRM contacts - clients and leads';
-COMMENT ON TABLE "deals" IS 'Sales pipeline deals';
-COMMENT ON TABLE "tasks" IS 'Agent tasks and todos';
-COMMENT ON TABLE "notes" IS 'Notes on contacts and deals';
-COMMENT ON TABLE "chat_rooms" IS 'Chat conversation rooms';
-COMMENT ON TABLE "chat_messages" IS 'Individual chat messages';
-COMMENT ON TABLE "chat_room_members" IS 'Room membership with roles';
+-- DELETE: Only note creator or admins can delete
+CREATE POLICY "notes_delete_own"
+ON notes FOR DELETE
+USING (
+  created_by_id = auth.uid() 
+  OR is_admin()
+);
+
+-- ADMIN BYPASS: Full access for admin users
+CREATE POLICY "notes_admin_bypass"
+ON notes FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
+
+-- ============================================================================
+-- 5. CHAT_ROOMS TABLE RLS POLICIES
+-- ============================================================================
+
+-- Enable RLS
+ALTER TABLE "chat_rooms" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "chat_rooms" FORCE ROW LEVEL SECURITY;
+
+-- DROP existing policies if any
+DROP POLICY IF EXISTS "chat_rooms_select_member" ON chat_rooms;
+DROP POLICY IF EXISTS "chat_rooms_insert_authenticated" ON chat_rooms;
+DROP POLICY IF EXISTS "chat_rooms_update_creator_or_admin" ON chat_rooms;
+DROP POLICY IF EXISTS "chat_rooms_delete_creator" ON chat_rooms;
+DROP POLICY IF EXISTS "chat_rooms_admin_bypass" ON chat_rooms;
+
+-- SELECT: Users can view rooms where they are a member
+CREATE POLICY "chat_rooms_select_member"
+ON chat_rooms FOR SELECT
+USING (
+  created_by_id = auth.uid()
+  OR EXISTS (
+    SELECT 1 FROM chat_room_members 
+    WHERE chat_room_members.room_id = chat_rooms.id 
+    AND chat_room_members.user_id = auth.uid()
+  )
+  OR is_admin()
+);
+
+-- INSERT: Any authenticated user can create rooms
+CREATE POLICY "chat_rooms_insert_authenticated"
+ON chat_rooms FOR INSERT
+WITH CHECK (
+  created_by_id = auth.uid() 
+  OR is_admin()
+);
+
+-- UPDATE: Only room creator or room admins can update
+CREATE POLICY "chat_rooms_update_creator_or_admin"
+ON chat_rooms FOR UPDATE
+USING (
+  created_by_id = auth.uid() 
+  OR is_chat_room_admin(id)
+  OR is_admin()
+)
+WITH CHECK (
+  created_by_id = auth.uid() 
+  OR is_chat_room_admin(id)
+  OR is_admin()
+);
+
+-- DELETE: Only room creator can delete, or admins
+CREATE POLICY "chat_rooms_delete_creator"
+ON chat_rooms FOR DELETE
+USING (
+  created_by_id = auth.uid() 
+  OR is_admin()
+);
+
+-- ADMIN BYPASS: Full access for admin users
+CREATE POLICY "chat_rooms_admin_bypass"
+ON chat_rooms FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
+
+-- ============================================================================
+-- 6. CHAT_MESSAGES TABLE RLS POLICIES
+-- ============================================================================
+
+-- Enable RLS
+ALTER TABLE "chat_messages" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "chat_messages" FORCE ROW LEVEL SECURITY;
+
+-- DROP existing policies if any
+DROP POLICY IF EXISTS "chat_messages_select_member" ON chat_messages;
+DROP POLICY IF EXISTS "chat_messages_insert_member" ON chat_messages;
+DROP POLICY IF EXISTS "chat_messages_update_sender" ON chat_messages;
+DROP POLICY IF EXISTS "chat_messages_delete_sender_or_admin" ON chat_messages;
+DROP POLICY IF EXISTS "chat_messages_admin_bypass" ON chat_messages;
+
+-- SELECT: Users can view messages in rooms they are members of
+CREATE POLICY "chat_messages_select_member"
+ON chat_messages FOR SELECT
+USING (
+  is_chat_room_member(room_id) 
+  OR is_admin()
+);
+
+-- INSERT: Room members can send messages
+CREATE POLICY "chat_messages_insert_member"
+ON chat_messages FOR INSERT
+WITH CHECK (
+  sender_id = auth.uid()
+  AND is_chat_room_member(room_id)
+  OR is_admin()
+);
+
+-- UPDATE: Only message sender can edit their messages (soft edit only)
+CREATE POLICY "chat_messages_update_sender"
+ON chat_messages FOR UPDATE
+USING (
+  sender_id = auth.uid() 
+  OR is_admin()
+)
+WITH CHECK (
+  sender_id = auth.uid() 
+  OR is_admin()
+);
+
+-- DELETE: Soft delete - only sender or room admin can "delete" (update is_deleted flag)
+-- Hard delete only by sender or admin
+CREATE POLICY "chat_messages_delete_sender_or_admin"
+ON chat_messages FOR DELETE
+USING (
+  sender_id = auth.uid() 
+  OR is_chat_room_admin(room_id)
+  OR is_admin()
+);
+
+-- ADMIN BYPASS: Full access for admin users
+CREATE POLICY "chat_messages_admin_bypass"
+ON chat_messages FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
+
+-- ============================================================================
+-- 7. CHAT_ROOM_MEMBERS TABLE RLS POLICIES
+-- ============================================================================
+
+-- Enable RLS
+ALTER TABLE "chat_room_members" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "chat_room_members" FORCE ROW LEVEL SECURITY;
+
+-- DROP existing policies if any
+DROP POLICY IF EXISTS "chat_room_members_select_member" ON chat_room_members;
+DROP POLICY IF EXISTS "chat_room_members_insert_self_or_admin" ON chat_room_members;
+DROP POLICY IF EXISTS "chat_room_members_update_admin" ON chat_room_members;
+DROP POLICY IF EXISTS "chat_room_members_delete_self_or_admin" ON chat_room_members;
+DROP POLICY IF EXISTS "chat_room_members_admin_bypass" ON chat_room_members;
+
+-- SELECT: Users can view members of rooms they belong to
+CREATE POLICY "chat_room_members_select_member"
+ON chat_room_members FOR SELECT
+USING (
+  user_id = auth.uid()
+  OR EXISTS (
+    SELECT 1 FROM chat_room_members AS my_membership
+    WHERE my_membership.room_id = chat_room_members.room_id 
+    AND my_membership.user_id = auth.uid()
+  )
+  OR is_admin()
+);
+
+-- INSERT: Users can add themselves (join), room admins can add others, room creator auto-admin
+CREATE POLICY "chat_room_members_insert_self_or_admin"
+ON chat_room_members FOR INSERT
+WITH CHECK (
+  user_id = auth.uid()  -- Self join
+  OR is_chat_room_admin(room_id)  -- Admin adding others
+  OR EXISTS (  -- Room creator adding first members
+    SELECT 1 FROM chat_rooms 
+    WHERE chat_rooms.id = room_id 
+    AND chat_rooms.created_by_id = auth.uid()
+    AND NOT EXISTS (
+      SELECT 1 FROM chat_room_members 
+      WHERE chat_room_members.room_id = room_id
+    )
+  )
+  OR is_admin()
+);
+
+-- UPDATE: Only room admins can update member roles
+CREATE POLICY "chat_room_members_update_admin"
+ON chat_room_members FOR UPDATE
+USING (
+  is_chat_room_admin(room_id) 
+  OR is_admin()
+)
+WITH CHECK (
+  is_chat_room_admin(room_id) 
+  OR is_admin()
+);
+
+-- DELETE: Users can leave rooms (self-delete), room admins can remove others
+CREATE POLICY "chat_room_members_delete_self_or_admin"
+ON chat_room_members FOR DELETE
+USING (
+  user_id = auth.uid()  -- Self leave
+  OR is_chat_room_admin(room_id)  -- Admin removing others
+  OR is_admin()
+);
+
+-- ADMIN BYPASS: Full access for admin users
+CREATE POLICY "chat_room_members_admin_bypass"
+ON chat_room_members FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
+
+-- ============================================================================
+-- ADDITIONAL USER TABLE RLS (Optional - for user profile protection)
+-- ============================================================================
+
+-- Enable RLS on users table if not already enabled
+ALTER TABLE "users" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "users" FORCE ROW LEVEL SECURITY;
+
+-- DROP existing policies if any
+DROP POLICY IF EXISTS "users_select_own" ON users;
+DROP POLICY IF EXISTS "users_update_own" ON users;
+DROP POLICY IF EXISTS "users_admin_bypass" ON users;
+
+-- SELECT: Users can view their own profile, agents can view client profiles
+CREATE POLICY "users_select_own"
+ON users FOR SELECT
+USING (
+  id = auth.uid() 
+  OR is_admin()
+);
+
+-- UPDATE: Users can update their own profile only
+CREATE POLICY "users_update_own"
+ON users FOR UPDATE
+USING (
+  id = auth.uid() 
+  OR is_admin()
+)
+WITH CHECK (
+  id = auth.uid() 
+  OR is_admin()
+);
+
+-- ADMIN BYPASS: Full access for admin users
+CREATE POLICY "users_admin_bypass"
+ON users FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
+
+-- ============================================================================
+-- VERIFICATION COMMANDS (Run these to verify RLS is working)
+-- ============================================================================
+
+/*
+-- Check RLS is enabled on all tables
+SELECT 
+  schemaname, 
+  tablename, 
+  rowsecurity 
+FROM pg_tables 
+WHERE tablename IN ('contacts', 'deals', 'tasks', 'notes', 'chat_rooms', 'chat_messages', 'chat_room_members', 'users')
+AND schemaname = 'public';
+
+-- List all policies
+SELECT 
+  schemaname, 
+  tablename, 
+  policyname, 
+  permissive, 
+  roles, 
+  cmd, 
+  qual, 
+  with_check
+FROM pg_policies 
+WHERE tablename IN ('contacts', 'deals', 'tasks', 'notes', 'chat_rooms', 'chat_messages', 'chat_room_members', 'users')
+ORDER BY tablename, policyname;
+
+-- Check helper functions exist
+SELECT 
+  proname, 
+  prorettype::regtype,
+  proargtypes::regtype[]
+FROM pg_proc 
+WHERE proname IN ('is_admin', 'is_chat_room_member', 'is_chat_room_admin', 'get_contact_agent_id');
+*/
+
+-- ============================================================================
+-- AUDIT TRIGGER (Optional - Track changes to sensitive tables)
+-- ============================================================================
+
+-- Create audit log table if not exists
+CREATE TABLE IF NOT EXISTS "rls_audit_log" (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  table_name VARCHAR(50) NOT NULL,
+  record_id UUID NOT NULL,
+  action VARCHAR(10) NOT NULL,
+  old_values JSONB,
+  new_values JSONB,
+  user_id UUID,
+  performed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create index for faster queries
+CREATE INDEX IF NOT EXISTS "idx_rls_audit_table" ON "rls_audit_log"(table_name);
+CREATE INDEX IF NOT EXISTS "idx_rls_audit_record" ON "rls_audit_log"(record_id);
+CREATE INDEX IF NOT EXISTS "idx_rls_audit_user" ON "rls_audit_log"(user_id);
+CREATE INDEX IF NOT EXISTS "idx_rls_audit_time" ON "rls_audit_log"(performed_at);
+
+-- Function to log changes
+CREATE OR REPLACE FUNCTION public.log_rls_audit()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (TG_OP = 'DELETE') THEN
+    INSERT INTO rls_audit_log (table_name, record_id, action, old_values, user_id)
+    VALUES (TG_TABLE_NAME, OLD.id, 'DELETE', row_to_json(OLD), auth.uid());
+    RETURN OLD;
+  ELSIF (TG_OP = 'UPDATE') THEN
+    INSERT INTO rls_audit_log (table_name, record_id, action, old_values, new_values, user_id)
+    VALUES (TG_TABLE_NAME, NEW.id, 'UPDATE', row_to_json(OLD), row_to_json(NEW), auth.uid());
+    RETURN NEW;
+  ELSIF (TG_OP = 'INSERT') THEN
+    INSERT INTO rls_audit_log (table_name, record_id, action, new_values, user_id)
+    VALUES (TG_TABLE_NAME, NEW.id, 'INSERT', row_to_json(NEW), auth.uid());
+    RETURN NEW;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Apply audit triggers to sensitive tables
+DROP TRIGGER IF EXISTS contacts_audit ON contacts;
+CREATE TRIGGER contacts_audit
+AFTER INSERT OR UPDATE OR DELETE ON contacts
+FOR EACH ROW EXECUTE FUNCTION log_rls_audit();
+
+DROP TRIGGER IF EXISTS deals_audit ON deals;
+CREATE TRIGGER deals_audit
+AFTER INSERT OR UPDATE OR DELETE ON deals
+FOR EACH ROW EXECUTE FUNCTION log_rls_audit();
+
+DROP TRIGGER IF EXISTS chat_messages_audit ON chat_messages;
+CREATE TRIGGER chat_messages_audit
+AFTER INSERT OR UPDATE OR DELETE ON chat_messages
+FOR EACH ROW EXECUTE FUNCTION log_rls_audit();
+
+-- ============================================================================
+-- END OF RLS MIGRATION
+-- ============================================================================

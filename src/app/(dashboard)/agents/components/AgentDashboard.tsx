@@ -19,6 +19,14 @@ import {
   FaChartBar
 } from 'react-icons/fa';
 
+/**
+ * Agent Dashboard Component
+ * 
+ * SECURITY NOTE: Authentication is handled by the server-side layout.
+ * This component assumes the user is already authenticated and authorized
+ * as an agent or admin. Do NOT add client-side auth checks here - they
+ * can be bypassed and create a false sense of security.
+ */
 export default function AgentDashboard() {
   const { theme } = useTheme();
   const { /* t */ } = useLanguage();
@@ -502,4 +510,4 @@ export default function AgentDashboard() {
       </div>
     </div>
   );
-}  
+}

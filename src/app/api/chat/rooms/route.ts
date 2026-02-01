@@ -4,18 +4,26 @@ import { nextAuthOptions as authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields } from '@/lib/sanitize';
+import { enforceRateLimit } from '@/lib/security/rateLimiter';
 
 // SECURITY FIX: Add validation schema for chat room creation
 const chatRoomSchema = z.object({
   name: z.string().min(1, 'Room name is required').max(100, 'Room name too long'),
   type: z.enum(['direct', 'group']).default('group'),
-  memberIds: z.array(z.string().uuid('Invalid member ID')).max(50, 'Too many members').default([]),
+  memberIds: z.array(z.string().uuid('Invalid member ID')).max(10, 'Too many members').default([]),
 });
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Rate limiting
+    enforceRateLimit(`chat:rooms:get:${session.user.id}`, {
+      limit: 100,
+      windowMs: 60_000,
+      feature: 'chat rooms list'
+    });
 
     const { searchParams } = new URL(req.url);
     // SECURITY FIX: Add pagination to prevent DoS
@@ -68,11 +76,30 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Rate limiting
+    enforceRateLimit(`chat:rooms:create:${session.user.id}`, {
+      limit: 10,
+      windowMs: 60_000,
+      feature: 'chat room creation'
+    });
+
     const body = await req.json();
     const validatedData = chatRoomSchema.parse(body);
-    
+
     // SECURITY FIX: Sanitize string inputs to prevent XSS
     const sanitizedData = sanitizeFields(validatedData, ['name']);
+
+    // SECURITY: Verify all memberIds exist
+    if (sanitizedData.memberIds.length > 0) {
+      const users = await prisma.user.findMany({
+        where: { id: { in: sanitizedData.memberIds } },
+        select: { id: true }
+      });
+
+      if (users.length !== sanitizedData.memberIds.length) {
+        return NextResponse.json({ error: 'One or more members not found' }, { status: 400 });
+      }
+    }
 
     const room = await prisma.chatRoom.create({
       data: {

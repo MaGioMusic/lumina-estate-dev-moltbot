@@ -1,203 +1,168 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
+// User role type matching the database schema
+export type UserRole = 'USER' | 'AGENT' | 'ADMIN' | 'CLIENT' | 'INVESTOR';
 
 interface User {
   id: string;
   email: string;
   name: string;
-  role: 'user' | 'agent' | 'admin' | 'client' | 'investor';
+  role: UserRole;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const STORAGE_KEY = 'lumina_user';
 
-const readUserFromStorage = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) as User : null;
-  } catch (error) {
-    console.error('Error parsing saved user:', error);
-    try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
-    return null;
-  }
-};
-
-const writeUserToStorage = (value: User | null) => {
-  if (typeof window === 'undefined') return;
-  try {
-    if (value) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  } catch (error) {
-    console.error('Error persisting user:', error);
-  }
-};
-
+/**
+ * Authentication Provider using NextAuth.js session
+ * 
+ * SECURITY: All authentication is handled server-side via NextAuth.
+ * No localStorage or client-side storage is used for auth state.
+ * JWT tokens are stored in HTTP-only cookies.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [hydrated, setHydrated] = useState(false);
 
-  // Check if user is logged in on mount
+  // Map NextAuth session to our User type
+  const user: User | null = session?.user ? {
+    id: (session.user as any).id || '',
+    email: session.user.email || '',
+    name: session.user.name || '',
+    role: ((session.user as any).accountRole as UserRole) || 'USER',
+  } : null;
+
+  const isAuthenticated = !!session && status === 'authenticated';
+
   useEffect(() => {
-    const savedUser = readUserFromStorage();
-    if (savedUser) {
-      setUser(savedUser);
-    }
-    setIsLoading(false);
-    setHydrated(true);
-  }, []);
+    // Auth status is determined by NextAuth session
+    setIsLoading(status === 'loading');
+  }, [status]);
 
-  // Keep auth state in sync across tabs and after manual storage changes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    let syncTimer: number | null = null;
-    const scheduleSync = () => {
-      if (syncTimer) window.clearTimeout(syncTimer);
-      syncTimer = window.setTimeout(() => {
-        setUser(readUserFromStorage());
-      }, 50);
-    };
-    const handleStorage = (e: StorageEvent) => {
-      if (!e.key || e.key === STORAGE_KEY) {
-        scheduleSync();
-      }
-    };
-    const handleLogoutEvent = () => {
-      setUser(null);
-      try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
-    };
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        scheduleSync();
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('lumina:logout', handleLogoutEvent as EventListener);
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      if (syncTimer) window.clearTimeout(syncTimer);
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('lumina:logout', handleLogoutEvent as EventListener);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    if (typeof window === 'undefined') return false;
+  /**
+   * Login using NextAuth credentials provider
+   * SECURITY: Credentials are sent to the server, not stored client-side
+   */
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Simulate API call - in real app this would be actual API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(true);
       
-      // Determine user role based on email
-      let userRole: User['role'] = 'user';
-      let userName = email.split('@')[0];
-      
-      // Special handling for demo accounts
-      if (email === 'agent@lumina.ge') {
-        userRole = 'agent';
-        userName = 'Agent Demo';
-      } else if (email === 'client@lumina.ge') {
-        userRole = 'client';
-        userName = 'Client Demo';
-      } else if (email === 'investor@lumina.ge') {
-        userRole = 'investor';
-        userName = 'Investor Demo';
-      } else if (email === 'admin@lumina.ge') {
-        userRole = 'admin';
-        userName = 'Admin Demo';
+      const result = await signIn('credentials', {
+        email: email.trim().toLowerCase(),
+        password,
+        redirect: false,
+        callbackUrl: '/',
+      });
+
+      if (result?.error) {
+        console.error('[Auth] Login failed:', result.error);
+        return { 
+          success: false, 
+          error: 'Invalid email or password. Please try again.' 
+        };
       }
-      
-      // Special handling for social logins
-      if (email === 'google.user@gmail.com') {
-        userName = 'Google User';
-        userRole = 'user';
-      } else if (email === 'facebook.user@facebook.com') {
-        userName = 'Facebook User';
-        userRole = 'user';
+
+      if (result?.ok) {
+        // Refresh the page to get the new session
+        router.refresh();
+        return { success: true };
       }
-      
-      // Mock user data - in real app this would come from API
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email: email,
-        name: userName,
-        role: userRole
+
+      return { 
+        success: false, 
+        error: 'Authentication failed. Please try again.' 
       };
-      
-      setUser(mockUser);
-      writeUserToStorage(mockUser);
-      return true;
     } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      console.error('[Auth] Login error:', error);
+      return { 
+        success: false, 
+        error: 'An unexpected error occurred. Please try again.' 
+      };
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
-    if (typeof window === 'undefined') return false;
+  /**
+   * Register a new user
+   * SECURITY: Registration is handled via API route
+   */
+  const register = async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Simulate API call - in real app this would be actual API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(true);
       
-      // Mock user data - in real app this would come from API
-      const mockUser: User = {
-        id: '1',
-        email: email,
-        name: name,
-        role: 'user'
-      };
-      
-      setUser(mockUser);
-      writeUserToStorage(mockUser);
-      return true;
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: email.trim().toLowerCase(), 
+          password, 
+          name 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { 
+          success: false, 
+          error: data.message || 'Registration failed. Please try again.' 
+        };
+      }
+
+      // Auto-login after successful registration
+      const loginResult = await login(email, password);
+      return loginResult;
     } catch (error) {
-      console.error('Register error:', error);
-      return false;
+      console.error('[Auth] Registration error:', error);
+      return { 
+        success: false, 
+        error: 'An unexpected error occurred during registration.' 
+      };
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
+  /**
+   * Logout the current user
+   * SECURITY: Server-side session is destroyed via NextAuth
+   */
+  const logout = async (): Promise<void> => {
     try {
-      if (typeof window !== 'undefined') {
-        writeUserToStorage(null);
-        // Clear potential admin session leftovers
-        localStorage.removeItem('adminAuth');
-        localStorage.removeItem('adminUser');
-        try { sessionStorage.removeItem('lumina_session'); } catch {}
-      }
-    } catch {}
-    setUser(null);
-    try {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('lumina:logout'));
-      }
-    } catch {}
+      setIsLoading(true);
+      await signOut({ redirect: false });
+      router.refresh();
+    } catch (error) {
+      console.error('[Auth] Logout error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated,
     isLoading,
     login,
     register,
-    logout
+    logout,
   };
 
-  return <AuthContext.Provider value={value}>{hydrated ? children : null}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
@@ -206,4 +171,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

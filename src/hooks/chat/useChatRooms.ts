@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChatRoom, ChatRoomType } from '@/types/chat';
+import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
 
 interface UseChatRoomsOptions {
   autoFetch?: boolean;
@@ -87,9 +88,19 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
     setError(null);
     
     try {
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch('/api/chat/rooms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
       

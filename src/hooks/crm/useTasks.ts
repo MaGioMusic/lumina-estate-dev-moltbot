@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Task, TaskFormData, TaskStatus } from '@/types/crm';
+import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
 
 interface UseTasksOptions {
   status?: string;
@@ -62,9 +63,19 @@ export function useTasks(options: UseTasksOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch('/api/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -89,9 +100,19 @@ export function useTasks(options: UseTasksOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch(`/api/tasks/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -116,8 +137,18 @@ export function useTasks(options: UseTasksOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch(`/api/tasks/${id}`, {
         method: 'DELETE',
+        headers: { 
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {

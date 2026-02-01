@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Deal, DealFormData, DealStage } from '@/types/crm';
+import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
 
 interface UseDealsOptions {
   stage?: string;
@@ -70,9 +71,19 @@ export function useDeals(options: UseDealsOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch('/api/deals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -97,9 +108,19 @@ export function useDeals(options: UseDealsOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch(`/api/deals/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -124,8 +145,18 @@ export function useDeals(options: UseDealsOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch(`/api/deals/${id}`, {
         method: 'DELETE',
+        headers: { 
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {

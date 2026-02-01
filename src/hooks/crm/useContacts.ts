@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Contact, ContactFormData } from '@/types/crm';
+import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
 
 interface UseContactsOptions {
   status?: string;
@@ -60,9 +61,19 @@ export function useContacts(options: UseContactsOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch('/api/contacts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -87,9 +98,19 @@ export function useContacts(options: UseContactsOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch(`/api/contacts/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -114,8 +135,18 @@ export function useContacts(options: UseContactsOptions = {}) {
       setIsLoading(true);
       setError(null);
 
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch(`/api/contacts/${id}`, {
         method: 'DELETE',
+        headers: { 
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {

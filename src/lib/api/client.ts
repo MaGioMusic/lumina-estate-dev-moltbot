@@ -11,6 +11,12 @@ import {
   RequestConfig,
   ApiClientConfig,
 } from '@/types/api';
+import {
+  getClientCsrfToken,
+  fetchCsrfToken,
+  requiresCsrfProtection,
+  CSRF_HEADER_NAME,
+} from '@/lib/security/csrf';
 
 // ============================================================================
 // Configuration
@@ -48,9 +54,9 @@ function buildUrl(
 }
 
 /**
- * Get authentication headers
+ * Get authentication headers including CSRF token for mutations
  */
-async function getAuthHeaders(): Promise<Record<string, string>> {
+async function getAuthHeaders(method: HttpMethod = 'GET'): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -58,6 +64,20 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   // In a Next.js app, we can't easily access the session token client-side
   // The session cookie is automatically sent with requests
   // For server-side requests, you'd need to pass the token explicitly
+
+  // Add CSRF token for mutation requests
+  if (requiresCsrfProtection(method)) {
+    let csrfToken = getClientCsrfToken();
+    
+    // If no token in memory, fetch a new one
+    if (!csrfToken) {
+      csrfToken = await fetchCsrfToken();
+    }
+    
+    if (csrfToken) {
+      headers[CSRF_HEADER_NAME] = csrfToken;
+    }
+  }
 
   return headers;
 }
@@ -192,9 +212,10 @@ class ApiClient {
       method,
       headers: {
         ...this.defaultHeaders,
-        ...(await getAuthHeaders()),
+        ...(await getAuthHeaders(method)),
         ...config.headers,
       },
+      credentials: 'include', // Important: include cookies for CSRF
       ...config,
     };
 
