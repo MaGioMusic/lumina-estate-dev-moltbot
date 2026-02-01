@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Task, TaskFormData, TaskStatus } from '@/types/crm';
 import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
 
@@ -28,8 +28,21 @@ export function useTasks(options: UseTasksOptions = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<TasksResponse['pagination'] | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchTasks = useCallback(async () => {
+  const fetchTasks = useCallback(async (signal?: AbortSignal) => {
+    // Abort any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
+    // Use provided signal if available, otherwise use controller's signal
+    const finalSignal = signal || controller.signal;
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -41,7 +54,9 @@ export function useTasks(options: UseTasksOptions = {}) {
       if (options.page) params.set('page', options.page.toString());
       if (options.limit) params.set('limit', options.limit.toString());
 
-      const response = await fetch(`/api/tasks?${params.toString()}`);
+      const response = await fetch(`/api/tasks?${params.toString()}`, {
+        signal: finalSignal,
+      });
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -52,6 +67,10 @@ export function useTasks(options: UseTasksOptions = {}) {
       setTasks(data.tasks || []);
       setPagination(data.pagination || null);
     } catch (err) {
+      // Don't update state if request was aborted
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
@@ -176,7 +195,16 @@ export function useTasks(options: UseTasksOptions = {}) {
   }, [fetchTasks]);
 
   useEffect(() => {
-    fetchTasks();
+    const controller = new AbortController();
+    fetchTasks(controller.signal);
+    
+    return () => {
+      controller.abort();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [fetchTasks]);
 
   return {

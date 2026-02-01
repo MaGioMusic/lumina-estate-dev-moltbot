@@ -207,6 +207,9 @@ class ApiClient {
     const url = buildUrl(this.baseUrl, endpoint, config.params);
     const timeout = config.timeout || this.defaultTimeout;
 
+    // Create AbortController if not provided in config
+    const abortController = config.signal ? undefined : new AbortController();
+
     // Build request config
     let requestConfig: RequestInit = {
       method,
@@ -216,6 +219,7 @@ class ApiClient {
         ...config.headers,
       },
       credentials: 'include', // Important: include cookies for CSRF
+      signal: config.signal || abortController?.signal,
       ...config,
     };
 
@@ -229,12 +233,14 @@ class ApiClient {
       requestConfig = await interceptor(requestConfig);
     }
 
+    // Create timeout that aborts the request
+    const timeoutId = setTimeout(() => {
+      abortController?.abort();
+    }, timeout);
+
     try {
-      // Race between fetch and timeout
-      const response = await Promise.race([
-        fetch(url, requestConfig),
-        createTimeoutPromise(timeout),
-      ]);
+      const response = await fetch(url, requestConfig);
+      clearTimeout(timeoutId);
 
       let data = await handleResponse<T>(response);
 
@@ -245,12 +251,15 @@ class ApiClient {
 
       return data;
     } catch (error) {
+      clearTimeout(timeoutId);
       let apiError: ApiError;
 
       if (error instanceof ApiError) {
         apiError = error;
       } else if (error instanceof Error) {
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          apiError = new ApiError('Request aborted', ApiErrorCode.NETWORK_ERROR, 0);
+        } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
           apiError = new ApiError('Network error', ApiErrorCode.NETWORK_ERROR, 0);
         } else {
           apiError = new ApiError(error.message, ApiErrorCode.UNKNOWN_ERROR, 500);

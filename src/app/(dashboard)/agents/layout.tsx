@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
 import { nextAuthOptions } from '@/lib/auth/nextAuthOptions';
+import { AgentErrorWrapper } from './components/AgentErrorWrapper';
 
 /**
  * Server-side authentication guard for agent dashboard
@@ -32,10 +33,12 @@ export default async function AgentsLayout({
     redirect('/profile?error=unauthorized');
   }
 
-  // User is authenticated and authorized - render the dashboard
+  // User is authenticated and authorized - render the dashboard with error boundary
   return (
     <div className="min-h-screen">
-      {children}
+      <AgentErrorWrapper>
+        {children}
+      </AgentErrorWrapper>
     </div>
   );
 }
