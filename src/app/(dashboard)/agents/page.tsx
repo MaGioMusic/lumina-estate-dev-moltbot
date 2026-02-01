@@ -9,6 +9,7 @@ import { FiSearch, FiDownload, FiFilter, FiPlus, FiEye, FiEdit, FiTrash2, FiChev
 import SinglePropertyMap from '@/app/(marketing)/properties/components/SinglePropertyMap';
 import AgentDashboard from './components/AgentDashboard';
 import AgentCrmDashboard from './components/AgentCrmDashboard';
+import { IntegratedCrmDashboard } from './components/IntegratedCrmDashboard';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { AgentShell } from './components/agentShell';
 import { useStaleFlag } from '@/hooks/useStaleFlag';
@@ -887,13 +888,7 @@ export default function AgentsPage() {
   }
 
   if (activeTab === 'crm') {
-    return (
-      <AgentShell title="CRM Dashboard">
-        <div className="flex-1">
-          <AgentCrmDashboard />
-        </div>
-      </AgentShell>
-    );
+    return <IntegratedCrmDashboard />;
   }
 
   return (
