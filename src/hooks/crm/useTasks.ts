@@ -1,221 +1,244 @@
-"use client";
+/**
+ * React Query Hooks for Tasks
+ * Pre-built hooks for fetching and mutating task data
+ */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Task, TaskFormData, TaskStatus } from '@/types/crm';
-import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryOptions,
+} from '@tanstack/react-query';
+import { tasksApi } from '@/lib/api';
+import {
+  Task,
+  TaskFormData,
+  TaskStatus,
+  TaskPriority,
+  TaskQueryParams,
+} from '@/types';
+import { ApiError, PaginatedResponse, ItemResponse } from '@/types/api';
 
-interface UseTasksOptions {
-  status?: string;
-  priority?: string;
-  assignedToMe?: boolean;
-  page?: number;
-  limit?: number;
-}
+// Query keys
+export const taskKeys = {
+  all: ['tasks'] as const,
+  lists: () => [...taskKeys.all, 'list'] as const,
+  list: (params: TaskQueryParams) => [...taskKeys.lists(), params] as const,
+  details: () => [...taskKeys.all, 'detail'] as const,
+  detail: (id: string) => [...taskKeys.details(), id] as const,
+  overdue: () => [...taskKeys.all, 'overdue'] as const,
+  upcoming: (days: number) => [...taskKeys.all, 'upcoming', days] as const,
+};
 
-interface TasksResponse {
-  success: boolean;
-  tasks: Task[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+// Types for task with relations
+interface TaskWithRelations extends Task {
+  assignedTo?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  deal?: {
+    id: string;
+    title: string;
+  };
+  contact?: {
+    id: string;
+    firstName: string;
+    lastName: string;
   };
 }
 
-export function useTasks(options: UseTasksOptions = {}) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<TasksResponse['pagination'] | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+// ============================================================================
+// Query Hooks
+// ============================================================================
 
-  const fetchTasks = useCallback(async (signal?: AbortSignal) => {
-    // Abort any pending request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new AbortController for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    
-    // Use provided signal if available, otherwise use controller's signal
-    const finalSignal = signal || controller.signal;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
+/**
+ * Hook to fetch tasks with optional filtering
+ */
+export function useTasks(
+  params?: TaskQueryParams,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.list(params ?? {}),
+    queryFn: () => tasksApi.getTasks(params),
+    ...options,
+  });
+}
 
-      const params = new URLSearchParams();
-      if (options.status) params.set('status', options.status);
-      if (options.priority) params.set('priority', options.priority);
-      if (options.assignedToMe) params.set('assignedToMe', 'true');
-      if (options.page) params.set('page', options.page.toString());
-      if (options.limit) params.set('limit', options.limit.toString());
+/**
+ * Hook to fetch a single task
+ */
+export function useTask(
+  id: string,
+  options?: UseQueryOptions<ItemResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.detail(id),
+    queryFn: () => tasksApi.getTask(id),
+    enabled: !!id,
+    ...options,
+  });
+}
 
-      const response = await fetch(`/api/tasks?${params.toString()}`, {
-        signal: finalSignal,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch tasks');
-      }
+/**
+ * Hook to fetch overdue tasks
+ */
+export function useOverdueTasks(
+  params?: Omit<TaskQueryParams, 'status'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.overdue(),
+    queryFn: () => tasksApi.getOverdueTasks(params),
+    ...options,
+  });
+}
 
-      const data: TasksResponse = await response.json();
-      setTasks(data.tasks || []);
-      setPagination(data.pagination || null);
-    } catch (err) {
-      // Don't update state if request was aborted
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.status, options.priority, options.assignedToMe, options.page, options.limit]);
+/**
+ * Hook to fetch upcoming tasks (due in next N days)
+ */
+export function useUpcomingTasks(
+  days: number = 7,
+  params?: Omit<TaskQueryParams, 'status'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.upcoming(days),
+    queryFn: () => tasksApi.getUpcomingTasks(days, params),
+    ...options,
+  });
+}
 
-  const createTask = useCallback(async (formData: TaskFormData): Promise<Task | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+/**
+ * Hook to create a new task
+ */
+export function useCreateTask() {
+  const queryClient = useQueryClient();
 
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+  return useMutation({
+    mutationFn: tasksApi.createTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.upcoming(7) });
+    },
+  });
+}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create task');
-      }
+/**
+ * Hook to update a task
+ */
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
 
-      const data = await response.json();
-      await fetchTasks(); // Refresh the list
-      return data.task;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchTasks]);
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<TaskFormData> }) =>
+      tasksApi.updateTask(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.upcoming(7) });
+    },
+  });
+}
 
-  const updateTask = useCallback(async (id: string, formData: Partial<TaskFormData>): Promise<Task | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+/**
+ * Hook to delete a task
+ */
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+  return useMutation({
+    mutationFn: tasksApi.deleteTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.upcoming(7) });
+    },
+  });
+}
 
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+/**
+ * Hook to mark a task as completed
+ */
+export function useCompleteTask() {
+  const queryClient = useQueryClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update task');
-      }
+  return useMutation({
+    mutationFn: tasksApi.completeTask,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+    },
+  });
+}
 
-      const data = await response.json();
-      await fetchTasks(); // Refresh the list
-      return data.task;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchTasks]);
+/**
+ * Hook to start a task (mark as in_progress)
+ */
+export function useStartTask() {
+  const queryClient = useQueryClient();
 
-  const deleteTask = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  return useMutation({
+    mutationFn: tasksApi.startTask,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+    },
+  });
+}
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+// ============================================================================
+// Specialized Hooks
+// ============================================================================
 
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-      });
+/**
+ * Hook to get tasks by status
+ */
+export function useTasksByStatus(
+  status: TaskStatus,
+  params?: Omit<TaskQueryParams, 'status'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...taskKeys.lists(), 'status', status, params],
+    queryFn: () => tasksApi.getTasksByStatus(status, params),
+    ...options,
+  });
+}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete task');
-      }
+/**
+ * Hook to get tasks by priority
+ */
+export function useTasksByPriority(
+  priority: TaskPriority,
+  params?: Omit<TaskQueryParams, 'priority'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...taskKeys.lists(), 'priority', priority, params],
+    queryFn: () => tasksApi.getTasksByPriority(priority, params),
+    ...options,
+  });
+}
 
-      await fetchTasks(); // Refresh the list
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchTasks]);
-
-  const toggleTaskStatus = useCallback(async (task: Task): Promise<Task | null> => {
-    const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
-    return updateTask(task.id, { status: newStatus });
-  }, [updateTask]);
-
-  const refresh = useCallback(() => {
-    fetchTasks();
-  }, [fetchTasks]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchTasks(controller.signal);
-    
-    return () => {
-      controller.abort();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [fetchTasks]);
-
-  return {
-    tasks,
-    isLoading,
-    error,
-    pagination,
-    createTask,
-    updateTask,
-    deleteTask,
-    toggleTaskStatus,
-    refresh,
-  };
+/**
+ * Hook to get tasks assigned to current user
+ */
+export function useMyTasks(
+  params?: TaskQueryParams,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...taskKeys.lists(), 'mine', params],
+    queryFn: () => tasksApi.getMyTasks(params),
+    ...options,
+  });
 }

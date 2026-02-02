@@ -1,213 +1,192 @@
-"use client";
+/**
+ * React Query Hooks for Notes
+ * Pre-built hooks for fetching and mutating note data
+ */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Note, NoteFormData } from '@/types/crm';
-import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryOptions,
+} from '@tanstack/react-query';
+import { notesApi } from '@/lib/api';
+import {
+  Note,
+  NoteFormData,
+  NoteQueryParams,
+} from '@/types';
+import { ApiError, PaginatedResponse, ItemResponse } from '@/types/api';
 
-interface UseNotesOptions {
-  contactId?: string;
-  dealId?: string;
-  page?: number;
-  limit?: number;
-}
+// Query keys
+export const noteKeys = {
+  all: ['notes'] as const,
+  lists: () => [...noteKeys.all, 'list'] as const,
+  list: (params: NoteQueryParams) => [...noteKeys.lists(), params] as const,
+  details: () => [...noteKeys.all, 'detail'] as const,
+  detail: (id: string) => [...noteKeys.details(), id] as const,
+  contact: (contactId: string) => [...noteKeys.lists(), 'contact', contactId] as const,
+  deal: (dealId: string) => [...noteKeys.lists(), 'deal', dealId] as const,
+};
 
-interface NotesResponse {
-  success: boolean;
-  notes: Note[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+// Types for note with relations
+interface NoteWithRelations extends Note {
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  contact?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  deal?: {
+    id: string;
+    title: string;
   };
 }
 
-export function useNotes(options: UseNotesOptions = {}) {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<NotesResponse['pagination'] | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+// ============================================================================
+// Query Hooks
+// ============================================================================
 
-  const fetchNotes = useCallback(async (signal?: AbortSignal) => {
-    // Abort any pending request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new AbortController for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    
-    // Use provided signal if available, otherwise use controller's signal
-    const finalSignal = signal || controller.signal;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
+/**
+ * Hook to fetch notes with optional filtering
+ */
+export function useNotes(
+  params?: NoteQueryParams,
+  options?: UseQueryOptions<PaginatedResponse<NoteWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: noteKeys.list(params ?? {}),
+    queryFn: () => notesApi.getNotes(params),
+    ...options,
+  });
+}
 
-      const params = new URLSearchParams();
-      if (options.contactId) params.set('contactId', options.contactId);
-      if (options.dealId) params.set('dealId', options.dealId);
-      if (options.page) params.set('page', options.page.toString());
-      if (options.limit) params.set('limit', options.limit.toString());
+/**
+ * Hook to fetch a single note
+ */
+export function useNote(
+  id: string,
+  options?: UseQueryOptions<ItemResponse<NoteWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: noteKeys.detail(id),
+    queryFn: () => notesApi.getNote(id),
+    enabled: !!id,
+    ...options,
+  });
+}
 
-      const response = await fetch(`/api/notes?${params.toString()}`, {
-        signal: finalSignal,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch notes');
-      }
+/**
+ * Hook to fetch notes for a specific contact
+ */
+export function useContactNotes(
+  contactId: string,
+  params?: Omit<NoteQueryParams, 'contactId'>,
+  options?: UseQueryOptions<PaginatedResponse<NoteWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: noteKeys.contact(contactId),
+    queryFn: () => notesApi.getContactNotes(contactId, params),
+    enabled: !!contactId,
+    ...options,
+  });
+}
 
-      const data: NotesResponse = await response.json();
-      setNotes(data.notes || []);
-      setPagination(data.pagination || null);
-    } catch (err) {
-      // Don't update state if request was aborted
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.contactId, options.dealId, options.page, options.limit]);
+/**
+ * Hook to fetch notes for a specific deal
+ */
+export function useDealNotes(
+  dealId: string,
+  params?: Omit<NoteQueryParams, 'dealId'>,
+  options?: UseQueryOptions<PaginatedResponse<NoteWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: noteKeys.deal(dealId),
+    queryFn: () => notesApi.getDealNotes(dealId, params),
+    enabled: !!dealId,
+    ...options,
+  });
+}
 
-  const createNote = useCallback(async (formData: NoteFormData & { contactId?: string; dealId?: string }): Promise<Note | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+/**
+ * Hook to create a new note
+ */
+export function useCreateNote() {
+  const queryClient = useQueryClient();
 
-      const response = await fetch('/api/notes', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+  return useMutation({
+    mutationFn: notesApi.createNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
+    },
+  });
+}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create note');
-      }
+/**
+ * Hook to update a note
+ */
+export function useUpdateNote() {
+  const queryClient = useQueryClient();
 
-      const data = await response.json();
-      await fetchNotes(); // Refresh the list
-      return data.note;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchNotes]);
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<NoteFormData> }) =>
+      notesApi.updateNote(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: noteKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
+    },
+  });
+}
 
-  const updateNote = useCallback(async (id: string, formData: Partial<NoteFormData>): Promise<Note | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+/**
+ * Hook to delete a note
+ */
+export function useDeleteNote() {
+  const queryClient = useQueryClient();
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+  return useMutation({
+    mutationFn: notesApi.deleteNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
+    },
+  });
+}
 
-      const response = await fetch(`/api/notes/${id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+/**
+ * Hook to create a note for a contact
+ */
+export function useCreateContactNote() {
+  const queryClient = useQueryClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update note');
-      }
+  return useMutation({
+    mutationFn: ({ contactId, content }: { contactId: string; content: string }) =>
+      notesApi.createContactNote(contactId, content),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: noteKeys.contact(variables.contactId) });
+      queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
+    },
+  });
+}
 
-      const data = await response.json();
-      await fetchNotes(); // Refresh the list
-      return data.note;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchNotes]);
+/**
+ * Hook to create a note for a deal
+ */
+export function useCreateDealNote() {
+  const queryClient = useQueryClient();
 
-  const deleteNote = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
-
-      const response = await fetch(`/api/notes/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete note');
-      }
-
-      await fetchNotes(); // Refresh the list
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchNotes]);
-
-  const refresh = useCallback(() => {
-    fetchNotes();
-  }, [fetchNotes]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchNotes(controller.signal);
-    
-    return () => {
-      controller.abort();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [fetchNotes]);
-
-  return {
-    notes,
-    isLoading,
-    error,
-    pagination,
-    createNote,
-    updateNote,
-    deleteNote,
-    refresh,
-  };
+  return useMutation({
+    mutationFn: ({ dealId, content }: { dealId: string; content: string }) =>
+      notesApi.createDealNote(dealId, content),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: noteKeys.deal(variables.dealId) });
+      queryClient.invalidateQueries({ queryKey: noteKeys.lists() });
+    },
+  });
 }

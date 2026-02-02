@@ -7,7 +7,8 @@ import {
   type AuthenticatedUser,
 } from '@/lib/auth/server';
 import { z } from 'zod';
-import { validateCsrfToken, CsrfError, requiresCsrfProtection } from '@/lib/security/csrf';
+import { validateCsrfToken, CsrfError, requiresCsrfProtection } from '@/lib/security/csrf-server';
+import { logger } from '@/lib/logger';
 
 export function jsonResponse<T>(data: T, init?: ResponseInit) {
   return NextResponse.json(data, init);
@@ -27,7 +28,7 @@ export function errorResponse(error: unknown) {
     );
   }
 
-  console.error('Unhandled API error', error);
+  logger.error('Unhandled API error', error);
   return NextResponse.json(
     {
       error: {
@@ -90,7 +91,7 @@ export function handleApiError(error: unknown): NextResponse {
   }
 
   // Generic errors - log but don't expose details
-  console.error('API Error:', error);
+  logger.error('API Error:', error);
   return NextResponse.json(
     { success: false, error: 'An unexpected error occurred' },
     { status: 500 }

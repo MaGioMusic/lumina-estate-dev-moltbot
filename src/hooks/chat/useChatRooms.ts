@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChatRoom, ChatRoomType } from '@/types/chat';
 import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
 
 interface UseChatRoomsOptions {
   autoFetch?: boolean;
@@ -102,7 +103,7 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
       }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch rooms';
       setError(errorMessage);
-      console.error('Error fetching chat rooms:', err);
+      logger.error('Error fetching chat rooms:', err);
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
@@ -148,7 +149,7 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create room';
       setError(errorMessage);
-      console.error('Error creating chat room:', err);
+      logger.error('Error creating chat room:', err);
       return null;
     } finally {
       setIsCreating(false);

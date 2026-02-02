@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields, sanitizeString } from '@/lib/sanitize';
 import { enforceRateLimit } from '@/lib/security/rateLimiter';
+import { logger } from '@/lib/logger';
 
 // SECURITY FIX: Add security headers to prevent XSS
 const securityHeaders = {
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
       }
     }, { headers: securityHeaders });
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    logger.error('Error fetching messages:', error);
     return NextResponse.json(
       { error: 'Failed to fetch messages' },
       { status: 500, headers: securityHeaders }
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: securityHeaders }
       );
     }
-    console.error('Error creating message:', error);
+    logger.error('Error creating message:', error);
     return NextResponse.json(
       { error: 'Failed to create message' },
       { status: 500, headers: securityHeaders }

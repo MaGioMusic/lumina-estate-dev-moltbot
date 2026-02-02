@@ -1,213 +1,169 @@
-"use client";
+/**
+ * React Query Hooks for Contacts
+ * Pre-built hooks for fetching and mutating contact data
+ */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Contact, ContactFormData } from '@/types/crm';
-import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  QueryKey,
+  UseQueryOptions,
+} from '@tanstack/react-query';
+import { contactsApi } from '@/lib/api';
+import {
+  Contact,
+  ContactFormData,
+  ContactQueryParams,
+} from '@/types';
+import { ApiError, PaginatedResponse, ItemResponse } from '@/types/api';
 
-interface UseContactsOptions {
-  status?: string;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
+// Query keys
+export const contactKeys = {
+  all: ['contacts'] as const,
+  lists: () => [...contactKeys.all, 'list'] as const,
+  list: (params: ContactQueryParams) => [...contactKeys.lists(), params] as const,
+  details: () => [...contactKeys.all, 'detail'] as const,
+  detail: (id: string) => [...contactKeys.details(), id] as const,
+};
 
-interface ContactsResponse {
-  success: boolean;
-  contacts: Contact[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+// Types for contact with relations (from API response)
+interface ContactWithRelations extends Contact {
+  assignedAgent?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  deals?: Array<{
+    id: string;
+    title: string;
+    stage: string;
+    value: number;
+  }>;
+  _count?: {
+    tasks: number;
+    notes: number;
   };
 }
 
-export function useContacts(options: UseContactsOptions = {}) {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<ContactsResponse['pagination'] | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+// ============================================================================
+// Query Hooks
+// ============================================================================
 
-  const fetchContacts = useCallback(async (signal?: AbortSignal) => {
-    // Abort any pending request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new AbortController for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    
-    // Use provided signal if available, otherwise use controller's signal
-    const finalSignal = signal || controller.signal;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
+/**
+ * Hook to fetch contacts with optional filtering
+ */
+export function useContacts(
+  params?: ContactQueryParams,
+  options?: UseQueryOptions<
+    PaginatedResponse<ContactWithRelations>,
+    ApiError
+  >
+) {
+  return useQuery({
+    queryKey: contactKeys.list(params ?? {}),
+    queryFn: () => contactsApi.getContacts(params),
+    ...options,
+  });
+}
 
-      const params = new URLSearchParams();
-      if (options.status) params.set('status', options.status);
-      if (options.search) params.set('search', options.search);
-      if (options.page) params.set('page', options.page.toString());
-      if (options.limit) params.set('limit', options.limit.toString());
+/**
+ * Hook to fetch a single contact
+ */
+export function useContact(
+  id: string,
+  options?: UseQueryOptions<ItemResponse<ContactWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: contactKeys.detail(id),
+    queryFn: () => contactsApi.getContact(id),
+    enabled: !!id,
+    ...options,
+  });
+}
 
-      const response = await fetch(`/api/contacts?${params.toString()}`, {
-        signal: finalSignal,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch contacts');
-      }
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
-      const data: ContactsResponse = await response.json();
-      setContacts(data.contacts || []);
-      setPagination(data.pagination || null);
-    } catch (err) {
-      // Don't update state if request was aborted
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.status, options.search, options.page, options.limit]);
+/**
+ * Hook to create a new contact
+ */
+export function useCreateContact() {
+  const queryClient = useQueryClient();
 
-  const createContact = useCallback(async (formData: ContactFormData): Promise<Contact | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  return useMutation({
+    mutationFn: contactsApi.createContact,
+    onSuccess: () => {
+      // Invalidate contacts list to refetch
+      queryClient.invalidateQueries({ queryKey: contactKeys.lists() });
+    },
+  });
+}
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+/**
+ * Hook to update a contact
+ */
+export function useUpdateContact() {
+  const queryClient = useQueryClient();
 
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<ContactFormData> }) =>
+      contactsApi.updateContact(id, data),
+    onSuccess: (_, variables) => {
+      // Invalidate specific contact and lists
+      queryClient.invalidateQueries({ queryKey: contactKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: contactKeys.lists() });
+    },
+  });
+}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create contact');
-      }
+/**
+ * Hook to delete a contact
+ */
+export function useDeleteContact() {
+  const queryClient = useQueryClient();
 
-      const data = await response.json();
-      await fetchContacts(); // Refresh the list
-      return data.contact;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchContacts]);
+  return useMutation({
+    mutationFn: contactsApi.deleteContact,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contactKeys.lists() });
+    },
+  });
+}
 
-  const updateContact = useCallback(async (id: string, formData: Partial<ContactFormData>): Promise<Contact | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+// ============================================================================
+// Specialized Hooks
+// ============================================================================
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+/**
+ * Hook to search contacts
+ */
+export function useContactSearch(
+  query: string,
+  params?: Omit<ContactQueryParams, 'search'>,
+  options?: UseQueryOptions<PaginatedResponse<ContactWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...contactKeys.lists(), 'search', query, params],
+    queryFn: () => contactsApi.searchContacts(query, params),
+    enabled: query.length > 0,
+    ...options,
+  });
+}
 
-      const response = await fetch(`/api/contacts/${id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update contact');
-      }
-
-      const data = await response.json();
-      await fetchContacts(); // Refresh the list
-      return data.contact;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchContacts]);
-
-  const deleteContact = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
-
-      const response = await fetch(`/api/contacts/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete contact');
-      }
-
-      await fetchContacts(); // Refresh the list
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchContacts]);
-
-  const refresh = useCallback(() => {
-    fetchContacts();
-  }, [fetchContacts]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchContacts(controller.signal);
-    
-    return () => {
-      controller.abort();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [fetchContacts]);
-
-  return {
-    contacts,
-    isLoading,
-    error,
-    pagination,
-    createContact,
-    updateContact,
-    deleteContact,
-    refresh,
-  };
+/**
+ * Hook to get contacts by status
+ */
+export function useContactsByStatus(
+  status: 'lead' | 'prospect' | 'client',
+  params?: Omit<ContactQueryParams, 'status'>,
+  options?: UseQueryOptions<PaginatedResponse<ContactWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...contactKeys.lists(), 'status', status, params],
+    queryFn: () => contactsApi.getContactsByStatus(status, params),
+    ...options,
+  });
 }

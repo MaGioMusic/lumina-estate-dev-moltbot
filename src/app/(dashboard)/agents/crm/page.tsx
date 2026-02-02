@@ -15,7 +15,7 @@ import {
   FiGrid,
   FiList
 } from 'react-icons/fi';
-import { AgentShell } from './components/agentShell';
+import { AgentShell } from '../components/agentShell';
 
 // CRM Components
 import {

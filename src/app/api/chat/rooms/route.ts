@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields } from '@/lib/sanitize';
 import { enforceRateLimit } from '@/lib/security/rateLimiter';
+import { logger } from '@/lib/logger';
 
 // SECURITY FIX: Add validation schema for chat room creation
 const chatRoomSchema = z.object({
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching chat rooms:', error);
+    logger.error('Error fetching chat rooms:', error);
     return NextResponse.json({ error: 'Failed to fetch rooms' }, { status: 500 });
   }
 }
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    console.error('Error creating chat room:', error);
+    logger.error('Error creating chat room:', error);
     return NextResponse.json({ error: 'Failed to create room' }, { status: 500 });
   }
 }

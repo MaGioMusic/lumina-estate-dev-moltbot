@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 // Types for WebSocket/polling messages
 export interface WebSocketMessage {
@@ -151,11 +152,11 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
               }
               break;
             case 'error':
-              console.error('WebSocket error message:', message.data);
+              logger.error('WebSocket error message:', message.data);
               break;
           }
         } catch (err) {
-          console.error('Error parsing WebSocket message:', err);
+          logger.error('Error parsing WebSocket message:', err);
         }
       };
 

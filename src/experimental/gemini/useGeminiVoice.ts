@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from 'react';
+import { logger } from '../../lib/logger';
 
 export interface UseGeminiVoiceOptions {
   isEnabled: boolean;
@@ -165,7 +166,7 @@ export const useGeminiVoice = ({ isEnabled, centerCircleRef }: UseGeminiVoiceOpt
       }
       const keyParam = gemKey ? `&key=${encodeURIComponent(gemKey)}` : '';
       const wsUrl = `${proxyUrl}?model=${encodeURIComponent(liveModel)}${keyParam}`;
-      console.log('[GEMINI] ws connect →', wsUrl);
+      logger.log('[GEMINI] ws connect →', wsUrl);
       const ws = new WebSocket(wsUrl);
       ws.binaryType = 'arraybuffer';
       wsRef.current = ws;
@@ -179,7 +180,7 @@ export const useGeminiVoice = ({ isEnabled, centerCircleRef }: UseGeminiVoiceOpt
       };
 
       ws.onopen = () => {
-        console.log('[GEMINI] ws open');
+        logger.log('[GEMINI] ws open');
         setIsListening(true);
         setUseFallback(false);
         hasPendingCommitRef.current = false;
@@ -193,7 +194,7 @@ export const useGeminiVoice = ({ isEnabled, centerCircleRef }: UseGeminiVoiceOpt
             response: { audio: { encoding: 'LINEAR16', sampleRate: 16000 } },
           },
         } as any;
-        try { ws.send(JSON.stringify(init)); } catch (e) { console.warn('[GEMINI] start send error', e); }
+        try { ws.send(JSON.stringify(init)); } catch (e) { logger.warn('[GEMINI] start send error', e); }
 
         if (commitTimerRef.current) {
           window.clearInterval(commitTimerRef.current);
@@ -237,7 +238,7 @@ export const useGeminiVoice = ({ isEnabled, centerCircleRef }: UseGeminiVoiceOpt
         if (typeof ev.data === 'string') {
           try {
             const text = ev.data as string;
-            console.log('[GEMINI] ←', text.slice(0, 200));
+            logger.log('[GEMINI] ←', text.slice(0, 200));
             const obj = JSON.parse(text);
             const payloads: string[] = [];
             const collect = (val: any) => {
@@ -286,10 +287,10 @@ export const useGeminiVoice = ({ isEnabled, centerCircleRef }: UseGeminiVoiceOpt
         setUseFallback(true);
         void stop();
       };
-      ws.onerror = (e) => { console.warn('[GEMINI] ws error', e); handleEnd(); };
-      ws.onclose = (e) => { console.warn('[GEMINI] ws close', e); handleEnd(); };
+      ws.onerror = (e) => { logger.warn('[GEMINI] ws error', e); handleEnd(); };
+      ws.onclose = (e) => { logger.warn('[GEMINI] ws close', e); handleEnd(); };
     } catch (error) {
-      console.error('Gemini start error:', error);
+      logger.error('Gemini start error:', error);
       await stop();
       setUseFallback(true);
     }

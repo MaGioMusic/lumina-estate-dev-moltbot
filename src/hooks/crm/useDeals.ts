@@ -1,230 +1,246 @@
-"use client";
+/**
+ * React Query Hooks for Deals
+ * Pre-built hooks for fetching and mutating deal data
+ */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Deal, DealFormData, DealStage } from '@/types/crm';
-import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryOptions,
+} from '@tanstack/react-query';
+import { dealsApi } from '@/lib/api';
+import {
+  Deal,
+  DealFormData,
+  DealStage,
+  DealQueryParams,
+} from '@/types';
+import { ApiError, ItemResponse } from '@/types/api';
 
-interface UseDealsOptions {
-  stage?: string;
-  contactId?: string;
-  page?: number;
-  limit?: number;
+// Query keys
+export const dealKeys = {
+  all: ['deals'] as const,
+  lists: () => [...dealKeys.all, 'list'] as const,
+  list: (params: DealQueryParams) => [...dealKeys.lists(), params] as const,
+  details: () => [...dealKeys.all, 'detail'] as const,
+  detail: (id: string) => [...dealKeys.details(), id] as const,
+  pipeline: () => [...dealKeys.all, 'pipeline'] as const,
+  stats: () => [...dealKeys.all, 'stats'] as const,
+};
+
+// Types for deal with relations
+interface DealWithRelations extends Deal {
+  contact?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string | null;
+  };
+  agent?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  _count?: {
+    tasks: number;
+    notes: number;
+  };
 }
 
-interface DealsResponse {
-  success: boolean;
-  deals: Deal[];
-  pipeline?: Record<DealStage, Deal[]>;
-  stats?: {
-    total: number;
-    totalValue: number;
-    wonValue: number;
-  };
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+interface PipelineData {
+  lead: DealWithRelations[];
+  qualified: DealWithRelations[];
+  proposal: DealWithRelations[];
+  negotiation: DealWithRelations[];
+  closed_won: DealWithRelations[];
+  closed_lost: DealWithRelations[];
 }
 
-export function useDeals(options: UseDealsOptions = {}) {
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [pipeline, setPipeline] = useState<Record<DealStage, Deal[]> | null>(null);
-  const [stats, setStats] = useState<DealsResponse['stats'] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<DealsResponse['pagination'] | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+interface DealStats {
+  total: number;
+  totalValue: number;
+  wonValue: number;
+}
 
-  const fetchDeals = useCallback(async (signal?: AbortSignal) => {
-    // Abort any pending request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new AbortController for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    
-    // Use provided signal if available, otherwise use controller's signal
-    const finalSignal = signal || controller.signal;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
+// ============================================================================
+// Query Hooks
+// ============================================================================
 
-      const params = new URLSearchParams();
-      if (options.stage) params.set('stage', options.stage);
-      if (options.contactId) params.set('contactId', options.contactId);
-      if (options.page) params.set('page', options.page.toString());
-      if (options.limit) params.set('limit', options.limit.toString());
+/**
+ * Hook to fetch deals with pipeline and stats
+ */
+export function useDeals(
+  params?: DealQueryParams,
+  options?: UseQueryOptions<
+    {
+      success: true;
+      data: DealWithRelations[];
+      pipeline: PipelineData;
+      stats: DealStats;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    },
+    ApiError
+  >
+) {
+  return useQuery({
+    queryKey: dealKeys.list(params ?? {}),
+    queryFn: () => dealsApi.getDeals(params),
+    ...options,
+  });
+}
 
-      const response = await fetch(`/api/deals?${params.toString()}`, {
-        signal: finalSignal,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch deals');
-      }
+/**
+ * Hook to fetch a single deal
+ */
+export function useDeal(
+  id: string,
+  options?: UseQueryOptions<ItemResponse<DealWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: dealKeys.detail(id),
+    queryFn: () => dealsApi.getDeal(id),
+    enabled: !!id,
+    ...options,
+  });
+}
 
-      const data: DealsResponse = await response.json();
-      setDeals(data.deals || []);
-      setPipeline(data.pipeline || null);
-      setStats(data.stats || null);
-      setPagination(data.pagination || null);
-    } catch (err) {
-      // Don't update state if request was aborted
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.stage, options.contactId, options.page, options.limit]);
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
-  const createDeal = useCallback(async (formData: DealFormData): Promise<Deal | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+/**
+ * Hook to create a new deal
+ */
+export function useCreateDeal() {
+  const queryClient = useQueryClient();
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+  return useMutation({
+    mutationFn: dealsApi.createDeal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dealKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dealKeys.pipeline() });
+      queryClient.invalidateQueries({ queryKey: dealKeys.stats() });
+    },
+  });
+}
 
-      const response = await fetch('/api/deals', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+/**
+ * Hook to update a deal
+ */
+export function useUpdateDeal() {
+  const queryClient = useQueryClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create deal');
-      }
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<DealFormData> }) =>
+      dealsApi.updateDeal(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: dealKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dealKeys.pipeline() });
+      queryClient.invalidateQueries({ queryKey: dealKeys.stats() });
+    },
+  });
+}
 
-      const data = await response.json();
-      await fetchDeals(); // Refresh the list
-      return data.deal;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchDeals]);
+/**
+ * Hook to delete a deal
+ */
+export function useDeleteDeal() {
+  const queryClient = useQueryClient();
 
-  const updateDeal = useCallback(async (id: string, formData: Partial<DealFormData>): Promise<Deal | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  return useMutation({
+    mutationFn: dealsApi.deleteDeal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dealKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dealKeys.pipeline() });
+      queryClient.invalidateQueries({ queryKey: dealKeys.stats() });
+    },
+  });
+}
 
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
+/**
+ * Hook to update deal stage (for drag-and-drop pipeline)
+ */
+export function useUpdateDealStage() {
+  const queryClient = useQueryClient();
 
-      const response = await fetch(`/api/deals/${id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+  return useMutation({
+    mutationFn: ({ id, stage }: { id: string; stage: DealStage }) =>
+      dealsApi.updateDealStage(id, stage),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: dealKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dealKeys.pipeline() });
+    },
+  });
+}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update deal');
-      }
+// ============================================================================
+// Specialized Hooks
+// ============================================================================
 
-      const data = await response.json();
-      await fetchDeals(); // Refresh the list
-      return data.deal;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchDeals]);
+/**
+ * Hook to get deals by stage
+ */
+export function useDealsByStage(
+  stage: DealStage,
+  params?: Omit<DealQueryParams, 'stage'>,
+  options?: UseQueryOptions<
+    {
+      success: true;
+      data: DealWithRelations[];
+      pipeline: PipelineData;
+      stats: DealStats;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    },
+    ApiError
+  >
+) {
+  return useQuery({
+    queryKey: [...dealKeys.lists(), 'stage', stage, params],
+    queryFn: () => dealsApi.getDealsByStage(stage, params),
+    ...options,
+  });
+}
 
-  const deleteDeal = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Get CSRF token for mutation
-      let csrfToken = getClientCsrfToken();
-      if (!csrfToken) {
-        csrfToken = await fetchCsrfToken();
-      }
-
-      const response = await fetch(`/api/deals/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          [CSRF_HEADER_NAME]: csrfToken || '',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete deal');
-      }
-
-      await fetchDeals(); // Refresh the list
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchDeals]);
-
-  const updateDealStage = useCallback(async (id: string, newStage: DealStage): Promise<Deal | null> => {
-    return updateDeal(id, { stage: newStage });
-  }, [updateDeal]);
-
-  const refresh = useCallback(() => {
-    fetchDeals();
-  }, [fetchDeals]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchDeals(controller.signal);
-    
-    return () => {
-      controller.abort();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [fetchDeals]);
-
-  return {
-    deals,
-    pipeline,
-    stats,
-    isLoading,
-    error,
-    pagination,
-    createDeal,
-    updateDeal,
-    deleteDeal,
-    updateDealStage,
-    refresh,
-  };
+/**
+ * Hook to get deals for a specific contact
+ */
+export function useContactDeals(
+  contactId: string,
+  params?: Omit<DealQueryParams, 'contactId'>,
+  options?: UseQueryOptions<
+    {
+      success: true;
+      data: DealWithRelations[];
+      pipeline: PipelineData;
+      stats: DealStats;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    },
+    ApiError
+  >
+) {
+  return useQuery({
+    queryKey: [...dealKeys.lists(), 'contact', contactId, params],
+    queryFn: () => dealsApi.getContactDeals(contactId, params),
+    enabled: !!contactId,
+    ...options,
+  });
 }

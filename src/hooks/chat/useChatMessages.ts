@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChatMessage, MessageType } from '@/types/chat';
 import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
 
 interface UseChatMessagesOptions {
   roomId: string | null;
@@ -127,7 +128,7 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
       }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch messages';
       setError(errorMessage);
-      console.error('Error fetching messages:', err);
+      logger.error('Error fetching messages:', err);
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
@@ -238,7 +239,7 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
       setError(errorMessage);
-      console.error('Error sending message:', err);
+      logger.error('Error sending message:', err);
       return null;
     } finally {
       setIsSending(false);

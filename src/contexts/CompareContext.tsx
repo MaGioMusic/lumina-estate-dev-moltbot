@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { logger } from '../lib/logger';
 
 interface CompareContextValue {
   ids: number[];
@@ -31,7 +32,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
         return parsed.filter((n) => typeof n === 'number').slice(0, MAX_COMPARE);
       }
     } catch (error) {
-      console.error('Compare: unable to parse storage', error);
+      logger.error('Compare: unable to parse storage', error);
       try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
     }
     return [];
@@ -78,18 +79,18 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
   const add = (id: number) => {
     if (ids.includes(id)) return;
     if (ids.length >= MAX_COMPARE) {
-      console.warn('Compare: max 4 items reached');
+      logger.warn('Compare: max 4 items reached');
       return;
     }
     const next = [...ids, id];
     setIds(next);
-    console.log('analytics:event', 'compare_add', { id });
+    logger.log('analytics:event', 'compare_add', { id });
   };
 
   const remove = (id: number) => {
     const next = ids.filter((x) => x !== id);
     setIds(next);
-    console.log('analytics:event', 'compare_remove', { id });
+    logger.log('analytics:event', 'compare_remove', { id });
   };
 
   const toggle = (id: number) => {
@@ -98,7 +99,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 
   const clear = () => {
     setIds([]);
-    console.log('analytics:event', 'compare_clear');
+    logger.log('analytics:event', 'compare_clear');
   };
 
   const value = useMemo<CompareContextValue>(() => ({ ids, isSelected, add, remove, toggle, clear, max: MAX_COMPARE }), [ids]);

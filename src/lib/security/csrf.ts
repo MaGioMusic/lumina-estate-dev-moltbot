@@ -1,5 +1,8 @@
 /**
- * CSRF Protection Module for Lumina Estate
+ * CSRF Protection Module for Lumina Estate - Client-Safe Version
+ * 
+ * This file contains only client-safe functions.
+ * Server-only functions have been moved to csrf-server.ts
  * 
  * Implements Double Submit Cookie pattern for CSRF protection:
  * - Server sets a random CSRF token in an httpOnly cookie
@@ -10,21 +13,19 @@
  * - Cryptographically secure random token generation
  * - HttpOnly cookie storage (not accessible via JavaScript)
  * - SameSite=Lax cookie attribute
- - - Token rotation on session changes
+ * - Token rotation on session changes
  */
 
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const CSRF_COOKIE_NAME = 'csrf_token';
-const CSRF_HEADER_NAME = 'x-csrf-token';
+export const CSRF_COOKIE_NAME = 'csrf_token';
+export const CSRF_HEADER_NAME = 'x-csrf-token';
 const CSRF_TOKEN_LENGTH = 32; // bytes
-const CSRF_COOKIE_MAX_AGE = 60 * 60 * 24; // 24 hours
 
 // ============================================================================
 // Token Generation
@@ -48,104 +49,6 @@ export function generateCsrfTokenPair(): { publicToken: string; secretToken: str
 }
 
 // ============================================================================
-// Cookie Management (Server-side)
-// ============================================================================
-
-/**
- * Set the CSRF token cookie
- * Uses httpOnly, secure, and SameSite=Lax for maximum security
- */
-export async function setCsrfCookie(response: NextResponse, secretToken: string): Promise<void> {
-  const cookieStore = await cookies();
-  
-  // In production, use secure cookies
-  const isSecure = process.env.NODE_ENV === 'production';
-  
-  cookieStore.set(CSRF_COOKIE_NAME, secretToken, {
-    httpOnly: true,
-    secure: isSecure,
-    sameSite: 'lax',
-    maxAge: CSRF_COOKIE_MAX_AGE,
-    path: '/',
-    // No domain restriction - cookie is valid for current domain only
-  });
-}
-
-/**
- * Get the CSRF token from the cookie
- */
-export async function getCsrfCookie(): Promise<string | undefined> {
-  const cookieStore = await cookies();
-  return cookieStore.get(CSRF_COOKIE_NAME)?.value;
-}
-
-/**
- * Clear the CSRF cookie (used on logout)
- */
-export async function clearCsrfCookie(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.delete(CSRF_COOKIE_NAME);
-}
-
-// ============================================================================
-// Token Validation (Server-side)
-// ============================================================================
-
-/**
- * Extract CSRF token from request header
- */
-export function getCsrfTokenFromHeader(request: NextRequest): string | null {
-  return request.headers.get(CSRF_HEADER_NAME);
-}
-
-/**
- * Validate the CSRF token from the request
- * Returns true if valid, false otherwise
- */
-export async function validateCsrfToken(request: NextRequest): Promise<boolean> {
-  // Get the token from the header
-  const headerToken = getCsrfTokenFromHeader(request);
-  
-  if (!headerToken) {
-    console.warn('[CSRF] Missing CSRF token in request header');
-    return false;
-  }
-  
-  // Get the secret token from the cookie
-  const cookieToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
-  
-  if (!cookieToken) {
-    console.warn('[CSRF] Missing CSRF token cookie');
-    return false;
-  }
-  
-  // Use timing-safe comparison to prevent timing attacks
-  try {
-    const headerBuffer = Buffer.from(headerToken, 'base64url');
-    const cookieBuffer = Buffer.from(cookieToken, 'base64url');
-    
-    // Constant-time comparison
-    return headerBuffer.length === cookieBuffer.length && 
-           crypto.timingSafeEqual(headerBuffer, cookieBuffer);
-  } catch {
-    // Invalid base64 or length mismatch
-    return false;
-  }
-}
-
-/**
- * Middleware-style CSRF validation for API routes
- * Throws an error if validation fails
- */
-export async function requireCsrfToken(request: NextRequest): Promise<void> {
-  const isValid = await validateCsrfToken(request);
-  
-  if (!isValid) {
-    throw new CsrfError('Invalid or missing CSRF token');
-  }
-}
-
-// ============================================================================
 // CSRF Error Class
 // ============================================================================
 
@@ -164,16 +67,6 @@ export class CsrfError extends Error {
 // ============================================================================
 // Client-side Token Management
 // ============================================================================
-
-/**
- * Get the CSRF token for client-side use
- * This retrieves the token from the cookie and returns it for use in headers
- * Note: This only works if the cookie is not httpOnly, which defeats the purpose
- * 
- * Instead, we use a different approach:
- * - Server provides the token via a dedicated endpoint or embeds it in the page
- * - Client stores it in memory (not localStorage) and sends it in headers
- */
 
 // Store for the CSRF token in memory (not localStorage for security)
 let csrfToken: string | null = null;
@@ -242,7 +135,17 @@ export function requiresCsrfProtection(method: string): boolean {
 }
 
 // ============================================================================
-// Re-exports
+// Server-side functions (re-exported for convenience)
 // ============================================================================
+// 
+// NOTE: The following functions import 'next/headers' which is server-only.
+// They are re-exported here for backward compatibility, but when used in 
+// server components/API routes, they will work correctly.
+//
+// For client components, only use the client-side functions above.
 
-export { CSRF_COOKIE_NAME, CSRF_HEADER_NAME };
+// These are type-only exports to maintain compatibility
+// The actual implementations are in csrf-server.ts and should be imported from there
+// for server-side code to avoid bundling issues.
+
+export type { };

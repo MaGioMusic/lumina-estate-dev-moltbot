@@ -8,13 +8,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/nextAuthOptions';
+import { nextAuthOptions as authOptions } from '@/lib/auth/nextAuthOptions';
 import { 
   generateCsrfToken,
   setCsrfCookie,
   CsrfError 
-} from '@/lib/security/csrf';
+} from '@/lib/security/csrf-server';
 import { enforceRateLimit } from '@/lib/security/rateLimiter';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/csrf
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error('[CSRF API] Error generating token:', error);
+    logger.error('[CSRF API] Error generating token:', error);
     return NextResponse.json(
       { error: 'Failed to generate CSRF token' },
       { status: 500 }
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { validateCsrfToken, getCsrfTokenFromHeader } = await import('@/lib/security/csrf');
+    const { validateCsrfToken, getCsrfTokenFromHeader } = await import('@/lib/security/csrf-server');
     
     const isValid = await validateCsrfToken(req);
     const headerToken = getCsrfTokenFromHeader(req);
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       hasHeader: !!headerToken,
     });
   } catch (error) {
-    console.error('[CSRF API] Error validating token:', error);
+    logger.error('[CSRF API] Error validating token:', error);
     return NextResponse.json(
       { error: 'Failed to validate CSRF token' },
       { status: 500 }
