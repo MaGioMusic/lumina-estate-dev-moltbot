@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { propertyTypeSchema, transactionTypeSchema } from '@/types/models';
 import { getMockProperties, type MockProperty } from '@/lib/mockProperties';
+import { logger } from '@/lib/logger';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
@@ -145,7 +146,7 @@ export async function GET(request: NextRequest) {
     if (!parsed.success) {
       // Demo რეჟიმში არ ვაბრუნებთ 400-ს – უბრალოდ ვლოგავთ და ვხმარობთ default-ებს,
       // რომ UI-მ ყოველთვის იმუშაოს, თუნდაც query-ში უცნაური value შევიდეს.
-      console.warn(
+      logger.warn(
         'Invalid query params for /api/properties (mock mode), using defaults instead',
         parsed.error.flatten(),
       );
@@ -177,7 +178,7 @@ export async function GET(request: NextRequest) {
       pageSize,
     });
   } catch (error) {
-    console.error('Error in /api/properties (mock mode)', error);
+    logger.error('Error in /api/properties (mock mode)', error);
     return NextResponse.json(
       {
         error: {

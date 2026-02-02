@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { logger } from '../logger';
 
 let cached:
   | ReturnType<typeof createClient>
@@ -27,10 +28,10 @@ function debugEnvSupabaseUrlSource() {
       if (!match) continue;
       const raw = match[1]!.trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
       const host = extractHostFromEnvLine(raw);
-      console.log(`[supabase/admin] SUPABASE_URL found in ${filename}:`, host ?? '(invalid url)');
+      logger.log(`[supabase/admin] SUPABASE_URL found in ${filename}:`, host ?? '(invalid url)');
       return;
     }
-    console.log('[supabase/admin] SUPABASE_URL not found in .env.local or .env (using process.env)');
+    logger.log('[supabase/admin] SUPABASE_URL not found in .env.local or .env (using process.env)');
   } catch {
     // ignore
   }
@@ -157,7 +158,7 @@ function validateSupabaseEnv(): { url: string; serviceRoleKey: string } {
 
   if (process.env.NODE_ENV !== 'production') {
     // Safe to log hostname in development; never log service role key
-    console.log('[supabase/admin] Using Supabase host:', parsedUrl.hostname);
+    logger.log('[supabase/admin] Using Supabase host:', parsedUrl.hostname);
   }
 
   return { url, serviceRoleKey };

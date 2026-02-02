@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/nextAuthOptions';
+import { nextAuthOptions as authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields } from '@/lib/sanitize';
+import { enforceRateLimit } from '@/lib/security/rateLimiter';
 
 const contactUpdateSchema = z.object({
   firstName: z.string().min(1).max(100).optional(),
@@ -22,10 +23,17 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    enforceRateLimit(`contacts:get-one:${session.user.id}`, {
+      limit: 100,
+      windowMs: 60_000,
+      feature: 'contact get'
+    });
 
     const contact = await prisma.contact.findFirst({
       where: {
@@ -74,10 +82,17 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    enforceRateLimit(`contacts:update:${session.user.id}`, {
+      limit: 30,
+      windowMs: 60_000,
+      feature: 'contact update'
+    });
 
     const existingContact = await prisma.contact.findFirst({
       where: {
@@ -131,10 +146,17 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    enforceRateLimit(`contacts:delete:${session.user.id}`, {
+      limit: 20,
+      windowMs: 60_000,
+      feature: 'contact deletion'
+    });
 
     const existingContact = await prisma.contact.findFirst({
       where: {

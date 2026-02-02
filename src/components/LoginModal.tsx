@@ -38,13 +38,15 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setError(null);
     
     try {
-      const success = await login(credentials.email, credentials.password);
-      if (success) {
-        // Role-based redirect for demo accounts
+      const result = await login(credentials.email, credentials.password);
+      if (result.success) {
+        // Role-based redirect
+        // Note: Actual role checking should be done server-side
+        // This is just for UX enhancement
         const email = credentials.email.toLowerCase();
-        if (email === 'agent@lumina.ge') {
+        if (email.includes('agent')) {
           router.push('/agents/dashboard');
-        } else if (email === 'admin@lumina.ge') {
+        } else if (email.includes('admin')) {
           router.push('/admin/dashboard');
         } else {
           router.push('/profile');
@@ -52,7 +54,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         onClose();
         setCredentials({ email: '', password: '' });
       } else {
-        setError(t('invalidCredentials'));
+        setError(result.error || t('invalidCredentials'));
       }
     } catch (error) {
       setError(t('loginError'));
@@ -67,65 +69,22 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setError(null);
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      // Simulate Google OAuth API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock Google user data
-      const success = await login('google.user@gmail.com', 'google_oauth_token');
-      if (success) {
-        router.push('/profile');
-        onClose();
-        setCredentials({ email: '', password: '' });
-      } else {
-        setError('Google login failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Google login error:', error);
-      setError('Google login failed. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleFacebookLogin = async () => {
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      // Simulate Facebook OAuth API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock Facebook user data
-      const success = await login('facebook.user@facebook.com', 'facebook_oauth_token');
-      if (success) {
-        router.push('/profile');
-        onClose();
-        setCredentials({ email: '', password: '' });
-      } else {
-        setError('Facebook login failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Facebook login error:', error);
-      setError('Facebook login failed. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSignUpClick = () => {
-    // Don't close LoginModal immediately, just open SignUpModal
     setIsSignUpModalOpen(true);
   };
 
   const handleSignUpModalClose = () => {
     setIsSignUpModalOpen(false);
-    // Also close the LoginModal when SignUpModal closes
     onClose();
+  };
+
+  // Social login handlers - these should integrate with NextAuth OAuth providers
+  const handleGoogleLogin = async () => {
+    setError('Google OAuth not configured. Please use email/password login.');
+  };
+
+  const handleFacebookLogin = async () => {
+    setError('Facebook OAuth not configured. Please use email/password login.');
   };
 
   if (!isOpen) return null;
@@ -194,6 +153,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Enter your email"
                   required
+                  autoComplete="email"
                   className={`w-full px-4 py-3 rounded-lg border transition-colors ${
                     theme === 'dark'
                       ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-[#F08336] focus:ring-[#F08336]/20'
@@ -216,6 +176,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="Enter your password"
                     required
+                    autoComplete="current-password"
                     className={`w-full px-4 py-3 pr-12 rounded-lg border transition-colors ${
                       theme === 'dark'
                         ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-[#F08336] focus:ring-[#F08336]/20'
@@ -237,17 +198,6 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                       <Eye size={20} weight="regular" />
                     )}
                   </button>
-                </div>
-              </div>
-
-              {/* Demo Credentials Info */}
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-2">Demo Accounts:</p>
-                <div className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                  <div>• Agent: agent@lumina.ge</div>
-                  <div>• Client: client@lumina.ge</div>
-                  <div>• Investor: investor@lumina.ge</div>
-                  <div>• Password: password123</div>
                 </div>
               </div>
 
@@ -319,7 +269,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <p className={`text-xs text-center ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
             }`}>
-              Demo version - Use the credentials above to test different user roles
+              Secure login powered by NextAuth.js
             </p>
           </div>
         </div>
@@ -332,4 +282,4 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       />
     </>
   );
-} 
+}

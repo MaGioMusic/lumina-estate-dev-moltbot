@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/nextAuthOptions';
+import { nextAuthOptions as authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields } from '@/lib/sanitize';
+import { enforceRateLimit } from '@/lib/security/rateLimiter';
 
 const noteSchema = z.object({
   content: z.string().min(1, 'Content is required').max(10000, 'Content too long'),
@@ -15,6 +16,13 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Rate limiting
+    enforceRateLimit(`notes:get:${session.user.id}`, {
+      limit: 100,
+      windowMs: 60_000,
+      feature: 'notes list'
+    });
 
     const { searchParams } = new URL(req.url);
     const contactId = searchParams.get('contactId');
@@ -90,11 +98,38 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Rate limiting
+    enforceRateLimit(`notes:create:${session.user.id}`, {
+      limit: 30,
+      windowMs: 60_000,
+      feature: 'note creation'
+    });
+
     const body = await req.json();
     const validatedData = noteSchema.parse(body);
     
     // SECURITY FIX: Sanitize string inputs to prevent XSS
     const sanitizedData = sanitizeFields(validatedData, ['content']);
+
+    // SECURITY: Verify contact ownership if specified
+    if (sanitizedData.contactId) {
+      const contact = await prisma.contact.findFirst({
+        where: { id: sanitizedData.contactId, assignedAgentId: session.user.id }
+      });
+      if (!contact) {
+        return NextResponse.json({ error: 'Contact not found or access denied' }, { status: 404 });
+      }
+    }
+
+    // SECURITY: Verify deal ownership if specified
+    if (sanitizedData.dealId) {
+      const deal = await prisma.deal.findFirst({
+        where: { id: sanitizedData.dealId, agentId: session.user.id }
+      });
+      if (!deal) {
+        return NextResponse.json({ error: 'Deal not found or access denied' }, { status: 404 });
+      }
+    }
 
     const note = await prisma.note.create({
       data: {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getChatRetentionMaxAgeSeconds, isoNowPlusChatRetentionDays } from '@/lib/chatRetention';
+import { logger } from '@/lib/logger';
 
 const COOKIE_VISITOR = 'lumina_ai_visitor_id';
 const COOKIE_CONVERSATION = 'lumina_ai_conversation_id';
@@ -133,7 +134,7 @@ export async function GET(req: NextRequest) {
       updated_at: new Date().toISOString(),
     });
     if (error) {
-      console.error('[chat/history] Failed to create conversation', {
+      logger.error('[chat/history] Failed to create conversation', {
         conversationId,
         visitorId,
         error,
@@ -164,7 +165,7 @@ export async function GET(req: NextRequest) {
     .limit(MESSAGE_LIMIT);
 
   if (msgErr) {
-    console.error('[chat/history] Failed to load messages', {
+    logger.error('[chat/history] Failed to load messages', {
       conversationId: conversation.id,
       error: msgErr,
     });

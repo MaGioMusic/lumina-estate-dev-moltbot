@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/nextAuthOptions';
+import { nextAuthOptions as authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields } from '@/lib/sanitize';
+import { enforceRateLimit } from '@/lib/security/rateLimiter';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
@@ -20,6 +21,13 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Rate limiting
+    enforceRateLimit(`tasks:get:${session.user.id}`, {
+      limit: 100,
+      windowMs: 60_000,
+      feature: 'tasks list'
+    });
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
@@ -76,11 +84,52 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Rate limiting
+    enforceRateLimit(`tasks:create:${session.user.id}`, {
+      limit: 20,
+      windowMs: 60_000,
+      feature: 'task creation'
+    });
+
     const body = await req.json();
     const validatedData = taskSchema.parse(body);
     
     // SECURITY FIX: Sanitize string inputs to prevent XSS
     const sanitizedData = sanitizeFields(validatedData, ['title', 'description']);
+
+    // SECURITY: Verify can only assign to self (or admin can assign to anyone)
+    if (sanitizedData.assignedToId !== session.user.id && session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Cannot assign tasks to other users' }, { status: 403 });
+    }
+
+    // Verify target user exists
+    const targetUser = await prisma.user.findUnique({
+      where: { id: sanitizedData.assignedToId },
+      select: { id: true }
+    });
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Assigned user not found' }, { status: 404 });
+    }
+
+    // Verify deal ownership if specified
+    if (sanitizedData.dealId) {
+      const deal = await prisma.deal.findFirst({
+        where: { id: sanitizedData.dealId, agentId: session.user.id }
+      });
+      if (!deal) {
+        return NextResponse.json({ error: 'Deal not found or access denied' }, { status: 404 });
+      }
+    }
+
+    // Verify contact ownership if specified
+    if (sanitizedData.contactId) {
+      const contact = await prisma.contact.findFirst({
+        where: { id: sanitizedData.contactId, assignedAgentId: session.user.id }
+      });
+      if (!contact) {
+        return NextResponse.json({ error: 'Contact not found or access denied' }, { status: 404 });
+      }
+    }
 
     const task = await prisma.task.create({
       data: {

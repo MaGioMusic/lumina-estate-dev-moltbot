@@ -3,8 +3,9 @@
  * Centralized exports for all API hooks
  */
 
-// Contacts
+// CRM Hooks (from crm/ folder)
 export {
+  // Contacts
   useContacts,
   useContact,
   useCreateContact,
@@ -13,10 +14,7 @@ export {
   useContactSearch,
   useContactsByStatus,
   contactKeys,
-} from './useContacts';
-
-// Deals
-export {
+  // Deals
   useDeals,
   useDeal,
   useCreateDeal,
@@ -26,10 +24,7 @@ export {
   useDealsByStage,
   useContactDeals,
   dealKeys,
-} from './useDeals';
-
-// Tasks
-export {
+  // Tasks
   useTasks,
   useTask,
   useOverdueTasks,
@@ -43,10 +38,7 @@ export {
   useTasksByPriority,
   useMyTasks,
   taskKeys,
-} from './useTasks';
-
-// Notes
-export {
+  // Notes
   useNotes,
   useNote,
   useContactNotes,
@@ -57,7 +49,7 @@ export {
   useCreateContactNote,
   useCreateDealNote,
   noteKeys,
-} from './useNotes';
+} from './crm';
 
 // Chat
 export {
@@ -78,3 +70,9 @@ export {
   useReplyToMessage,
   chatKeys,
 } from './useChat';
+
+// Mobile
+export { useIsMobile } from './use-mobile';
+
+// Stale flag
+export { useStaleFlag } from './useStaleFlag';

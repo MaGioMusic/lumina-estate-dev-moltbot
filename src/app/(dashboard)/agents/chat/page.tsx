@@ -74,6 +74,28 @@ export default function ChatPage() {
   const [newRoomType, setNewRoomType] = useState<ChatRoomType>('group');
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   
+  // Window width state for responsive design (fix hydration mismatch)
+  const [windowWidth, setWindowWidth] = useState<number>(0);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Handle window resize for responsive design
+  useEffect(() => {
+    setIsMounted(true);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    // Set initial width
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Derived responsive values
+  const isLargeScreen = windowWidth >= 1024;
+  const isMobile = windowWidth < 1024;
+  
   // Modals state
   const [meetingOpen, setMeetingOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -249,6 +271,18 @@ export default function ChatPage() {
     setReminderOpen(false);
   }, [draftReminder, t, addSystemMessage]);
 
+  // Memoized modal handlers to prevent re-renders
+  const handleOpenCreateRoom = useCallback(() => setIsCreateRoomOpen(true), []);
+  const handleCloseCreateRoom = useCallback(() => setIsCreateRoomOpen(false), []);
+  const handleOpenMeeting = useCallback(() => setMeetingOpen(true), []);
+  const handleCloseMeeting = useCallback(() => setMeetingOpen(false), []);
+  const handleOpenShare = useCallback(() => setShareOpen(true), []);
+  const handleCloseShare = useCallback(() => setShareOpen(false), []);
+  const handleOpenReminder = useCallback(() => setReminderOpen(true), []);
+  const handleCloseReminder = useCallback(() => setReminderOpen(false), []);
+  const handleShowMobileSidebar = useCallback(() => setShowMobileSidebar(true), []);
+  const handleHideMobileSidebar = useCallback(() => setShowMobileSidebar(false), []);
+
   // Set initial room from URL params
   useEffect(() => {
     if (contactId && !selectedRoomId) {
@@ -291,7 +325,7 @@ export default function ChatPage() {
         
         {/* Left Sidebar - Chat Room List */}
         <AnimatePresence mode="wait">
-          {(showMobileSidebar || typeof window !== 'undefined' && window.innerWidth >= 1024) && (
+          {(showMobileSidebar || isLargeScreen) && (
             <motion.div
               initial={{ x: -100, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -308,7 +342,7 @@ export default function ChatPage() {
                 selectedRoomId={selectedRoomId}
                 isLoading={roomsLoading}
                 onSelect={handleSelectRoom}
-                onCreate={() => setIsCreateRoomOpen(true)}
+                onCreate={handleOpenCreateRoom}
                 className="h-full"
               />
               
@@ -333,7 +367,7 @@ export default function ChatPage() {
           {/* Mobile Back Button */}
           {!showMobileSidebar && (
             <button
-              onClick={() => setShowMobileSidebar(true)}
+              onClick={handleShowMobileSidebar}
               className={cn(
                 "lg:hidden absolute top-4 left-4 z-10 p-2 rounded-full",
                 theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'
@@ -346,8 +380,8 @@ export default function ChatPage() {
           {/* Chat Header */}
           <ChatRoomHeader
             room={selectedRoom}
-            isMobile={typeof window !== 'undefined' && window.innerWidth < 1024}
-            onBack={() => setShowMobileSidebar(true)}
+            isMobile={isMobile}
+            onBack={handleShowMobileSidebar}
             onVoiceCall={() => addSystemMessage(t('chat_voice_call_initiated'))}
             onVideoCall={() => addSystemMessage(t('chat_video_call_initiated'))}
             onViewInfo={() => addSystemMessage(t('chat_view_info'))}
@@ -444,7 +478,7 @@ export default function ChatPage() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setMeetingOpen(true)}
+                  onClick={handleOpenMeeting}
                   title={t('chat_schedule')}
                 >
                   <FiCalendar className="w-4 h-4" />
@@ -453,7 +487,7 @@ export default function ChatPage() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setShareOpen(true)}
+                  onClick={handleOpenShare}
                   title={t('chat_share')}
                 >
                   <FiShare2 className="w-4 h-4" />
@@ -462,7 +496,7 @@ export default function ChatPage() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setReminderOpen(true)}
+                  onClick={handleOpenReminder}
                   title={t('chat_reminder')}
                 >
                   <FiBell className="w-4 h-4" />
@@ -657,7 +691,7 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsCreateRoomOpen(false)}>
+            <Button variant="outline" onClick={handleCloseCreateRoom}>
               Cancel
             </Button>
             <Button 
@@ -681,7 +715,7 @@ export default function ChatPage() {
       {meetingOpen && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-          onClick={() => setMeetingOpen(false)}
+          onClick={handleCloseMeeting}
         >
           <div 
             className={cn(
@@ -692,7 +726,7 @@ export default function ChatPage() {
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">{t('chat_schedule')}</h3>
-              <button onClick={() => setMeetingOpen(false)}>
+              <button onClick={handleCloseMeeting}>
                 <FiX />
               </button>
             </div>
@@ -730,7 +764,7 @@ export default function ChatPage() {
       {shareOpen && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-          onClick={() => setShareOpen(false)}
+          onClick={handleCloseShare}
         >
           <div 
             className={cn(
@@ -741,7 +775,7 @@ export default function ChatPage() {
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">{t('chat_recent_properties')}</h3>
-              <button onClick={() => setShareOpen(false)}>
+              <button onClick={handleCloseShare}>
                 <FiX />
               </button>
             </div>
@@ -767,7 +801,7 @@ export default function ChatPage() {
       {reminderOpen && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-          onClick={() => setReminderOpen(false)}
+          onClick={handleCloseReminder}
         >
           <div 
             className={cn(
@@ -778,7 +812,7 @@ export default function ChatPage() {
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">{t('chat_reminder')}</h3>
-              <button onClick={() => setReminderOpen(false)}>
+              <button onClick={handleCloseReminder}>
                 <FiX />
               </button>
             </div>

@@ -7,6 +7,8 @@ import {
   type AuthenticatedUser,
 } from '@/lib/auth/server';
 import { z } from 'zod';
+import { validateCsrfToken, CsrfError, requiresCsrfProtection } from '@/lib/security/csrf-server';
+import { logger } from '@/lib/logger';
 
 export function jsonResponse<T>(data: T, init?: ResponseInit) {
   return NextResponse.json(data, init);
@@ -26,7 +28,7 @@ export function errorResponse(error: unknown) {
     );
   }
 
-  console.error('Unhandled API error', error);
+  logger.error('Unhandled API error', error);
   return NextResponse.json(
     {
       error: {
@@ -89,7 +91,7 @@ export function handleApiError(error: unknown): NextResponse {
   }
 
   // Generic errors - log but don't expose details
-  console.error('API Error:', error);
+  logger.error('API Error:', error);
   return NextResponse.json(
     { success: false, error: 'An unexpected error occurred' },
     { status: 500 }
@@ -114,4 +116,80 @@ export function requireUser(request: NextRequest, allowedRoles?: UserRole[]): Us
 
 export function getOptionalUser(request: NextRequest): UserContext | null {
   return resolveCurrentUser(request);
+}
+
+// ============================================================================
+// CSRF Protection
+// ============================================================================
+
+/**
+ * Validate CSRF token for mutation requests
+ * Must be called after authentication check
+ * 
+ * @param request - The incoming request
+ * @throws CsrfError if validation fails
+ */
+export async function validateCsrf(request: NextRequest): Promise<void> {
+  // Skip CSRF validation for GET, HEAD, OPTIONS requests (safe methods)
+  if (!requiresCsrfProtection(request.method)) {
+    return;
+  }
+
+  const isValid = await validateCsrfToken(request);
+
+  if (!isValid) {
+    throw new CsrfError('Invalid or missing CSRF token');
+  }
+}
+
+/**
+ * Higher-order function to wrap API handlers with CSRF validation
+ * Usage:
+ *   export const POST = withCsrfProtection(async (req, user) => {
+ *     // Your handler code
+ *   });
+ */
+export function withCsrfProtection(
+  handler: (req: NextRequest, user: UserContext) => Promise<NextResponse>
+) {
+  return async (req: NextRequest): Promise<NextResponse> => {
+    try {
+      // First, authenticate the user
+      const user = requireUser(req);
+
+      // Then validate CSRF token
+      await validateCsrf(req);
+
+      // Call the actual handler
+      return await handler(req, user);
+    } catch (error) {
+      if (error instanceof CsrfError) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'CSRF validation failed', 
+            code: error.code,
+            message: 'Please refresh the page and try again'
+          },
+          { status: 403 }
+        );
+      }
+      throw error;
+    }
+  };
+}
+
+/**
+ * Handle CSRF errors consistently across API routes
+ */
+export function handleCsrfError(error: CsrfError): NextResponse {
+  return NextResponse.json(
+    { 
+      success: false, 
+      error: 'CSRF validation failed', 
+      code: error.code,
+      message: 'Please refresh the page and try again'
+    },
+    { status: 403 }
+  );
 }

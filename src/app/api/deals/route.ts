@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/nextAuthOptions';
+import { nextAuthOptions as authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sanitizeFields } from '@/lib/sanitize';
+import { enforceRateLimit } from '@/lib/security/rateLimiter';
 
 const dealSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
@@ -20,10 +21,17 @@ const dealSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    enforceRateLimit(`deals:get:${session.user.id}`, {
+      limit: 100,
+      windowMs: 60_000,
+      feature: 'deals list'
+    });
 
     const { searchParams } = new URL(req.url);
     const stage = searchParams.get('stage');
@@ -110,10 +118,17 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    enforceRateLimit(`deals:create:${session.user.id}`, {
+      limit: 20,
+      windowMs: 60_000,
+      feature: 'deal creation'
+    });
 
     const body = await req.json();
     const validatedData = dealSchema.parse(body);

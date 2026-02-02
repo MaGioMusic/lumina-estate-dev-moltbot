@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -15,7 +15,7 @@ import {
   FiGrid,
   FiList
 } from 'react-icons/fi';
-import { AgentShell } from './components/agentShell';
+import { AgentShell } from '../components/agentShell';
 
 // CRM Components
 import {
@@ -54,6 +54,18 @@ export default function CrmPage() {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  
+  // Memoized view setters to prevent re-renders
+  const handleSetContactsView = useCallback(() => setActiveView('contacts'), []);
+  const handleSetDealsView = useCallback(() => setActiveView('deals'), []);
+  const handleSetTasksView = useCallback(() => setActiveView('tasks'), []);
+  const handleSetNotesView = useCallback(() => setActiveView('notes'), []);
+  
+  // Memoized modal close handlers
+  const handleCloseContactModal = useCallback(() => setContactModalOpen(false), []);
+  const handleCloseDealModal = useCallback(() => setDealModalOpen(false), []);
+  const handleCloseTaskModal = useCallback(() => setTaskModalOpen(false), []);
+  const handleCloseNoteModal = useCallback(() => setNoteModalOpen(false), []);
 
   // Fetch data from API
   const {
@@ -204,37 +216,37 @@ export default function CrmPage() {
     refreshNotes();
   };
 
-  // Stats cards data
-  const statsCards = [
+  // Stats cards data - memoized to prevent re-renders
+  const statsCards = useMemo(() => [
     {
       label: 'Total Contacts',
       value: contacts.length,
       icon: FiUsers,
       color: 'bg-blue-500',
-      onClick: () => setActiveView('contacts'),
+      onClick: handleSetContactsView,
     },
     {
       label: 'Pipeline Value',
       value: dealStats ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(dealStats.totalValue) : '$0',
       icon: FiDollarSign,
       color: 'bg-green-500',
-      onClick: () => setActiveView('deals'),
+      onClick: handleSetDealsView,
     },
     {
       label: 'Pending Tasks',
       value: tasks.filter(t => t.status !== 'completed').length,
       icon: FiCheckSquare,
       color: 'bg-orange-500',
-      onClick: () => setActiveView('tasks'),
+      onClick: handleSetTasksView,
     },
     {
       label: 'Recent Notes',
       value: notes.length,
       icon: FiFileText,
       color: 'bg-purple-500',
-      onClick: () => setActiveView('notes'),
+      onClick: handleSetNotesView,
     },
-  ];
+  ], [contacts.length, dealStats, tasks, notes.length, handleSetContactsView, handleSetDealsView, handleSetTasksView, handleSetNotesView]);
 
   const isLoading = contactsLoading || dealsLoading || tasksLoading || notesLoading;
   const hasError = contactsError || dealsError || tasksError || notesError;
@@ -439,7 +451,7 @@ export default function CrmPage() {
       <ContactForm
         contact={selectedContact}
         isOpen={contactModalOpen}
-        onClose={() => setContactModalOpen(false)}
+        onClose={handleCloseContactModal}
         onSubmit={handleSubmitContact}
         isLoading={contactsLoading}
       />
@@ -448,7 +460,7 @@ export default function CrmPage() {
         deal={selectedDeal}
         contacts={contacts.map(c => ({ id: c.id, firstName: c.firstName, lastName: c.lastName }))}
         isOpen={dealModalOpen}
-        onClose={() => setDealModalOpen(false)}
+        onClose={handleCloseDealModal}
         onSubmit={handleSubmitDeal}
         isLoading={dealsLoading}
       />
@@ -456,7 +468,7 @@ export default function CrmPage() {
       <TaskForm
         task={selectedTask}
         isOpen={taskModalOpen}
-        onClose={() => setTaskModalOpen(false)}
+        onClose={handleCloseTaskModal}
         onSubmit={handleSubmitTask}
         isLoading={tasksLoading}
       />
@@ -464,7 +476,7 @@ export default function CrmPage() {
       <NoteForm
         note={selectedNote}
         isOpen={noteModalOpen}
-        onClose={() => setNoteModalOpen(false)}
+        onClose={handleCloseNoteModal}
         onSubmit={handleSubmitNote}
         isLoading={notesLoading}
       />
