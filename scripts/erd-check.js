@@ -4,17 +4,29 @@ require('ts-node/register');
 const { validateERD, toMermaid } = require('../src/lib/erd/relations');
 
 function readSchemaMarkdown() {
-  const schemaPath = path.resolve(__dirname, '../../LUMINA_DATABASE_SCHEMA.md');
-  return fs.readFileSync(schemaPath, 'utf8');
+  const schemaPath = path.resolve(__dirname, '../LUMINA_DATABASE_SCHEMA.md');
+  if (fs.existsSync(schemaPath)) {
+    return fs.readFileSync(schemaPath, 'utf8');
+  }
+
+  const fallbackPath = path.resolve(__dirname, '../supabase/migration_2026_02_01.sql');
+  if (fs.existsSync(fallbackPath)) {
+    const sql = fs.readFileSync(fallbackPath, 'utf8');
+    return `\n\`\`\`sql\n${sql}\n\`\`\`\n`;
+  }
+
+  throw new Error('Missing LUMINA_DATABASE_SCHEMA.md and fallback SQL migration file.');
 }
 
 function parseTables(markdown) {
   const codeBlocks = Array.from(markdown.matchAll(/```sql([\s\S]*?)```/g)).map(m => m[1]);
+  const blocks = codeBlocks.length > 0 ? codeBlocks : [markdown];
   const entities = [];
   const fks = [];
   const uniques = {};
 
-  for (const sql of codeBlocks) {
+  for (const rawSql of blocks) {
+    const sql = rawSql.replace(/"/g, '');
     for (const tableMatch of sql.matchAll(/CREATE\s+TABLE\s+(\w+)\s*\(([^;]*?)\);/gi)) {
       const table = tableMatch[1];
       const body = tableMatch[2];
