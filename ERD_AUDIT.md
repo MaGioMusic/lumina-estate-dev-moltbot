@@ -1,6 +1,6 @@
 # ERD Audit Report
 
-Generated: 2026-02-02T06:16:06.806Z
+Generated: 2026-02-02T10:22:23.586Z
 
 ## Entities
 - users: id, email, first_name, last_name, avatar, role, account_role, phone, created_at, last_login, is_active, password_hash, email_verification_token, is_email_verified, updated_at
