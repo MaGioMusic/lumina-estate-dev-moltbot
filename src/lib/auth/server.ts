@@ -1,7 +1,8 @@
 import type { NextRequest } from 'next/server';
-import type { UserRole } from '@prisma/client';
+import type { AccountRole, UserRole } from '@prisma/client';
 import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
+import { nextAuthOptions } from '@/lib/auth/nextAuthOptions';
 import { ForbiddenError, HttpError } from '@/lib/repo/errors';
 
 export interface AuthenticatedUser {
@@ -14,6 +15,45 @@ export interface RequireUserOptions {
   allowedRoles?: UserRole[];
 }
 
+const KNOWN_USER_ROLES: UserRole[] = ['guest', 'client', 'agent', 'investor', 'admin'];
+
+const isUserRole = (value: unknown): value is UserRole =>
+  typeof value === 'string' && KNOWN_USER_ROLES.includes(value as UserRole);
+
+const mapAccountRoleToUserRole = (accountRole?: AccountRole | null): UserRole | null => {
+  switch (accountRole) {
+    case 'ADMIN':
+    case 'DEVELOPER':
+      return 'admin';
+    case 'AGENT':
+      return 'agent';
+    case 'USER':
+      return 'client';
+    default:
+      return null;
+  }
+};
+
+const ROLE_PRIORITY: Record<UserRole, number> = {
+  guest: 0,
+  client: 1,
+  investor: 2,
+  agent: 3,
+  admin: 4,
+};
+
+const resolveEffectiveRole = (
+  role?: UserRole | null,
+  accountRole?: AccountRole | null,
+): UserRole => {
+  const normalized = isUserRole(role) ? role : 'guest';
+  const mapped = mapAccountRoleToUserRole(accountRole);
+  if (mapped && ROLE_PRIORITY[mapped] > ROLE_PRIORITY[normalized]) {
+    return mapped;
+  }
+  return normalized;
+};
+
 /**
  * Resolve the current user from the incoming request using NextAuth JWT session.
  *
@@ -25,7 +65,7 @@ export const getCurrentUser = async (request: NextRequest): Promise<Authenticate
     // Extract JWT token from the request using NextAuth
     const token = await getToken({
       req: request,
-      secret: process.env.NEXTAUTH_SECRET,
+      secret: nextAuthOptions.secret ?? process.env.NEXTAUTH_SECRET,
     });
 
     if (!token?.sub) {
@@ -35,16 +75,17 @@ export const getCurrentUser = async (request: NextRequest): Promise<Authenticate
     // Verify user still exists in database
     const user = await prisma.user.findUnique({
       where: { id: token.sub },
-      select: { id: true, accountRole: true },
+      select: { id: true, role: true, accountRole: true },
     });
 
     if (!user) {
       return null;
     }
 
+    const role = resolveEffectiveRole(user.role, user.accountRole);
     return {
       id: user.id,
-      role: user.accountRole as UserRole,
+      role,
       mode: 'session',
     };
   } catch (error) {
@@ -62,7 +103,8 @@ export const requireUser = async (
     throw new HttpError('Unauthorized', 401, 'UNAUTHORIZED');
   }
 
-  if (options?.allowedRoles && !options.allowedRoles.includes(user.role)) {
+  const isAdmin = user.role === 'admin';
+  if (options?.allowedRoles && !options.allowedRoles.includes(user.role) && !isAdmin) {
     throw new ForbiddenError();
   }
 

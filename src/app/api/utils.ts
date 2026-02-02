@@ -108,10 +108,13 @@ export function successResponse<T>(data: T, statusCode: number = 200): NextRespo
 
 export type UserContext = AuthenticatedUser;
 
-export function requireUser(request: NextRequest, allowedRoles?: UserRole[]): UserContext {
+export async function requireUser(
+  request: NextRequest,
+  allowedRoles?: UserRole[],
+): Promise<UserContext> {
   return coreRequireUser(request, { allowedRoles });
 }
 
-export function getOptionalUser(request: NextRequest): UserContext | null {
+export async function getOptionalUser(request: NextRequest): Promise<UserContext | null> {
   return resolveCurrentUser(request);
 }

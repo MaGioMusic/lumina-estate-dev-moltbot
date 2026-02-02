@@ -203,3 +203,6 @@ export const nextAuthOptions: NextAuthOptions = {
     },
   },
 };
+
+// Backwards-compatible alias for existing imports
+export const authOptions = nextAuthOptions;
