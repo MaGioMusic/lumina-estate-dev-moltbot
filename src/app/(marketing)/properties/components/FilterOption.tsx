@@ -94,7 +94,7 @@ export const RangeSliderOption: React.FC<RangeSliderOptionProps> = ({
     setIsDragging(type);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = React.useCallback((e: MouseEvent) => {
     if (!isDragging || !sliderRef.current) return;
 
     const rect = sliderRef.current.getBoundingClientRect();
@@ -106,11 +106,11 @@ export const RangeSliderOption: React.FC<RangeSliderOptionProps> = ({
     } else {
       onChange([range[0], Math.max(value, range[0])]);
     }
-  };
+  }, [isDragging, max, min, onChange, range, step]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = React.useCallback(() => {
     setIsDragging(null);
-  };
+  }, []);
 
   React.useEffect(() => {
     if (isDragging) {
@@ -121,7 +121,7 @@ export const RangeSliderOption: React.FC<RangeSliderOptionProps> = ({
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, range]);
+  }, [handleMouseMove, handleMouseUp, isDragging]);
 
   const minPercentage = ((range[0] - min) / (max - min)) * 100;
   const maxPercentage = ((range[1] - min) / (max - min)) * 100;
@@ -294,9 +294,11 @@ export const ToggleOption: React.FC<ToggleOptionProps> = ({
   );
 };
 
-export default {
+const FilterOptions = {
   CheckboxOption,
   RangeSliderOption,
   SelectOption,
-  ToggleOption
-}; 
+  ToggleOption,
+};
+
+export default FilterOptions;

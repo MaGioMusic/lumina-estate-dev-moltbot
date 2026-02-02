@@ -59,14 +59,19 @@ export default function PropertySubmitModal({ isOpen, onClose }: PropertySubmitM
     },
   });
 
+  const imagesRef = useRef(images);
+
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
+
   useEffect(() => {
     if (!isOpen) {
       // cleanup previews and reset form when closing
-      images.forEach((img) => URL.revokeObjectURL(img.url));
+      imagesRef.current.forEach((img) => URL.revokeObjectURL(img.url));
       setImages([]);
       reset();
     }
-    // Intentionally exclude `images` to avoid re-running after setImages([])
   }, [isOpen, reset]);
 
   useEffect(() => {

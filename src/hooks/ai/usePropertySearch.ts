@@ -384,6 +384,7 @@ export const usePropertySearch = ({ isChatOpen }: PropertySearchHookOptions) => 
       return { handled: false };
     },
     [
+      buildResultsPreview,
       buildPropertiesUrl,
       navigateWithLocation,
       navigateWithRouter,

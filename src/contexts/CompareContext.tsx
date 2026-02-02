@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface CompareContextValue {
   ids: number[];
@@ -73,35 +73,43 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isSelected = (id: number) => ids.includes(id);
+  const isSelected = useCallback((id: number) => ids.includes(id), [ids]);
 
-  const add = (id: number) => {
-    if (ids.includes(id)) return;
-    if (ids.length >= MAX_COMPARE) {
-      console.warn('Compare: max 4 items reached');
-      return;
-    }
-    const next = [...ids, id];
-    setIds(next);
-    console.log('analytics:event', 'compare_add', { id });
-  };
+  const add = useCallback((id: number) => {
+    setIds((prev) => {
+      if (prev.includes(id)) return prev;
+      if (prev.length >= MAX_COMPARE) {
+        console.warn('Compare: max 4 items reached');
+        return prev;
+      }
+      const next = [...prev, id];
+      console.log('analytics:event', 'compare_add', { id });
+      return next;
+    });
+  }, []);
 
-  const remove = (id: number) => {
-    const next = ids.filter((x) => x !== id);
-    setIds(next);
+  const remove = useCallback((id: number) => {
+    setIds((prev) => prev.filter((x) => x !== id));
     console.log('analytics:event', 'compare_remove', { id });
-  };
+  }, []);
 
-  const toggle = (id: number) => {
-    if (ids.includes(id)) remove(id); else add(id);
-  };
+  const toggle = useCallback(
+    (id: number) => {
+      if (ids.includes(id)) remove(id);
+      else add(id);
+    },
+    [add, ids, remove],
+  );
 
-  const clear = () => {
+  const clear = useCallback(() => {
     setIds([]);
     console.log('analytics:event', 'compare_clear');
-  };
+  }, []);
 
-  const value = useMemo<CompareContextValue>(() => ({ ids, isSelected, add, remove, toggle, clear, max: MAX_COMPARE }), [ids]);
+  const value = useMemo<CompareContextValue>(
+    () => ({ ids, isSelected, add, remove, toggle, clear, max: MAX_COMPARE }),
+    [add, clear, ids, isSelected, remove, toggle],
+  );
 
   return (
     <CompareContext.Provider value={value}>
