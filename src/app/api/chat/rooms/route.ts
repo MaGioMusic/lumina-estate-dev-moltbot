@@ -19,8 +19,11 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     // SECURITY FIX: Add pagination to prevent DoS
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
+    const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(searchParams.get('limit') || '50', 10) || 50),
+    );
     const skip = (page - 1) * limit;
 
     const where = {
@@ -73,6 +76,9 @@ export async function POST(req: NextRequest) {
     
     // SECURITY FIX: Sanitize string inputs to prevent XSS
     const sanitizedData = sanitizeFields(validatedData, ['name']);
+    const memberIds = Array.from(
+      new Set(sanitizedData.memberIds.map((id) => id.trim())),
+    ).filter((id) => id && id !== session.user.id);
 
     const room = await prisma.chatRoom.create({
       data: {
@@ -82,9 +88,9 @@ export async function POST(req: NextRequest) {
         members: {
           create: [
             { userId: session.user.id, role: 'admin' },
-            ...sanitizedData.memberIds.map((id: string) => ({ userId: id, role: 'member' }))
-          ]
-        }
+            ...memberIds.map((id: string) => ({ userId: id, role: 'member' })),
+          ],
+        },
       },
       include: {
         members: {

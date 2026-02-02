@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import type { AccountRole } from '@prisma/client';
 import { authOptions } from '@/lib/auth/nextAuthOptions';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
@@ -21,8 +22,11 @@ export async function GET(req: NextRequest) {
     const dealId = searchParams.get('dealId');
     
     // SECURITY FIX: Add pagination to prevent DoS
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
+    const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(searchParams.get('limit') || '50', 10) || 50),
+    );
     const skip = (page - 1) * limit;
 
     // SECURITY FIX: Verify user has access to the contact/deal before querying notes
@@ -92,6 +96,34 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const validatedData = noteSchema.parse(body);
+    const accountRole = (session.user as { accountRole?: AccountRole }).accountRole;
+    const isAdmin = accountRole === 'ADMIN' || accountRole === 'DEVELOPER';
+
+    if (validatedData.contactId) {
+      const contact = await prisma.contact.findUnique({
+        where: { id: validatedData.contactId },
+        select: { assignedAgentId: true },
+      });
+      if (!contact) {
+        return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+      }
+      if (!isAdmin && contact.assignedAgentId !== session.user.id) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+    }
+
+    if (validatedData.dealId) {
+      const deal = await prisma.deal.findUnique({
+        where: { id: validatedData.dealId },
+        select: { agentId: true },
+      });
+      if (!deal) {
+        return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
+      }
+      if (!isAdmin && deal.agentId !== session.user.id) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+    }
     
     // SECURITY FIX: Sanitize string inputs to prevent XSS
     const sanitizedData = sanitizeFields(validatedData, ['content']);

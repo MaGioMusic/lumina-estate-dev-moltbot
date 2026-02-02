@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { appointmentTypeSchema } from '@/types/models';
 import { createAppointment } from '@/lib/repo';
+import { sanitizeFields } from '@/lib/sanitize';
 import { errorResponse, jsonResponse, requireUser } from '../utils';
 
 const bodySchema = z.object({
@@ -14,17 +15,18 @@ const bodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = requireUser(request, ['client', 'agent', 'investor', 'admin']);
+    const user = await requireUser(request, ['client', 'agent', 'investor', 'admin']);
     const body = await request.json();
     const payload = bodySchema.parse(body);
+    const sanitizedPayload = sanitizeFields(payload, ['notes', 'meetingLocation']);
 
     const appointment = await createAppointment({
       userId: user.id,
-      propertyId: payload.propertyId,
-      scheduledDate: new Date(payload.scheduledDate),
-      type: payload.type,
-      notes: payload.notes ?? null,
-      meetingLocation: payload.meetingLocation ?? null,
+      propertyId: sanitizedPayload.propertyId,
+      scheduledDate: new Date(sanitizedPayload.scheduledDate),
+      type: sanitizedPayload.type,
+      notes: sanitizedPayload.notes ?? null,
+      meetingLocation: sanitizedPayload.meetingLocation ?? null,
     });
 
     return jsonResponse(appointment, { status: 201 });

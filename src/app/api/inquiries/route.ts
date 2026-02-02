@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createInquiry } from '@/lib/repo';
+import { sanitizeFields } from '@/lib/sanitize';
 import { errorResponse, jsonResponse } from '../utils';
 import { getCurrentUser as getOptionalUser } from '@/lib/auth/server';
 
@@ -13,17 +14,18 @@ const bodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getOptionalUser(request);
+    const user = await getOptionalUser(request);
 
     const body = await request.json();
     const payload = bodySchema.parse(body);
+    const sanitizedPayload = sanitizeFields(payload, ['message', 'contactEmail', 'contactPhone']);
 
     const inquiry = await createInquiry({
       userId: user?.id ?? null,
-      propertyId: payload.propertyId,
-      message: payload.message,
-      contactEmail: payload.contactEmail ?? null,
-      contactPhone: payload.contactPhone ?? null,
+      propertyId: sanitizedPayload.propertyId,
+      message: sanitizedPayload.message,
+      contactEmail: sanitizedPayload.contactEmail ?? null,
+      contactPhone: sanitizedPayload.contactPhone ?? null,
     });
 
     return jsonResponse(inquiry, { status: 201 });

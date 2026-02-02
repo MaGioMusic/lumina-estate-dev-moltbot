@@ -22,8 +22,11 @@ export async function GET(req: NextRequest) {
     if (!roomId) return NextResponse.json({ error: 'Room ID required' }, { status: 400 });
     
     // SECURITY FIX: Add pagination to prevent DoS
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '100')));
+    const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
+    const limit = Math.min(
+      200,
+      Math.max(1, Number.parseInt(searchParams.get('limit') || '100', 10) || 100),
+    );
     const skip = (page - 1) * limit;
 
     // Verify user is member of room
@@ -73,6 +76,7 @@ export async function POST(req: NextRequest) {
     
     // SECURITY FIX: Sanitize string inputs to prevent XSS
     const sanitizedData = sanitizeFields(validatedData, ['content']);
+    const messageType = sanitizedData.type === 'system' ? 'text' : sanitizedData.type;
 
     // Verify user is member of room
     const membership = await prisma.chatRoomMember.findUnique({
@@ -85,7 +89,7 @@ export async function POST(req: NextRequest) {
         roomId: sanitizedData.roomId,
         senderId: session.user.id,
         content: sanitizedData.content,
-        type: sanitizedData.type,
+        type: messageType,
       },
       include: {
         sender: { select: { id: true, firstName: true, lastName: true, avatar: true } }
