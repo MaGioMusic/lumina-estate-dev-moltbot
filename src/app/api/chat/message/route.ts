@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getChatRetentionMaxAgeSeconds, isoNowPlusChatRetentionDays } from '@/lib/chatRetention';
+import { logger } from '@/lib/logger';
 
 const COOKIE_VISITOR = 'lumina_ai_visitor_id';
 const COOKIE_CONVERSATION = 'lumina_ai_conversation_id';
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
       updated_at: nowIso,
     });
     if (error) {
-      console.error('[chat/message] Failed to create conversation', {
+      logger.error('[chat/message] Failed to create conversation', {
         conversationId,
         visitorId,
         error,
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
         updated_at: nowIso,
       });
       if (error) {
-        console.error('[chat/message] Failed to roll conversation forward', {
+        logger.error('[chat/message] Failed to roll conversation forward', {
           previousConversationId: conversationId,
           newConversationId: newId,
           visitorId,
@@ -171,7 +172,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (msgErr) {
-    console.error('[chat/message] Failed to store message', {
+    logger.error('[chat/message] Failed to store message', {
       messageId,
       effectiveConversationId,
       role: payload.role,

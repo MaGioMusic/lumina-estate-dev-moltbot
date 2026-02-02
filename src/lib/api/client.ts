@@ -11,6 +11,12 @@ import {
   RequestConfig,
   ApiClientConfig,
 } from '@/types/api';
+import {
+  getClientCsrfToken,
+  fetchCsrfToken,
+  requiresCsrfProtection,
+  CSRF_HEADER_NAME,
+} from '@/lib/security/csrf';
 
 // ============================================================================
 // Configuration
@@ -48,9 +54,9 @@ function buildUrl(
 }
 
 /**
- * Get authentication headers
+ * Get authentication headers including CSRF token for mutations
  */
-async function getAuthHeaders(): Promise<Record<string, string>> {
+async function getAuthHeaders(method: HttpMethod = 'GET'): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -58,6 +64,20 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   // In a Next.js app, we can't easily access the session token client-side
   // The session cookie is automatically sent with requests
   // For server-side requests, you'd need to pass the token explicitly
+
+  // Add CSRF token for mutation requests
+  if (requiresCsrfProtection(method)) {
+    let csrfToken = getClientCsrfToken();
+    
+    // If no token in memory, fetch a new one
+    if (!csrfToken) {
+      csrfToken = await fetchCsrfToken();
+    }
+    
+    if (csrfToken) {
+      headers[CSRF_HEADER_NAME] = csrfToken;
+    }
+  }
 
   return headers;
 }
@@ -187,14 +207,19 @@ class ApiClient {
     const url = buildUrl(this.baseUrl, endpoint, config.params);
     const timeout = config.timeout || this.defaultTimeout;
 
+    // Create AbortController if not provided in config
+    const abortController = config.signal ? undefined : new AbortController();
+
     // Build request config
     let requestConfig: RequestInit = {
       method,
       headers: {
         ...this.defaultHeaders,
-        ...(await getAuthHeaders()),
+        ...(await getAuthHeaders(method)),
         ...config.headers,
       },
+      credentials: 'include', // Important: include cookies for CSRF
+      signal: config.signal || abortController?.signal,
       ...config,
     };
 
@@ -208,12 +233,14 @@ class ApiClient {
       requestConfig = await interceptor(requestConfig);
     }
 
+    // Create timeout that aborts the request
+    const timeoutId = setTimeout(() => {
+      abortController?.abort();
+    }, timeout);
+
     try {
-      // Race between fetch and timeout
-      const response = await Promise.race([
-        fetch(url, requestConfig),
-        createTimeoutPromise(timeout),
-      ]);
+      const response = await fetch(url, requestConfig);
+      clearTimeout(timeoutId);
 
       let data = await handleResponse<T>(response);
 
@@ -224,12 +251,15 @@ class ApiClient {
 
       return data;
     } catch (error) {
+      clearTimeout(timeoutId);
       let apiError: ApiError;
 
       if (error instanceof ApiError) {
         apiError = error;
       } else if (error instanceof Error) {
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          apiError = new ApiError('Request aborted', ApiErrorCode.NETWORK_ERROR, 0);
+        } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
           apiError = new ApiError('Network error', ApiErrorCode.NETWORK_ERROR, 0);
         } else {
           apiError = new ApiError(error.message, ApiErrorCode.UNKNOWN_ERROR, 500);

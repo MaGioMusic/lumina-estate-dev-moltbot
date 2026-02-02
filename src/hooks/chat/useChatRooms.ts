@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChatRoom, ChatRoomType } from '@/types/chat';
+import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
 
 interface UseChatRoomsOptions {
   autoFetch?: boolean;
@@ -33,13 +35,31 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-  const fetchRooms = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const fetchRooms = useCallback(async (signal?: AbortSignal) => {
+    // Abort any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
+    // Use provided signal if available, otherwise use controller's signal
+    const finalSignal = signal || controller.signal;
+    
+    if (isMountedRef.current) {
+      setIsLoading(true);
+      setError(null);
+    }
     
     try {
-      const response = await fetch('/api/chat/rooms');
+      const response = await fetch('/api/chat/rooms', {
+        signal: finalSignal,
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -47,6 +67,9 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
       }
       
       const data = await response.json();
+      
+      // Only update state if component is still mounted
+      if (!isMountedRef.current) return;
       
       if (data.success && Array.isArray(data.rooms)) {
         // Transform Prisma data to match ChatRoom type
@@ -74,11 +97,17 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
         setRooms([]);
       }
     } catch (err) {
+      // Don't update state if request was aborted or component unmounted
+      if ((err instanceof Error && err.name === 'AbortError') || !isMountedRef.current) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch rooms';
       setError(errorMessage);
-      console.error('Error fetching chat rooms:', err);
+      logger.error('Error fetching chat rooms:', err);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -87,9 +116,19 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
     setError(null);
     
     try {
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       const response = await fetch('/api/chat/rooms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
       
@@ -110,7 +149,7 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create room';
       setError(errorMessage);
-      console.error('Error creating chat room:', err);
+      logger.error('Error creating chat room:', err);
       return null;
     } finally {
       setIsCreating(false);
@@ -152,21 +191,49 @@ export function useChatRooms(options: UseChatRoomsOptions = {}): UseChatRoomsRet
     fetchRooms();
   }, [fetchRooms]);
 
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Auto-fetch on mount
   useEffect(() => {
     if (autoFetch) {
-      fetchRooms();
+      const controller = new AbortController();
+      fetchRooms(controller.signal);
+      
+      return () => {
+        controller.abort();
+      };
     }
   }, [autoFetch, fetchRooms]);
 
   // Set up polling for real-time updates
   useEffect(() => {
     if (pollInterval > 0) {
-      pollRef.current = setInterval(fetchRooms, pollInterval);
+      // Clear any existing interval
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
+      
+      pollRef.current = setInterval(() => {
+        // Create new abort controller for each poll request
+        const pollController = new AbortController();
+        fetchRooms(pollController.signal);
+      }, pollInterval);
       
       return () => {
         if (pollRef.current) {
           clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+        // Abort any pending request on unmount or dependency change
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
         }
       };
     }

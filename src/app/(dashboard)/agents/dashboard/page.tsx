@@ -4,23 +4,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRouter } from 'next/navigation';
 import { Users, ChartLine, TrendUp, UserCheck } from '@phosphor-icons/react';
-import { useEffect } from 'react';
 
+/**
+ * Agent Dashboard Page
+ * 
+ * SECURITY NOTE: Authentication is handled server-side by the layout.
+ * The useAuth hook here is used only for displaying user information,
+ * not for access control. Client-side auth checks are unreliable and
+ * have been removed in favor of server-side validation.
+ */
 export default function DashboardPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
-
-  // Redirect if not authenticated or not an agent
-  useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'agent') {
-      router.push('/');
-    }
-  }, [isAuthenticated, user, router]);
-
-  if (!isAuthenticated || user?.role !== 'agent') {
-    return null;
-  }
 
   const dashboardCards = [
     {
@@ -50,7 +46,7 @@ export default function DashboardPage() {
             {t('dashboard')}
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-                          Welcome back, {user?.name}! Here's your agent dashboard overview.
+            Welcome back, {user?.name || 'Agent'}! Here&apos;s your agent dashboard overview.
           </p>
         </div>
 
@@ -172,4 +168,4 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-} 
+}

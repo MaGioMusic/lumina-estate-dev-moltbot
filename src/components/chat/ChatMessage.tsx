@@ -5,6 +5,7 @@ import { Check, CheckCheck, FileText, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatMessage as ChatMessageType, MessageType } from "@/types/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { sanitizeString } from "@/lib/sanitize";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -19,7 +20,9 @@ export function ChatMessage({
   showAvatar = true,
   className,
 }: ChatMessageProps) {
-  const initials = message.senderName
+  // SECURITY FIX: Sanitize sender name before processing
+  const sanitizedSenderName = sanitizeString(message.senderName) || '';
+  const initials = sanitizedSenderName
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -41,6 +44,9 @@ export function ChatMessage({
   };
 
   const renderContent = () => {
+    // SECURITY FIX: Sanitize all message content before rendering to prevent XSS
+    const sanitizedContent = sanitizeString(message.content) || '';
+    
     switch (message.type) {
       case 'image':
         return (
@@ -48,13 +54,13 @@ export function ChatMessage({
             {message.fileUrl && (
               <img
                 src={message.fileUrl}
-                alt={message.fileName || 'Image'}
+                alt={sanitizeString(message.fileName) || 'Image'}
                 className="max-w-[200px] max-h-[200px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => message.fileUrl && window.open(message.fileUrl, '_blank')}
               />
             )}
-            {message.content && (
-              <p className="text-sm">{message.content}</p>
+            {sanitizedContent && (
+              <p className="text-sm">{sanitizedContent}</p>
             )}
           </div>
         );
@@ -75,7 +81,7 @@ export function ChatMessage({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
-                {message.fileName || 'File'}
+                {sanitizeString(message.fileName) || 'File'}
               </p>
               {message.fileSize && (
                 <p className="text-xs text-muted-foreground">
@@ -88,19 +94,22 @@ export function ChatMessage({
 
       case 'system':
         return (
-          <p className="text-sm italic">{message.content}</p>
+          <p className="text-sm italic">{sanitizedContent}</p>
         );
 
       default:
-        return <p className="text-sm whitespace-pre-wrap">{message.content}</p>;
+        // SECURITY FIX: Use sanitized content only - no dangerouslySetInnerHTML needed for text
+        return <p className="text-sm whitespace-pre-wrap">{sanitizedContent}</p>;
     }
   };
 
   if (message.type === 'system') {
+    // SECURITY FIX: Sanitize system message content
+    const sanitizedSystemContent = sanitizeString(message.content) || '';
     return (
       <div className={cn("flex justify-center my-4", className)}>
         <div className="bg-muted px-4 py-2 rounded-full">
-          <p className="text-xs text-muted-foreground">{message.content}</p>
+          <p className="text-xs text-muted-foreground">{sanitizedSystemContent}</p>
         </div>
       </div>
     );
@@ -117,7 +126,10 @@ export function ChatMessage({
       {/* Avatar */}
       {showAvatar ? (
         <Avatar className="h-8 w-8 flex-shrink-0 border border-[#D4AF37]/20">
-          <AvatarImage src={message.senderAvatar || undefined} alt={message.senderName} />
+          <AvatarImage 
+            src={message.senderAvatar || undefined} 
+            alt={sanitizedSenderName}
+          />
           <AvatarFallback className="bg-[#1E3A8A] text-white text-xs">
             {initials}
           </AvatarFallback>
@@ -128,10 +140,10 @@ export function ChatMessage({
 
       {/* Message Bubble */}
       <div className={cn("max-w-[70%]", isOwn ? "items-end" : "items-start")}>
-        {/* Sender Name */}
+        {/* Sender Name - SECURITY FIX: Use sanitized name */}
         {showAvatar && !isOwn && (
           <p className="text-xs text-muted-foreground mb-1 ml-1">
-            {message.senderName}
+            {sanitizedSenderName}
           </p>
         )}
 

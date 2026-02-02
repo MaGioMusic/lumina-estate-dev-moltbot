@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChatMessage, MessageType } from '@/types/chat';
+import { getClientCsrfToken, fetchCsrfToken, CSRF_HEADER_NAME } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
 
 interface UseChatMessagesOptions {
   roomId: string | null;
@@ -46,19 +48,38 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-  const fetchMessages = useCallback(async (page: number = 1) => {
+  const fetchMessages = useCallback(async (page: number = 1, signal?: AbortSignal) => {
     if (!roomId) {
-      setMessages([]);
+      if (isMountedRef.current) {
+        setMessages([]);
+      }
       return;
     }
     
-    setIsLoading(true);
-    setError(null);
+    // Abort any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
+    // Use provided signal if available, otherwise use controller's signal
+    const finalSignal = signal || controller.signal;
+    
+    if (isMountedRef.current) {
+      setIsLoading(true);
+      setError(null);
+    }
     
     try {
       const response = await fetch(
-        `/api/chat/messages?roomId=${encodeURIComponent(roomId)}&page=${page}&limit=${pageSize}`
+        `/api/chat/messages?roomId=${encodeURIComponent(roomId)}&page=${page}&limit=${pageSize}`,
+        { signal: finalSignal }
       );
       
       if (!response.ok) {
@@ -67,6 +88,9 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
       }
       
       const data = await response.json();
+      
+      // Only update state if component is still mounted
+      if (!isMountedRef.current) return;
       
       if (data.success && Array.isArray(data.messages)) {
         // Transform Prisma data to match ChatMessage type
@@ -98,11 +122,17 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
         setCurrentPage(page);
       }
     } catch (err) {
+      // Don't update state if request was aborted or component unmounted
+      if ((err instanceof Error && err.name === 'AbortError') || !isMountedRef.current) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch messages';
       setError(errorMessage);
-      console.error('Error fetching messages:', err);
+      logger.error('Error fetching messages:', err);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [roomId, pageSize]);
 
@@ -141,10 +171,20 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
         fileSize = data.file.size;
       }
       
+      // Get CSRF token for mutation
+      let csrfToken = getClientCsrfToken();
+      if (!csrfToken) {
+        csrfToken = await fetchCsrfToken();
+      }
+
       // Send message
       const response = await fetch('/api/chat/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          [CSRF_HEADER_NAME]: csrfToken || '',
+        },
+        credentials: 'include',
         body: JSON.stringify({
           roomId,
           content: data.content,
@@ -199,7 +239,7 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
       setError(errorMessage);
-      console.error('Error sending message:', err);
+      logger.error('Error sending message:', err);
       return null;
     } finally {
       setIsSending(false);
@@ -232,10 +272,23 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
     setMessages(prev => prev.filter(msg => msg.id !== messageId));
   }, []);
 
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Auto-fetch when roomId changes
   useEffect(() => {
     if (autoFetch && roomId) {
-      fetchMessages(1);
+      const controller = new AbortController();
+      fetchMessages(1, controller.signal);
+      
+      return () => {
+        controller.abort();
+      };
     }
   }, [roomId, autoFetch, fetchMessages]);
 
@@ -248,12 +301,20 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
       }
       
       pollRef.current = setInterval(() => {
-        fetchMessages(1);
+        // Create new abort controller for each poll request
+        const pollController = new AbortController();
+        fetchMessages(1, pollController.signal);
       }, pollInterval);
       
       return () => {
         if (pollRef.current) {
           clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+        // Abort any pending request on unmount or dependency change
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
         }
       };
     }

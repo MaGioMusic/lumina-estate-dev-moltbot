@@ -1,162 +1,244 @@
-"use client";
+/**
+ * React Query Hooks for Tasks
+ * Pre-built hooks for fetching and mutating task data
+ */
 
-import { useState, useEffect, useCallback } from 'react';
-import { Task, TaskFormData, TaskStatus } from '@/types/crm';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryOptions,
+} from '@tanstack/react-query';
+import { tasksApi } from '@/lib/api';
+import {
+  Task,
+  TaskFormData,
+  TaskStatus,
+  TaskPriority,
+  TaskQueryParams,
+} from '@/types';
+import { ApiError, PaginatedResponse, ItemResponse } from '@/types/api';
 
-interface UseTasksOptions {
-  status?: string;
-  priority?: string;
-  assignedToMe?: boolean;
-  page?: number;
-  limit?: number;
-}
+// Query keys
+export const taskKeys = {
+  all: ['tasks'] as const,
+  lists: () => [...taskKeys.all, 'list'] as const,
+  list: (params: TaskQueryParams) => [...taskKeys.lists(), params] as const,
+  details: () => [...taskKeys.all, 'detail'] as const,
+  detail: (id: string) => [...taskKeys.details(), id] as const,
+  overdue: () => [...taskKeys.all, 'overdue'] as const,
+  upcoming: (days: number) => [...taskKeys.all, 'upcoming', days] as const,
+};
 
-interface TasksResponse {
-  success: boolean;
-  tasks: Task[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+// Types for task with relations
+interface TaskWithRelations extends Task {
+  assignedTo?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  deal?: {
+    id: string;
+    title: string;
+  };
+  contact?: {
+    id: string;
+    firstName: string;
+    lastName: string;
   };
 }
 
-export function useTasks(options: UseTasksOptions = {}) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<TasksResponse['pagination'] | null>(null);
+// ============================================================================
+// Query Hooks
+// ============================================================================
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+/**
+ * Hook to fetch tasks with optional filtering
+ */
+export function useTasks(
+  params?: TaskQueryParams,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.list(params ?? {}),
+    queryFn: () => tasksApi.getTasks(params),
+    ...options,
+  });
+}
 
-      const params = new URLSearchParams();
-      if (options.status) params.set('status', options.status);
-      if (options.priority) params.set('priority', options.priority);
-      if (options.assignedToMe) params.set('assignedToMe', 'true');
-      if (options.page) params.set('page', options.page.toString());
-      if (options.limit) params.set('limit', options.limit.toString());
+/**
+ * Hook to fetch a single task
+ */
+export function useTask(
+  id: string,
+  options?: UseQueryOptions<ItemResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.detail(id),
+    queryFn: () => tasksApi.getTask(id),
+    enabled: !!id,
+    ...options,
+  });
+}
 
-      const response = await fetch(`/api/tasks?${params.toString()}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch tasks');
-      }
+/**
+ * Hook to fetch overdue tasks
+ */
+export function useOverdueTasks(
+  params?: Omit<TaskQueryParams, 'status'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.overdue(),
+    queryFn: () => tasksApi.getOverdueTasks(params),
+    ...options,
+  });
+}
 
-      const data: TasksResponse = await response.json();
-      setTasks(data.tasks || []);
-      setPagination(data.pagination || null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.status, options.priority, options.assignedToMe, options.page, options.limit]);
+/**
+ * Hook to fetch upcoming tasks (due in next N days)
+ */
+export function useUpcomingTasks(
+  days: number = 7,
+  params?: Omit<TaskQueryParams, 'status'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: taskKeys.upcoming(days),
+    queryFn: () => tasksApi.getUpcomingTasks(days, params),
+    ...options,
+  });
+}
 
-  const createTask = useCallback(async (formData: TaskFormData): Promise<Task | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+/**
+ * Hook to create a new task
+ */
+export function useCreateTask() {
+  const queryClient = useQueryClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create task');
-      }
+  return useMutation({
+    mutationFn: tasksApi.createTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.upcoming(7) });
+    },
+  });
+}
 
-      const data = await response.json();
-      await fetchTasks(); // Refresh the list
-      return data.task;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchTasks]);
+/**
+ * Hook to update a task
+ */
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
 
-  const updateTask = useCallback(async (id: string, formData: Partial<TaskFormData>): Promise<Task | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<TaskFormData> }) =>
+      tasksApi.updateTask(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.upcoming(7) });
+    },
+  });
+}
 
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+/**
+ * Hook to delete a task
+ */
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update task');
-      }
+  return useMutation({
+    mutationFn: tasksApi.deleteTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.upcoming(7) });
+    },
+  });
+}
 
-      const data = await response.json();
-      await fetchTasks(); // Refresh the list
-      return data.task;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchTasks]);
+/**
+ * Hook to mark a task as completed
+ */
+export function useCompleteTask() {
+  const queryClient = useQueryClient();
 
-  const deleteTask = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  return useMutation({
+    mutationFn: tasksApi.completeTask,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.overdue() });
+    },
+  });
+}
 
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'DELETE',
-      });
+/**
+ * Hook to start a task (mark as in_progress)
+ */
+export function useStartTask() {
+  const queryClient = useQueryClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete task');
-      }
+  return useMutation({
+    mutationFn: tasksApi.startTask,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+    },
+  });
+}
 
-      await fetchTasks(); // Refresh the list
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchTasks]);
+// ============================================================================
+// Specialized Hooks
+// ============================================================================
 
-  const toggleTaskStatus = useCallback(async (task: Task): Promise<Task | null> => {
-    const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
-    return updateTask(task.id, { status: newStatus });
-  }, [updateTask]);
+/**
+ * Hook to get tasks by status
+ */
+export function useTasksByStatus(
+  status: TaskStatus,
+  params?: Omit<TaskQueryParams, 'status'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...taskKeys.lists(), 'status', status, params],
+    queryFn: () => tasksApi.getTasksByStatus(status, params),
+    ...options,
+  });
+}
 
-  const refresh = useCallback(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+/**
+ * Hook to get tasks by priority
+ */
+export function useTasksByPriority(
+  priority: TaskPriority,
+  params?: Omit<TaskQueryParams, 'priority'>,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...taskKeys.lists(), 'priority', priority, params],
+    queryFn: () => tasksApi.getTasksByPriority(priority, params),
+    ...options,
+  });
+}
 
-  useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
-
-  return {
-    tasks,
-    isLoading,
-    error,
-    pagination,
-    createTask,
-    updateTask,
-    deleteTask,
-    toggleTaskStatus,
-    refresh,
-  };
+/**
+ * Hook to get tasks assigned to current user
+ */
+export function useMyTasks(
+  params?: TaskQueryParams,
+  options?: UseQueryOptions<PaginatedResponse<TaskWithRelations>, ApiError>
+) {
+  return useQuery({
+    queryKey: [...taskKeys.lists(), 'mine', params],
+    queryFn: () => tasksApi.getMyTasks(params),
+    ...options,
+  });
 }

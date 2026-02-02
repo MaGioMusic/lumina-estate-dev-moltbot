@@ -5,6 +5,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 
 import { prisma } from '../prisma';
+import { logger } from '../logger';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -26,12 +27,12 @@ const validateNextAuthSecret = (): string => {
     );
     
     if (process.env.NODE_ENV === 'production') {
-      console.error('[auth] FATAL: NEXTAUTH_SECRET is not set in production');
+      logger.error('[auth] FATAL: NEXTAUTH_SECRET is not set in production');
       throw error;
     }
     
     // In development, warn but don't crash
-    console.warn('[auth] WARNING: NEXTAUTH_SECRET not set. Using a temporary secret for development only.');
+    logger.warn('[auth] WARNING: NEXTAUTH_SECRET not set. Using a temporary secret for development only.');
     // Generate a random temporary secret for dev (changes on each restart)
     return `temp-dev-secret-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
@@ -42,7 +43,7 @@ const validateNextAuthSecret = (): string => {
       `NEXTAUTH_SECRET must be at least 32 characters long (currently ${secret.length}). ` +
       'Generate a secure secret with: openssl rand -base64 32'
     );
-    console.error('[auth] FATAL: NEXTAUTH_SECRET is too short');
+    logger.error('[auth] FATAL: NEXTAUTH_SECRET is too short');
     throw error;
   }
 
@@ -54,7 +55,7 @@ const validateNextAuthSecret = (): string => {
   ];
   
   if (weakPatterns.some(pattern => lower.includes(pattern))) {
-    console.error('[auth] WARNING: NEXTAUTH_SECRET appears to be a placeholder or weak value');
+    logger.error('[auth] WARNING: NEXTAUTH_SECRET appears to be a placeholder or weak value');
   }
 
   return secret;
@@ -109,7 +110,7 @@ export const nextAuthOptions: NextAuthOptions = {
             accountRole: user.accountRole,
           };
         } catch (error) {
-          console.error('[auth/authorize] Error during authorization:', error);
+          logger.error('[auth/authorize] Error during authorization:', error);
           return null;
         }
       },
@@ -125,7 +126,7 @@ export const nextAuthOptions: NextAuthOptions = {
         }
         return session;
       } catch (error) {
-        console.error('[auth/session] Error in session callback:', error);
+        logger.error('[auth/session] Error in session callback:', error);
         return session;
       }
     },
@@ -138,7 +139,7 @@ export const nextAuthOptions: NextAuthOptions = {
         }
         return token;
       } catch (error) {
-        console.error('[auth/jwt] Error in JWT callback:', error);
+        logger.error('[auth/jwt] Error in JWT callback:', error);
         return token;
       }
     },
@@ -179,27 +180,25 @@ export const nextAuthOptions: NextAuthOptions = {
   secret: resolvedSecret,
   logger: {
     error(code, metadata) {
-      console.error('NextAuth error:', code, metadata);
+      logger.error('NextAuth error:', code, metadata);
     },
     warn(code) {
-      console.warn('NextAuth warning:', code);
+      logger.warn('NextAuth warning:', code);
     },
     debug(code, metadata) {
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('NextAuth debug:', code, metadata);
-      }
+      logger.debug('NextAuth debug:', code, metadata);
     },
   },
   // Enable events for security logging
   events: {
     async signIn(message) {
-      console.log('[auth] User signed in:', message.user.email);
+      logger.log('[auth] User signed in:', message.user.email);
     },
     async signOut(message) {
-      console.log('[auth] User signed out:', message.token?.email || 'unknown');
+      logger.log('[auth] User signed out:', message.token?.email || 'unknown');
     },
     async createUser(message) {
-      console.log('[auth] New user created:', message.user.email);
+      logger.log('[auth] New user created:', message.user.email);
     },
   },
 };
