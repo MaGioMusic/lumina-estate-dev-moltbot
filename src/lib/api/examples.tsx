@@ -1,6 +1,6 @@
 /**
  * API Layer Usage Examples
- * 
+ *
  * This file demonstrates how to use the API layer in your components.
  * These are examples only - do not import from this file.
  */
