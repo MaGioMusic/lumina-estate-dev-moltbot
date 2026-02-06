@@ -112,8 +112,12 @@ export default function UploadPropertyModal({ isOpen, onClose }: UploadPropertyM
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement actual upload logic
-      console.log('Uploading property:', formData);
+      // NOTE: This is a mock implementation for demo purposes
+      // To implement actual upload:
+      // 1. Upload images to storage (Supabase Storage, S3, etc.)
+      // 2. Create property record via POST /api/properties
+      // 3. Handle validation and error states
+      console.info('Property upload requested:', formData.title);
       
       // Simulate upload delay
       await new Promise(resolve => setTimeout(resolve, 2000));

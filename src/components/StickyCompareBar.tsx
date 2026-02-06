@@ -164,7 +164,6 @@ export default function StickyCompareBar() {
             ) : (
               <a
                 href={`/compare?id=${qs}`}
-                onClick={() => console.log('analytics:event', 'compare_open', { ids })}
                 className="px-3 py-1.5 text-xs rounded-md text-white bg-[#F08336] hover:bg-orange-600"
               >
                 {t('compareNow') || 'Compare now'}

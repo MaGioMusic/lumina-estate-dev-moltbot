@@ -39,10 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Map NextAuth session to our User type
   const user: User | null = session?.user ? {
-    id: (session.user as any).id || '',
+    id: session.user.id || '',
     email: session.user.email || '',
     name: session.user.name || '',
-    role: ((session.user as any).accountRole as UserRole) || 'USER',
+    role: session.user.accountRole || 'USER',
   } : null;
 
   const isAuthenticated = !!session && status === 'authenticated';

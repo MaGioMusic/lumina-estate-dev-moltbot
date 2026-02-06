@@ -103,7 +103,8 @@ export default function PropertySubmitModal({ isOpen, onClose }: PropertySubmitM
   };
 
   const onSubmit = async (data: FormValues) => {
-    console.log('Submit property:', data, { imagesCount: images.length });
+    // TODO: Implement property submission API call
+    console.info('Property submission:', { title: data.title, location: data.location, imagesCount: images.length });
     onClose();
   };
 
