@@ -157,7 +157,7 @@ export default function StickyCompareBar() {
                 disabled
                 className={`px-3 py-1.5 text-xs rounded-md text-white bg-orange-300 cursor-not-allowed`}
                 title={t('minTwoObjects') || 'მინ. 2 ობიექტი'}
-                aria-disabled
+                aria-disabled="true"
               >
                 {t('compareNow') || 'Compare now'}
               </button>

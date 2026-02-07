@@ -120,9 +120,12 @@ export const nextAuthOptions: NextAuthOptions = {
     async session({ session, token }) {
       try {
         if (session.user && token?.sub) {
-          const sessionUser = session.user as any;
-          sessionUser.id = token.sub;
-          sessionUser.accountRole = (token.accountRole as AccountRole) ?? 'USER';
+          // Extend session.user with additional fields
+          session.user = {
+            ...session.user,
+            id: token.sub,
+            accountRole: (token.accountRole as AccountRole) ?? 'USER',
+          };
         }
         return session;
       } catch (error) {

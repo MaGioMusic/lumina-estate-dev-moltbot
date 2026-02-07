@@ -153,7 +153,6 @@ const PropertyDashboard: React.FC<PropertyDashboardProps> = ({ propertyId }) => 
       setTimeout(() => {
         setUploadedFiles(prev => [...prev, ...fileArray]);
         setIsUploading(false);
-        console.log('Files uploaded successfully:', fileArray.map(f => f.name));
       }, 1500);
     }
   };

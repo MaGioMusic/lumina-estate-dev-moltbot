@@ -182,7 +182,7 @@ class LuminaEstateMCPServer {
       ]
     }));
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
       try {
@@ -206,7 +206,7 @@ class LuminaEstateMCPServer {
     });
   }
 
-  private async searchProperties(args: any) {
+  private async searchProperties(args: Record<string, unknown>) {
     let filteredProperties = this.properties;
 
     if (args.location) {
@@ -257,7 +257,7 @@ class LuminaEstateMCPServer {
     };
   }
 
-  private async getPropertyDetails(args: any) {
+  private async getPropertyDetails(args: Record<string, unknown>) {
     const property = this.properties.find(p => p.id === args.propertyId);
     
     if (!property) {
@@ -274,7 +274,7 @@ class LuminaEstateMCPServer {
     };
   }
 
-  private async getAgentInfo(args: any) {
+  private async getAgentInfo(args: Record<string, unknown>) {
     const agent = this.agents.find(a => a.id === args.agentId);
     
     if (!agent) {
@@ -291,8 +291,13 @@ class LuminaEstateMCPServer {
     };
   }
 
-  private async calculateMortgage(args: any) {
-    const { price, downPayment, interestRate, loanTerm } = args;
+  private async calculateMortgage(args: Record<string, unknown>) {
+    const { price, downPayment, interestRate, loanTerm } = args as {
+      price: number;
+      downPayment: number;
+      interestRate: number;
+      loanTerm: number;
+    };
     
     const loanAmount = price - downPayment;
     const monthlyRate = interestRate / 100 / 12;
@@ -321,10 +326,10 @@ class LuminaEstateMCPServer {
     };
   }
 
-  private async getMarketInsights(args: any) {
+  private async getMarketInsights(args: Record<string, unknown>) {
     // Mock market insights data
     const insights = {
-      location: args.location,
+      location: args.location as string,
       averagePrice: 180000,
       priceChange: '+12.5%',
       averageDaysOnMarket: 45,
@@ -352,7 +357,11 @@ class LuminaEstateMCPServer {
   async start() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.log('Lumina Estate MCP Server started successfully! 🏠');
+    
+    // Only log startup in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Lumina Estate MCP Server started successfully! 🏠');
+    }
   }
 }
 
@@ -363,5 +372,8 @@ export { LuminaEstateMCPServer, type Property, type Agent };
 const isMainModule = import.meta.url === `file://${process.argv[1]}`;
 if (isMainModule) {
   const server = new LuminaEstateMCPServer();
-  server.start().catch(console.error);
+  server.start().catch((error: Error) => {
+    console.error('Failed to start MCP server:', error.message);
+    process.exit(1);
+  });
 } 
