@@ -65,7 +65,7 @@ export default function SinglePropertyGoogleMap({ coordinates, propertyTitle, pr
 
       // Main marker
       if (AdvancedMarkerElement) {
-        mainMarkerRef.current = new AdvancedMarkerElement({ position: coordinates, map, title: propertyTitle }) as any;
+        mainMarkerRef.current = new AdvancedMarkerElement({ position: coordinates, map, title: propertyTitle });
       } else {
         mainMarkerRef.current = new google.maps.Marker({ position: coordinates, map, title: propertyTitle });
       }
@@ -84,7 +84,7 @@ export default function SinglePropertyGoogleMap({ coordinates, propertyTitle, pr
         const svc = serviceRef.current;
         if (!svc) return;
         svc.nearbySearch(
-          { location: coordinates, radius, type: type as any },
+          { location: coordinates, radius, type },
         (results, status) => {
             if (status !== (google.maps.places.PlacesServiceStatus?.OK || 'OK') || !results) return;
             const ms: google.maps.Marker[] = [];
