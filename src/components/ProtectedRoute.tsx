@@ -49,9 +49,11 @@ export default function ProtectedRoute({
       return;
     }
 
-    // Check permission requirements (simplified for now)
+    // Check permission requirements
     if (requiredPermission) {
-      // TODO: Implement proper permission checking
+      // NOTE: Permission-based access control should be implemented here
+      // Currently using role-based fallback - extend with fine-grained permissions
+      // Example: Check if user has requiredPermission.action on requiredPermission.resource
       router.push(fallbackRoute);
       return;
     }
@@ -93,7 +95,9 @@ export default function ProtectedRoute({
   // Check permission access
   const hasPermissionAccess = () => {
     if (requiredPermission) {
-      return true; // TODO: Implement proper permission checking
+      // NOTE: Fine-grained permission checking to be implemented
+      // This would check user.permissions against requiredPermission
+      return true;
     }
     return true;
   };

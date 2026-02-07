@@ -47,10 +47,10 @@ export interface ApiErrorResponse {
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 // Generic wrapper for list responses
-export interface ListResponse<T> extends PaginatedResponse<T> {}
+export type ListResponse<T> = PaginatedResponse<T>;
 
 // Single item response
-export interface ItemResponse<T> extends ApiSuccessResponse<T> {}
+export type ItemResponse<T> = ApiSuccessResponse<T>;
 
 // ============================================================================
 // Error Types
@@ -100,7 +100,7 @@ export interface CreateContactBody {
   notes?: string;
 }
 
-export interface UpdateContactBody extends Partial<CreateContactBody> {}
+export type UpdateContactBody = Partial<CreateContactBody>;
 
 // Deals
 export interface CreateDealBody {
@@ -114,7 +114,7 @@ export interface CreateDealBody {
   description?: string;
 }
 
-export interface UpdateDealBody extends Partial<CreateDealBody> {}
+export type UpdateDealBody = Partial<CreateDealBody>;
 
 // Tasks
 export interface CreateTaskBody {
@@ -128,7 +128,7 @@ export interface CreateTaskBody {
   status?: 'pending' | 'in_progress' | 'completed';
 }
 
-export interface UpdateTaskBody extends Partial<CreateTaskBody> {}
+export type UpdateTaskBody = Partial<CreateTaskBody>;
 
 // Notes
 export interface CreateNoteBody {
@@ -137,7 +137,7 @@ export interface CreateNoteBody {
   dealId?: string;
 }
 
-export interface UpdateNoteBody extends Partial<CreateNoteBody> {}
+export type UpdateNoteBody = Partial<CreateNoteBody>;
 
 // Chat
 export interface CreateChatRoomBody {
@@ -181,7 +181,7 @@ export interface NoteQueryParams extends PaginationParams {
   dealId?: string;
 }
 
-export interface ChatRoomQueryParams extends PaginationParams {}
+export type ChatRoomQueryParams = PaginationParams;
 
 export interface ChatMessageQueryParams extends PaginationParams {
   roomId: string;

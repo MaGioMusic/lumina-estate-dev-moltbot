@@ -259,22 +259,22 @@ async function exampleErrorHandling() {
     if (error instanceof ApiError) {
       switch (error.code) {
         case ApiErrorCode.UNAUTHORIZED:
-          console.log('Please log in');
+          // Handle unauthorized - redirect to login
           break;
         case ApiErrorCode.FORBIDDEN:
-          console.log('Access denied');
+          // Handle forbidden - show access denied message
           break;
         case ApiErrorCode.NOT_FOUND:
-          console.log('Contact not found');
+          // Handle not found - show 404 message
           break;
         case ApiErrorCode.VALIDATION_ERROR:
-          console.log('Validation errors:', error.details);
+          // Handle validation errors - display field errors
           break;
         case ApiErrorCode.NETWORK_ERROR:
-          console.log('Network issue, please try again');
+          // Handle network error - retry or show offline message
           break;
         default:
-          console.log('Error:', error.message);
+          // Handle generic error
       }
     }
   }

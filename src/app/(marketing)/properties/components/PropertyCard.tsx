@@ -95,10 +95,8 @@ export default function PropertyCard({
     
     if (isPropertyFavorite) {
       removeFromFavorites(propertyId);
-      console.log(`Property ${propertyId}: წაშლილია ფავორიტებიდან!`);
     } else {
       addToFavorites(propertyData);
-      console.log(`Property ${propertyId}: დამატებულია ფავორიტებში!`);
     }
   };
 
@@ -112,7 +110,6 @@ export default function PropertyCard({
   };
 
   const handleCardClick = () => {
-    console.log(`Card clicked for property ${propertyId}`);
     router.push(`/properties/${propertyId}`);
   };
 
@@ -143,7 +140,7 @@ export default function PropertyCard({
           <PropertyImageCarousel
             images={propertyImages}
             alt={title || address || 'Property'}
-            onImageChange={(index) => console.log(`Property ${id} image changed to ${index}`)}
+            onImageChange={() => {}}
           />
           
           {/* Property Type and Status Badges */}

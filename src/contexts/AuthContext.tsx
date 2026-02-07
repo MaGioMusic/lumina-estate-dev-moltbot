@@ -39,10 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Map NextAuth session to our User type
   const user: User | null = session?.user ? {
-    id: (session.user as any).id || '',
+    id: session.user.id || '',
     email: session.user.email || '',
     name: session.user.name || '',
-    role: ((session.user as any).accountRole as UserRole) || 'USER',
+    role: session.user.accountRole || 'USER',
   } : null;
 
   const isAuthenticated = !!session && status === 'authenticated';
@@ -68,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (result?.error) {
-        console.error('[Auth] Login failed:', result.error);
         return { 
           success: false, 
           error: 'Invalid email or password. Please try again.' 
@@ -86,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: 'Authentication failed. Please try again.' 
       };
     } catch (error) {
-      console.error('[Auth] Login error:', error);
       return { 
         success: false, 
         error: 'An unexpected error occurred. Please try again.' 
@@ -127,7 +125,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const loginResult = await login(email, password);
       return loginResult;
     } catch (error) {
-      console.error('[Auth] Registration error:', error);
       return { 
         success: false, 
         error: 'An unexpected error occurred during registration.' 
@@ -147,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signOut({ redirect: false });
       router.refresh();
     } catch (error) {
-      console.error('[Auth] Logout error:', error);
+      // Silently handle logout errors - user will be redirected anyway
     } finally {
       setIsLoading(false);
     }

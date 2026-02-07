@@ -437,7 +437,6 @@ export default function PropertyDetailsMap({ selectedPropertyId, filters, search
           lng <= mapBounds.east
         );
       });
-      if (isDev) console.log('Filtered properties:', filtered.length, 'out of', baseFiltered.length);
       setVisibleProperties(filtered);
     }
   }, [mapBounds, baseFiltered]);
@@ -453,7 +452,6 @@ export default function PropertyDetailsMap({ selectedPropertyId, filters, search
       Math.abs(last.west - bounds.west) < EPS;
     if (isSame) return;
     lastBoundsRef.current = bounds;
-    if (isDev) console.log('Map bounds changed:', bounds);
     setMapBounds(bounds);
   }, []);
 

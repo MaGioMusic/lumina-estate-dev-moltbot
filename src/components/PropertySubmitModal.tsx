@@ -103,7 +103,19 @@ export default function PropertySubmitModal({ isOpen, onClose }: PropertySubmitM
   };
 
   const onSubmit = async (data: FormValues) => {
-    console.log('Submit property:', data, { imagesCount: images.length });
+    /**
+     * TODO: Implement property submission API endpoint
+     * 
+     * This should:
+     * 1. Upload images to cloud storage (Cloudinary/AWS S3)
+     * 2. Create property record in database with validated data
+     * 3. Send confirmation email to property owner
+     * 4. Return property ID for redirect to property details page
+     * 
+     * API endpoint: POST /api/properties
+     * Required fields: title, location, type, price, description
+     * Optional fields: images[], amenities[], coordinates
+     */
     onClose();
   };
 

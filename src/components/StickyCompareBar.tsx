@@ -157,14 +157,13 @@ export default function StickyCompareBar() {
                 disabled
                 className={`px-3 py-1.5 text-xs rounded-md text-white bg-orange-300 cursor-not-allowed`}
                 title={t('minTwoObjects') || 'მინ. 2 ობიექტი'}
-                aria-disabled
+                aria-disabled="true"
               >
                 {t('compareNow') || 'Compare now'}
               </button>
             ) : (
               <a
                 href={`/compare?id=${qs}`}
-                onClick={() => console.log('analytics:event', 'compare_open', { ids })}
                 className="px-3 py-1.5 text-xs rounded-md text-white bg-[#F08336] hover:bg-orange-600"
               >
                 {t('compareNow') || 'Compare now'}

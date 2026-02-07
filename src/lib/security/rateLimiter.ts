@@ -29,7 +29,16 @@ const DEFAULTS: RateLimitOptions = {
 /**
  * Minimal in-memory rate limiter suitable for local development / single instance demos.
  *
- * TODO: Replace with a shared/distributed rate limiter (Redis, Upstash, etc.) before production.
+ * IMPORTANT: This implementation uses an in-memory Map which:
+ * - Works fine for single-instance deployments
+ * - Will NOT work correctly in serverless/edge environments (Vercel, Netlify, etc.)
+ * - Will NOT share state across multiple server instances
+ *
+ * For production, replace with a distributed rate limiter:
+ * - Redis with ioredis or node-redis
+ * - Upstash Redis (serverless-friendly)
+ * - Vercel Edge Config with rate limiting
+ * - Cloudflare KV for edge deployments
  */
 export const enforceRateLimit = (key: string, options?: Partial<RateLimitOptions>) => {
   const config: RateLimitOptions = { ...DEFAULTS, ...(options ?? {}) };

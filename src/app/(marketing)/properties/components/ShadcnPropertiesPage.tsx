@@ -59,7 +59,6 @@ const ShadcnPropertiesPage: React.FC<ShadcnPropertiesPageProps> = ({ className =
   const handleFiltersChange = (newFilters: FiltersState) => {
     setFilters(newFilters);
     // Here you would typically update the properties list based on filters
-    console.log('Filters updated:', newFilters);
   };
 
   const getActiveFiltersCount = () => {
@@ -130,8 +129,7 @@ const ShadcnPropertiesPage: React.FC<ShadcnPropertiesPageProps> = ({ className =
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
                 onFiltersToggle={() => {
-                  // Mobile filter toggle handler
-                  console.log('Toggle mobile filters');
+                  // Mobile filter toggle handler - implement mobile filter logic here
                 }}
               />
             </div>

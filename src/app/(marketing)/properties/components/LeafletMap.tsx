@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 // Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -194,8 +194,6 @@ export default function LeafletMap({
       style={{ height: '100%', width: '100%' }}
       ref={mapRef}
       whenReady={() => {
-        if (isDev) console.log('Map is ready, setting up event listeners...');
-        
         // Add a small delay to ensure map is fully loaded
         setTimeout(() => {
           if (mapRef.current) {
@@ -203,13 +201,6 @@ export default function LeafletMap({
             
             const updateBounds = () => {
               const bounds = mapInstance.getBounds();
-              if (isDev) console.log('Map bounds changed:', {
-                north: bounds.getNorth(),
-                south: bounds.getSouth(),
-                east: bounds.getEast(),
-                west: bounds.getWest()
-              });
-              
               onBoundsChange({
                 north: bounds.getNorth(),
                 south: bounds.getSouth(),
@@ -222,10 +213,8 @@ export default function LeafletMap({
             mapInstance.on('moveend', updateBounds);
             mapInstance.on('zoomend', updateBounds);
             
-          // Initial bounds update
-          updateBounds();
-          
-            if (isDev) console.log('Event listeners added successfully');
+            // Initial bounds update
+            updateBounds();
         }
       }, 500);
     }}

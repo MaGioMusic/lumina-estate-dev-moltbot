@@ -82,7 +82,6 @@ const FiltersSidebar: React.FC<FiltersSidebarProps> = memo(({
 
   // Real-time filtering - update parent whenever filters change
   React.useEffect(() => {
-    console.log('FiltersSidebar filters changed:', filters);
     onFiltersChange(filters);
     
     // Count active filters
@@ -100,10 +99,8 @@ const FiltersSidebar: React.FC<FiltersSidebarProps> = memo(({
     setActiveFiltersCount(count);
   }, [filters, onFiltersChange]);
 
-  const handleFilterChange = (key: keyof FiltersState, value: any) => {
-    console.log('handleFilterChange called:', key, '=', value);
+  const handleFilterChange = (key: keyof FiltersState, value: unknown) => {
     const newFilters = { ...filters, [key]: value };
-    console.log('New filters state:', newFilters);
     setFilters(newFilters);
   };
 
@@ -594,7 +591,6 @@ const FiltersSidebar: React.FC<FiltersSidebarProps> = memo(({
                   <button
                     key={option.value}
                     onClick={() => {
-                      console.log('Floor option clicked:', option.value);
                       handleFilterChange('floor', option.value);
                       setIsFloorOpen(false);
                     }}

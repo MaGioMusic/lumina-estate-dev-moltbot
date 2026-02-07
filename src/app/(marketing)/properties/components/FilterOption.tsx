@@ -6,10 +6,10 @@ import { Check, CaretDown } from '@phosphor-icons/react';
 import { AnimatePresence } from 'framer-motion';
 
 // Base FilterOption Props
-interface BaseFilterOptionProps {
+interface BaseFilterOptionProps<T = unknown> {
   label: string;
-  value?: any;
-  onChange: (value: any) => void;
+  value?: T;
+  onChange: (value: T) => void;
   disabled?: boolean;
   className?: string;
 }
